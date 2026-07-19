@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hoppscotch/mcp-server",
+  "description": "MCP server for Hoppscotch — manage teams, collections, requests, and envs from AI agents.",
+  "title": "Hoppscotch",
+  "websiteUrl": "https://github.com/hoppscotch/hoppscotch-mcp-server#readme",
+  "repository": {
+    "url": "https://github.com/hoppscotch/hoppscotch-mcp-server",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@hoppscotch/mcp-server",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "HOPPSCOTCH_SERVER_URL",
+          "description": "Hoppscotch instance URL. Omit for Cloud (hoppscotch.io), or set to your self-hosted URL (e.g. https://your-sh.example.com)",
+          "isRequired": false
+        },
+        {
+          "name": "HOPPSCOTCH_ACCESS_TOKEN",
+          "description": "Override token for authentication (advanced). Use device-login flow instead for normal usage.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

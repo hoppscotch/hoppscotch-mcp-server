@@ -1,0 +1,96 @@
+{
+  "name": "@hoppscotch/mcp-server",
+  "version": "1.0.0",
+  "mcpName": "io.github.hoppscotch/mcp-server",
+  "description": "Model Context Protocol server for Hoppscotch API testing platform",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "hoppscotch-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --exclude 'src/e2e/**'",
+    "test:watch": "vitest --exclude 'src/e2e/**'",
+    "test:e2e": "HOPPSCOTCH_E2E=1 HOPPSCOTCH_TOOL_PROFILE=full vitest run src/e2e/e2e.test.ts",
+    "test:coverage": "vitest run --coverage --exclude 'src/e2e/**'",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepare": "pnpm run build"
+  },
+  "keywords": [
+    "hoppscotch",
+    "mcp",
+    "model-context-protocol",
+    "api-testing",
+    "rest",
+    "graphql",
+    "claude",
+    "ai"
+  ],
+  "author": "Hoppscotch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoppscotch/hoppscotch-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hoppscotch/hoppscotch-mcp-server/issues"
+  },
+  "homepage": "https://github.com/hoppscotch/hoppscotch-mcp-server#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "dotenv": "16.6.1",
+    "graphql": "16.12.0",
+    "graphql-request": "7.4.0",
+    "open": "11.0.0",
+    "undici": "6.28.0",
+    "zod": "3.25.76"
+  },
+  "packageManager": "pnpm@10.20.0",
+  "pnpm": {
+    "overrides": {
+      "fast-uri": "^3.1.5",
+      "ip-address": "^10.3.1",
+      "vite": "^6.4.3",
+      "postcss": "^8.5.18",
+      "nanoid": "^3.3.18",
+      "js-yaml": "^4.3.1",
+      "brace-expansion@1": "^1.1.18",
+      "brace-expansion@2": "^2.1.4"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "22.19.3",
+    "@typescript-eslint/eslint-plugin": "8.50.1",
+    "@typescript-eslint/parser": "8.50.1",
+    "@vitest/coverage-v8": "4.1.9",
+    "eslint": "9.39.2",
+    "prettier": "3.7.4",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "server.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
