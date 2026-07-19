@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  # Required for `pnpm publish --provenance` (OIDC-signed SLSA attestation).
+  id-token: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      # Reads the pinned version from package.json "packageManager".
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.x
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Full CI gate before any publish — mirrors the checks ci.yml runs on
+      # main so a tag push cannot ship code that wouldn't have passed CI.
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Production dependency audit
+        run: pnpm audit --prod --audit-level high
+
+      # The Cloud Firebase Web API key is baked into the bundle at build time
+      # (tsup `define`) rather than hardcoded in source. Without it the published
+      # package would fail every Cloud sign-in, so fail before building.
+      - name: Verify release secrets
+        env:
+          HOPPSCOTCH_FIREBASE_API_KEY: ${{ secrets.HOPPSCOTCH_FIREBASE_API_KEY }}
+        run: |
+          if [ -z "$(printf '%s' "$HOPPSCOTCH_FIREBASE_API_KEY" | tr -d '[:space:]')" ]; then
+            echo "HOPPSCOTCH_FIREBASE_API_KEY repo secret is not set (or is blank)."
+            echo "Publishing without it would ship a build whose Cloud sign-in always fails."
+            exit 1
+          fi
+
+      - name: Build
+        env:
+          HOPPSCOTCH_FIREBASE_API_KEY: ${{ secrets.HOPPSCOTCH_FIREBASE_API_KEY }}
+        run: pnpm run build
+
+      # Mirrors ci.yml's build-output gate so a tag push can't publish an empty
+      # or mis-targeted build.
+      - name: Check build output
+        run: |
+          test -f dist/index.js || exit 1
+
+      - name: Verify tag matches package version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG_VERSION="${REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      # --provenance attaches a signed SLSA provenance attestation to the
+      # published tarball, letting downstream consumers verify the package was
+      # built from this repo at this commit. Requires id-token: write (see
+      # permissions above). --no-git-checks: the tag-triggered checkout is
+      # detached, which pnpm's default publish git-check would reject.
+      # --ignore-scripts: publish the dist built in the step above (Firebase key
+      # baked in) exactly as verified; without it, `pnpm publish` re-runs the
+      # `prepare` build with no key env and would ship an empty-key bundle.
+      - name: Publish to npm with provenance
+        run: pnpm publish --access public --provenance --no-git-checks --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        with:
+          generate_release_notes: true
+          files: |
+            dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

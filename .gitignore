@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+# This project uses pnpm: commit pnpm-lock.yaml; ignore other package managers' lockfiles.
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables — ignore every .env variant except the checked-in template
+.env*
+!.env.example
+
+# MCP host config — its env block can carry HOPPSCOTCH_ACCESS_TOKEN; never commit
+.mcp.json
+mcp.json
+
+# Editor / tool directories
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.vitest/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,318 @@
+{
+  "examples": {
+    "simple_rest_collection": {
+      "name": "Simple REST Collection",
+      "description": "Basic REST collection with GET request",
+      "collection": {
+        "v": 1,
+        "name": "GitHub API",
+        "folders": [],
+        "requests": [
+          {
+            "v": "1",
+            "id": "1",
+            "name": "Get User",
+            "method": "GET",
+            "endpoint": "https://api.github.com/users/{{username}}",
+            "headers": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "params": [],
+            "body": {
+              "contentType": null,
+              "body": null
+            }
+          }
+        ]
+      }
+    },
+    "crud_collection": {
+      "name": "CRUD Collection",
+      "description": "Full CRUD operations for a blog API",
+      "collection": {
+        "v": 1,
+        "name": "Blog API",
+        "folders": [],
+        "requests": [
+          {
+            "v": "1",
+            "id": "1",
+            "name": "List Posts",
+            "method": "GET",
+            "endpoint": "{{base_url}}/posts",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          },
+          {
+            "v": "1",
+            "id": "2",
+            "name": "Get Post",
+            "method": "GET",
+            "endpoint": "{{base_url}}/posts/{{post_id}}",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          },
+          {
+            "v": "1",
+            "id": "3",
+            "name": "Create Post",
+            "method": "POST",
+            "endpoint": "{{base_url}}/posts",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"title\": \"New Post\",\n  \"content\": \"Post content here\"\n}"
+            }
+          },
+          {
+            "v": "1",
+            "id": "4",
+            "name": "Update Post",
+            "method": "PUT",
+            "endpoint": "{{base_url}}/posts/{{post_id}}",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"title\": \"Updated Title\",\n  \"content\": \"Updated content\"\n}"
+            }
+          },
+          {
+            "v": "1",
+            "id": "5",
+            "name": "Delete Post",
+            "method": "DELETE",
+            "endpoint": "{{base_url}}/posts/{{post_id}}",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "graphql_collection": {
+      "name": "GraphQL Collection",
+      "description": "GitHub GraphQL API examples",
+      "collection": {
+        "v": 1,
+        "name": "GitHub GraphQL",
+        "folders": [],
+        "requests": [
+          {
+            "v": "1",
+            "id": "1",
+            "name": "Get Viewer",
+            "endpoint": "https://api.github.com/graphql",
+            "query": "query {\n  viewer {\n    login\n    name\n    bio\n    company\n    location\n  }\n}",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{github_token}}"
+              }
+            ]
+          },
+          {
+            "v": "1",
+            "id": "2",
+            "name": "Get Repositories",
+            "endpoint": "https://api.github.com/graphql",
+            "query": "query($first: Int!) {\n  viewer {\n    repositories(first: $first) {\n      nodes {\n        name\n        description\n        stargazerCount\n      }\n    }\n  }\n}",
+            "variables": "{\n  \"first\": 10\n}",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{github_token}}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "auth_flow_collection": {
+      "name": "Authentication Flow",
+      "description": "Example auth requests: register, login, refresh, and an authorised call",
+      "collection": {
+        "v": 1,
+        "name": "Auth Flow",
+        "folders": [],
+        "requests": [
+          {
+            "v": "1",
+            "id": "1",
+            "name": "Register",
+            "method": "POST",
+            "endpoint": "{{base_url}}/auth/register",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"<example-password>\",\n  \"name\": \"Test User\"\n}"
+            }
+          },
+          {
+            "v": "1",
+            "id": "2",
+            "name": "Login",
+            "method": "POST",
+            "endpoint": "{{base_url}}/auth/login",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"<example-password>\"\n}"
+            }
+          },
+          {
+            "v": "1",
+            "id": "3",
+            "name": "Get Profile",
+            "method": "GET",
+            "endpoint": "{{base_url}}/auth/profile",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ]
+          },
+          {
+            "v": "1",
+            "id": "4",
+            "name": "Refresh Token",
+            "method": "POST",
+            "endpoint": "{{base_url}}/auth/refresh",
+            "headers": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            }
+          },
+          {
+            "v": "1",
+            "id": "5",
+            "name": "Logout",
+            "method": "POST",
+            "endpoint": "{{base_url}}/auth/logout",
+            "headers": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "environments": {
+    "development": {
+      "name": "Development",
+      "variables": [
+        {
+          "key": "base_url",
+          "value": "http://localhost:3000",
+          "secret": false
+        },
+        {
+          "key": "api_key",
+          "value": "<dev-api-key>",
+          "secret": true
+        },
+        {
+          "key": "debug",
+          "value": "true",
+          "secret": false
+        }
+      ]
+    },
+    "staging": {
+      "name": "Staging",
+      "variables": [
+        {
+          "key": "base_url",
+          "value": "https://staging.api.example.com",
+          "secret": false
+        },
+        {
+          "key": "api_key",
+          "value": "<staging-api-key>",
+          "secret": true
+        },
+        {
+          "key": "debug",
+          "value": "false",
+          "secret": false
+        }
+      ]
+    },
+    "production": {
+      "name": "Production",
+      "variables": [
+        {
+          "key": "base_url",
+          "value": "https://api.example.com",
+          "secret": false
+        },
+        {
+          "key": "api_key",
+          "value": "<prod-api-key>",
+          "secret": true
+        },
+        {
+          "key": "debug",
+          "value": "false",
+          "secret": false
+        },
+        {
+          "key": "timeout",
+          "value": "30000",
+          "secret": false
+        }
+      ]
+    }
+  }
+}
