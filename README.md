@@ -88,7 +88,7 @@ For a self-hosted instance:
 
 On the first tool call the server opens `hoppscotch.io/device-login` (or your self-hosted equivalent) in your browser. Sign in and the session is saved automatically — subsequent calls skip the browser step.
 
-> **Note:** Tokens are refreshed automatically. Self-hosted JWTs refresh indefinitely; Cloud (Firebase) sessions may occasionally re-prompt for login.
+> **Note:** Tokens are refreshed automatically while the backend keeps issuing refreshes; Cloud (Firebase) sessions may occasionally re-prompt for login.
 
 ## Configuration
 
@@ -167,7 +167,7 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 - **`execute_request` is a real HTTP client.** By default it blocks requests to loopback, link-local, cloud-metadata (`169.254.169.254`), and private-network addresses (SSRF protection), covering IPv4/IPv6 and additional special-use ranges. The validated address is pinned at connect time (via an undici dispatcher), so a same-host DNS-rebinding race between check and connect is closed too (and redirects, which are disabled, can't reach a private IP either). To test a **local or self-hosted API on a private address**, set `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true` — only do this on trusted inputs, since the tool returns the full response into the model's context. Even with the guard on, it can still reach any **public** host using the request's own credentials.
 - **Redirects are not auto-followed** (`execute_request`/`validate_response`) — a 3xx is returned as-is, so a redirect can't silently forward your auth headers to another origin.
 - **Response bodies are capped** at `HOPPSCOTCH_MAX_RESPONSE_BYTES` (default 5 MB); larger responses are truncated.
-- **`validate_response` re-issues the request** (it makes its own HTTP call), so a non-idempotent request runs twice.
+- **`validate_response` makes its own HTTP call** — it executes the request you pass rather than inspecting an earlier result, so validating a request you already ran sends it again (a non-idempotent request runs a second time).
 - Request execution and validation take a raw `method`/`url`; they do **not** execute a request already stored in a collection by ID.
 - The default `core` profile already keeps the surface lean (CRUD + request execution + codegen + read-only team discovery). Set `HOPPSCOTCH_TOOL_PROFILE=minimal` for an even smaller surface, or `standard`/`full` to add team administration and advanced collection ops.
 - **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account — use the `reauth` tool to switch or refresh the active identity.
@@ -310,7 +310,7 @@ don't appear above (`create_user_collection`, `update_user_collection`,
 
 | Tool | Description |
 |------|-------------|
-| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Available in every profile. |
+| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Cannot replace a configured `HOPPSCOTCH_ACCESS_TOKEN` — that static token is always used. Available in every profile. |
 
 ## Usage Examples
 
@@ -489,8 +489,8 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ## Security
 
-- Never commit `.env` or `auth.json` — both are gitignored
-- Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only read/write)
+- Never commit `.env` (it's gitignored); `auth.json` lives outside the repo at `~/.config/hoppscotch-mcp/`, not in your project
+- Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only, best-effort on POSIX)
 - The server is stateless — no user data is cached locally beyond the auth token
 - On Windows, file permissions (`0o600`) are not enforced — keep `auth.json` in a secure location
 

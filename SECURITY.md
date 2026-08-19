@@ -23,7 +23,7 @@ credited in the changelog unless they prefer to remain anonymous.
 - Performs a browser-based device-login flow against a Hoppscotch frontend
   (Cloud or self-hosted), and stores the resulting auth token at
   `~/.config/hoppscotch-mcp/auth.json` (file mode `0o600`, directory mode
-  `0o700`). This is a single per-OS-user session, shared across all server
+  `0o700`, best-effort on POSIX). This is a single per-OS-user session, shared across all server
   processes and restarts; the server refuses to silently switch to a different
   account if the on-disk token changes mid-session (switch via the `reauth`
   tool).

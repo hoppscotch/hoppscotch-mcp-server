@@ -8,11 +8,34 @@ import type {
 } from '../types.js';
 import { ApiType } from '../config.js';
 import { HoppscotchError } from '../types.js';
+import { redactSecrets } from '../utils/request-executor.js';
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
 /** Placeholder substituted for a secret variable's value on the OUTBOUND read path. */
 export const SECRET_PLACEHOLDER = '<secret hidden>';
+
+/** Plaintext `secret: true` values in a serialized blob — used to scrub a backend error that echoes a submitted secret. */
+function submittedSecretValues(variablesStr: string | undefined): string[] {
+  if (!variablesStr) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(variablesStr);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out: string[] = [];
+  for (const v of parsed) {
+    if (v && (v as Record<string, unknown>).secret === true) {
+      for (const f of ['value', 'currentValue', 'initialValue']) {
+        const val = (v as Record<string, unknown>)[f];
+        if (typeof val === 'string' && val) out.push(val);
+      }
+    }
+  }
+  return out;
+}
 
 /**
  * Guard the WRITE path against the redaction placeholder being persisted. A
@@ -42,17 +65,21 @@ export function assertNoRedactionPlaceholder(variables: EnvironmentVariable[]): 
  * model/transcript. Pure + boundary-only: call it when SHAPING a response, never
  * on the repository reads that updateEnvironment reuses to preserve unchanged
  * fields (redacting there would write the placeholder back, destroying the real
- * secret). Returns the input unchanged when there are no secret vars or the
- * variables blob can't be parsed.
+ * secret). A proper array with no secret vars passes through unchanged; an
+ * unparseable or non-array blob fails closed (one redaction marker) since we
+ * can't prove it's secret-free.
  */
 export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
   let vars: Array<Record<string, unknown>>;
   try {
     vars = JSON.parse(env.variables) as Array<Record<string, unknown>>;
   } catch {
-    return env;
+    return { ...env, variables: JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]) };
   }
-  if (!Array.isArray(vars) || !vars.some((v) => v && v.secret === true)) {
+  if (!Array.isArray(vars)) {
+    return { ...env, variables: JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]) };
+  }
+  if (!vars.some((v) => v && v.secret === true)) {
     return env;
   }
   const SECRET_FIELDS = ['value', 'currentValue', 'initialValue'];
@@ -107,6 +134,27 @@ export class EnvironmentRepository {
     }
   }
 
+  /** Run an env mutation, scrubbing any submitted secret the backend echoes back in an error. */
+  private async submitWithSecretScrub<R>(
+    variablesStr: string | undefined,
+    op: () => Promise<R>
+  ): Promise<R> {
+    try {
+      return await op();
+    } catch (err) {
+      const secrets = submittedSecretValues(variablesStr);
+      if (secrets.length && err instanceof Error) {
+        const scrubbed = redactSecrets(err.message, secrets);
+        if (scrubbed !== err.message) {
+          const code = err instanceof HoppscotchError ? err.code : undefined;
+          const statusCode = err instanceof HoppscotchError ? err.statusCode : undefined;
+          throw new HoppscotchError(scrubbed, code, statusCode);
+        }
+      }
+      throw err;
+    }
+  }
+
   // ─── User Environments ────────────────────────────────────────────────────
 
   /**
@@ -139,12 +187,14 @@ export class EnvironmentRepository {
 
     const variables = this.serializeVariables(data.variables);
 
-    const result = await this.client.graphql<{
-      createUserEnvironment: UserEnvironment;
-    }>(mutations.CREATE_USER_ENVIRONMENT, {
-      name: data.name,
-      variables,
-    });
+    const result = await this.submitWithSecretScrub(variables, () =>
+      this.client.graphql<{
+        createUserEnvironment: UserEnvironment;
+      }>(mutations.CREATE_USER_ENVIRONMENT, {
+        name: data.name,
+        variables,
+      })
+    );
 
     return result.createUserEnvironment;
   }
@@ -180,13 +230,15 @@ export class EnvironmentRepository {
       variablesStr = variablesStr ?? current.variables;
     }
 
-    const result = await this.client.graphql<{
-      updateUserEnvironment: UserEnvironment;
-    }>(mutations.UPDATE_USER_ENVIRONMENT, {
-      id: environmentId,
-      name,
-      variables: variablesStr,
-    });
+    const result = await this.submitWithSecretScrub(variablesStr, () =>
+      this.client.graphql<{
+        updateUserEnvironment: UserEnvironment;
+      }>(mutations.UPDATE_USER_ENVIRONMENT, {
+        id: environmentId,
+        name,
+        variables: variablesStr,
+      })
+    );
 
     return result.updateUserEnvironment;
   }
@@ -247,13 +299,15 @@ export class EnvironmentRepository {
   ): Promise<TeamEnvironment> {
     const variables = this.serializeVariables(data.variables);
 
-    const result = await this.client.graphql<{
-      createTeamEnvironment: TeamEnvironment;
-    }>(mutations.CREATE_TEAM_ENVIRONMENT, {
-      teamID: teamId,
-      name: data.name,
-      variables,
-    });
+    const result = await this.submitWithSecretScrub(variables, () =>
+      this.client.graphql<{
+        createTeamEnvironment: TeamEnvironment;
+      }>(mutations.CREATE_TEAM_ENVIRONMENT, {
+        teamID: teamId,
+        name: data.name,
+        variables,
+      })
+    );
 
     return result.createTeamEnvironment;
   }
@@ -293,13 +347,15 @@ export class EnvironmentRepository {
       variablesStr = variablesStr ?? current.variables;
     }
 
-    const result = await this.client.graphql<{
-      updateTeamEnvironment: TeamEnvironment;
-    }>(mutations.UPDATE_TEAM_ENVIRONMENT, {
-      id: environmentId,
-      name,
-      variables: variablesStr,
-    });
+    const result = await this.submitWithSecretScrub(variablesStr, () =>
+      this.client.graphql<{
+        updateTeamEnvironment: TeamEnvironment;
+      }>(mutations.UPDATE_TEAM_ENVIRONMENT, {
+        id: environmentId,
+        name,
+        variables: variablesStr,
+      })
+    );
 
     return result.updateTeamEnvironment;
   }

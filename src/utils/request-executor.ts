@@ -236,6 +236,23 @@ function secretRedactionVariants(secretValues: string[]): string[] {
     variants.add(value);
     const jsonEscaped = JSON.stringify(value).slice(1, -1); // inner (escaped) form, no quotes
     if (jsonEscaped !== value) variants.add(jsonEscaped);
+    // A URL-substituted secret echoes back encoded, not raw. Add the exact wire
+    // forms the real serializers produce — encodeURIComponent, the URLSearchParams
+    // (form-urlencoded) form, and the WHATWG query form — rather than approximating.
+    try {
+      const enc = encodeURIComponent(value);
+      if (enc !== value) variants.add(enc);
+      const formEncoded = new URLSearchParams([['_', value]]).toString().slice(2);
+      if (formEncoded && formEncoded !== value) variants.add(formEncoded);
+      // Skip the query form when the value has a `#`: it spills into the fragment,
+      // truncating the query into an over-broad (over-redacting) variant.
+      if (!value.includes('#')) {
+        const queryForm = new URL(`http://h/?${value}`).search.slice(1);
+        if (queryForm && queryForm !== value) variants.add(queryForm);
+      }
+    } catch {
+      // lone surrogate / unencodable — skip the encoded variants
+    }
   }
   return [...variants].sort((a, b) => b.length - a.length);
 }
