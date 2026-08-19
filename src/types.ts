@@ -63,7 +63,7 @@ export interface TeamRequestSearchResult {
 }
 
 /**
- * User (personal) request within a collection (GQL shape — SH only for reads)
+ * User (personal) request within a collection (GQL shape — reads gated on Cloud as of now)
  */
 export interface UserRequest {
   id: string;

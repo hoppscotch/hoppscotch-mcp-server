@@ -17,9 +17,10 @@ import * as mutations from '../graphql/mutations.js';
  * Cloud vs Self-Hosted notes:
  *   - Team request CRUD (create/update/delete/move) works on both Cloud and SH.
  *   - Team request READ (`requestsInCollection`, `request`) works on both Cloud and SH.
- *   - User request WRITE (create/update/delete/move) works on both Cloud and SH.
- *   - User request READ (`userCollection { requests }`) is SH only — Cloud does not
- *     expose user collection queries at all.
+ *   - User request WRITE (create/update/delete/move) works on self-hosted; on
+ *     Cloud the personal (user) workspace is unsupported as of now.
+ *   - User request READ (`userCollection { requests }`) is not supported on
+ *     Cloud as of now — the MCP gates it client-side.
  */
 export class RequestRepository {
   constructor(private client: HoppscotchClient) {}
@@ -31,8 +32,7 @@ export class RequestRepository {
   private assertNotCloud(operation: string): void {
     if (this.isCloud()) {
       throw new Error(
-        `"${operation}" is not available on Hoppscotch Cloud. ` +
-          'The Cloud backend does not expose user collection queries. ' +
+        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
           'Use team requests instead, or switch to a self-hosted instance.'
       );
     }
@@ -135,7 +135,7 @@ export class RequestRepository {
 
   /**
    * List requests in a user collection.
-   * Self-Hosted only — Cloud does not expose user collection queries.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async getUserRequests(collectionId: string): Promise<UserRequest[]> {
     this.assertNotCloud('list_user_requests');

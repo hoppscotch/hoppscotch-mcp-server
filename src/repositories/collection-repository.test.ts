@@ -68,7 +68,7 @@ describe('CollectionRepository', () => {
 
     it('should throw on Cloud', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
-      await expect(cloudRepo.getUserCollections(CollectionType.REST)).rejects.toThrow('not available on Hoppscotch Cloud');
+      await expect(cloudRepo.getUserCollections(CollectionType.REST)).rejects.toThrow('not supported on Hoppscotch Cloud');
     });
   });
 
@@ -92,7 +92,7 @@ describe('CollectionRepository', () => {
 
     it('should throw on Cloud', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
-      await expect(cloudRepo.getUserCollection('col1')).rejects.toThrow('not available on Hoppscotch Cloud');
+      await expect(cloudRepo.getUserCollection('col1')).rejects.toThrow('not supported on Hoppscotch Cloud');
     });
   });
 

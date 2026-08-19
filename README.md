@@ -171,37 +171,24 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 - Request execution and validation take a raw `method`/`url`; they do **not** execute a request already stored in a collection by ID.
 - The default `core` profile already keeps the surface lean (CRUD + request execution + codegen + read-only team discovery). Set `HOPPSCOTCH_TOOL_PROFILE=minimal` for an even smaller surface, or `standard`/`full` to add team administration and advanced collection ops.
 - **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account — use the `reauth` tool to switch or refresh the active identity.
-- **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments; a team-environment ID is rejected, and on Hoppscotch Cloud (which has no user environments) any `environmentId` is rejected as not found. These tools also do **not** inherit authentication from a parent collection — they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally.
+- **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments; a team-environment ID is rejected, and on Hoppscotch Cloud (where personal environments aren't supported as of now) any `environmentId` is rejected as not found. These tools also do **not** inherit authentication from a parent collection — they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally.
 
 ## Available Tools
 
-### Cloud / self-hosted compatibility matrix
+### Cloud / self-hosted compatibility
 
-All 53 tools work against both Hoppscotch Cloud (`hoppscotch.io`) and any
-self-hosted Hoppscotch (CE or SHE) backend, except the tools listed below
-where read endpoints are not exposed by Cloud's GraphQL API.
+Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
+Hoppscotch Cloud (`hoppscotch.io`), the **team** tools (except
+`search_team_requests`, below) and request execution work; the **personal
+(user) workspace** — user collections, user requests, and user environments —
+is **not supported on Cloud as of now**. Use team workspaces on Cloud instead.
 
-| Tool | Cloud | Self-hosted | Notes |
-|------|:-:|:-:|------|
-| `list_user_collections` | ❌ | ✅ | Cloud has no user-collection list endpoint |
-| `get_user_collection` | ❌ | ✅ | Cloud has no user-collection read endpoint |
-| `export_user_collection` | ❌ | ✅ | Depends on the read endpoint above |
-| `list_user_requests` | ❌ | ✅ | Cloud has no user-request list endpoint |
-| `list_user_environments` | ✅ (returns `[]`) | ✅ | Cloud has no user-environment endpoint |
-| `create_user_environment` | ❌ | ✅ | Cloud: "not supported on Cloud" error |
-| `update_user_environment` | ❌ | ✅ | Same as above |
-| `delete_user_environment` | ❌ | ✅ | Same as above |
-| `search_team_requests` | ❌ | ✅ | Cloud API limitation (`bug/team/no_require_team_role`) |
+`search_team_requests` is separately unavailable on Cloud: the backend rejects
+the query with `bug/team/no_require_team_role`, surfaced as an error.
 
-On Cloud, calling a "❌" tool returns an `isError: true` response rather than
-failing silently. For the personal-collection and personal-environment tools the
-server checks the backend up front and returns its own explanatory message;
-`search_team_requests` is the exception — there is no client-side check, so what
-you get is the backend's own rejection (`bug/team/no_require_team_role`) surfaced
-as an error. Personal (user) collection writes that
-don't appear above (`create_user_collection`, `update_user_collection`,
-`delete_user_collection`, `move_user_collection`, `duplicate_user_collection`,
-`import_user_collection`) work on both backends.
+The client-side-gated personal tools (user-collection/request reads and all
+user-environment tools) return an `isError: true` response on Cloud rather than
+failing silently.
 
 ### Teams
 
@@ -244,23 +231,23 @@ don't appear above (`create_user_collection`, `update_user_collection`,
 
 ### User (Personal) Collections
 
-> User collection reads (`list`, `get`, `export`) are available on **self-hosted only**. Create, update, delete, move, duplicate, and import work on both Cloud and self-hosted.
+> Personal (user) collections work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now** — use team collections instead.
 
 | Tool | Description |
 |------|-------------|
-| `list_user_collections` | List personal collections (REST or GraphQL) — self-hosted only |
-| `get_user_collection` | Get a specific personal collection — self-hosted only |
+| `list_user_collections` | List personal collections (REST or GraphQL) |
+| `get_user_collection` | Get a specific personal collection |
 | `create_user_collection` | Create a personal collection |
 | `update_user_collection` | Update a personal collection's title or data |
 | `delete_user_collection` | Delete a personal collection |
 | `duplicate_user_collection` | Duplicate a personal collection |
 | `move_user_collection` | Move a personal collection to a new parent or root |
 | `import_user_collection` | Import personal collection(s) from JSON |
-| `export_user_collection` | Export personal collection(s) to JSON — self-hosted only |
+| `export_user_collection` | Export personal collection(s) to JSON |
 
 ### User (Personal) Environments
 
-> User environments are available on **self-hosted only**. On Cloud, `list_user_environments` returns an empty array and create/update/delete return a "not supported" error.
+> Personal (user) environments work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now**: `list_user_environments` returns an empty array and create/update/delete return a "not supported" error.
 
 | Tool | Description |
 |------|-------------|
@@ -282,11 +269,11 @@ don't appear above (`create_user_collection`, `update_user_collection`,
 
 ### User (Personal) Requests
 
-> `list_user_requests` is available on **self-hosted only**. Create, update, delete, and move work on both Cloud and self-hosted.
+> Personal (user) requests work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now** — use team requests instead.
 
 | Tool | Description |
 |------|-------------|
-| `list_user_requests` | List requests in a personal collection — self-hosted only |
+| `list_user_requests` | List requests in a personal collection |
 | `create_user_request` | Create a personal request (REST or GraphQL) |
 | `update_user_request` | Update a personal request's title or data |
 | `delete_user_request` | Delete a personal request |
@@ -421,7 +408,7 @@ node dist/index.js  # triggers browser login; Ctrl+C after auth completes
 pnpm run test:e2e
 ```
 
-Tests create and clean up their own resources. The same suite runs correctly against both Cloud and self-hosted — Cloud-unavailable paths (user collection reads, user environments) are asserted to return the correct error message.
+Tests create and clean up their own resources. The same suite runs correctly against both Cloud and self-hosted — Cloud-gated paths (user collection reads, user environments) are asserted to return the correct error message.
 
 ### Project Structure
 
@@ -485,7 +472,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### User collections unavailable
 
-`list_user_collections`, `get_user_collection`, and `export_user_collection` are not available on Hoppscotch Cloud — the Cloud backend does not expose personal collection read queries. Use team collections instead, or switch to a self-hosted instance.
+`list_user_collections`, `get_user_collection`, and `export_user_collection` are not supported on Hoppscotch Cloud as of now — the personal (user) workspace is available on self-hosted instances. Use team collections instead, or switch to a self-hosted instance.
 
 ## Security
 

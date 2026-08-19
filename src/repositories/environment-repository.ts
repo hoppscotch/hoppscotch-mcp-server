@@ -100,7 +100,7 @@ export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
  * User environments
  * ─────────────────
  * • Self-Hosted: available via me { environments { ... } } resolver field.
- * • Cloud: the Cloud backend does not expose user environments through GraphQL.
+ * • Cloud: not supported as of now — the MCP gates them client-side.
  *   Listing user environments on Cloud returns an empty array.
  *
  * Team environments
@@ -160,7 +160,7 @@ export class EnvironmentRepository {
   /**
    * List personal environments for the authenticated user.
    * Self-Hosted: me { environments } resolver field.
-   * Cloud: not available — returns empty array.
+   * Cloud: not supported as of now — returns empty array.
    */
   async getUserEnvironments(): Promise<UserEnvironment[]> {
     if (this.isCloud()) {
@@ -176,7 +176,7 @@ export class EnvironmentRepository {
 
   /**
    * Create a personal environment.
-   * Self-Hosted only — Cloud has no createUserEnvironment mutation.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async createUserEnvironment(data: CreateEnvironmentInput): Promise<UserEnvironment> {
     if (this.isCloud()) {
@@ -201,7 +201,7 @@ export class EnvironmentRepository {
 
   /**
    * Update a personal environment.
-   * Self-Hosted only — Cloud has no updateUserEnvironment mutation.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async updateUserEnvironment(
     environmentId: string,
@@ -245,7 +245,7 @@ export class EnvironmentRepository {
 
   /**
    * Delete a personal environment.
-   * Self-Hosted only — Cloud has no deleteUserEnvironment mutation.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async deleteUserEnvironment(environmentId: string): Promise<boolean> {
     if (this.isCloud()) {

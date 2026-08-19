@@ -207,7 +207,7 @@ describe('RequestRepository', () => {
       vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: ApiType.CLOUD });
 
       await expect(repository.getUserRequests('ucol1')).rejects.toThrow(
-        'not available on Hoppscotch Cloud'
+        'not supported on Hoppscotch Cloud'
       );
     });
 

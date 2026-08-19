@@ -31,9 +31,9 @@ signs in through a browser device-login flow and caches the session at
 enforced on Windows). Requires Node 22+. Ships as a CLI binary only — there is no
 importable library entry point.
 
-Both Hoppscotch Cloud and self-hosted instances are supported, but the two backends
-do not expose the same surface: personal (user) collections and user environments are
-readable on self-hosted only, since Cloud does not expose those reads over GraphQL.
+Both Hoppscotch Cloud and self-hosted instances are supported, but not with the same
+surface: the personal (user) workspace — user collections, requests, and environments —
+is supported on self-hosted only; on Cloud it is not supported as of now.
 Team collections, team environments, request execution and code generation work on
 both. Individual tool descriptions state which backends they apply to.
 

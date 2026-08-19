@@ -14,13 +14,12 @@
  * Auth token must already be stored (~/.config/hoppscotch-mcp/auth.json)
  * OR HOPPSCOTCH_ACCESS_TOKEN must be set.
  *
- * Cloud limitations (documented, not bugs):
- * - list_user_collections / get_user_collection: Cloud GQL has no user collection READ queries
- * - export_user_collection: same — Cloud has no user-collection READ
- * - list_user_environments: returns [] on Cloud (no user environments GQL endpoint)
- * - create/update/delete_user_environment: Cloud only — not supported, SH only
- * - list_user_requests: Cloud GQL has no user request READ query (SH only)
- * - search_team_requests: returns bug/team/no_require_team_role on Cloud (API limitation)
+ * Cloud behavior as of now (personal workspace gated client-side, not bugs):
+ * - list_user_collections / get_user_collection / export_user_collection: not supported on Cloud
+ * - list_user_environments: returns [] on Cloud
+ * - create/update/delete_user_environment: not supported on Cloud
+ * - list_user_requests: not supported on Cloud
+ * - search_team_requests: returns bug/team/no_require_team_role on Cloud (backend rejection)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -93,7 +92,7 @@ async function teamCollectionIds(): Promise<string[]> {
   }
 }
 
-// List user collection IDs (SH only; returns [] on Cloud).
+// List user collection IDs (not supported on Cloud as of now; returns [] there).
 async function userCollectionIds(): Promise<string[]> {
   if (IS_CLOUD) return [];
   const text = textOf(await client.callTool({
@@ -198,7 +197,7 @@ beforeAll(async () => {
     provisioned.teamEnvironmentId = env.id;
   }
 
-  // Personal collections (SH only)
+  // Personal collections (not supported on Cloud as of now)
   if (!IS_CLOUD) {
     try {
       const restText = textOf(await client.callTool({
@@ -730,8 +729,8 @@ describe('team environments', () => {
 
 // ---------------------------------------------------------------------------
 // User collections
-// Cloud: READ ops (list, get, export) return a clear "not available" error.
-//        WRITE ops (create, update, delete, import, duplicate, move) work.
+// Cloud: personal workspace not supported as of now — READ ops (list, get,
+//        export) return a clear error; WRITE ops are ungated but unsupported.
 // SH:    All ops work. READ ops assert proper shape of returned data.
 // ---------------------------------------------------------------------------
 
@@ -741,13 +740,13 @@ describe('user collections', () => {
     log('list_user_collections (REST)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     const isShResult = text.startsWith('[');
     expect(isCloudError || isShResult).toBe(true);
 
     if (isCloudError) {
       // Cloud: clear, actionable error message
-      expect(text).toContain('"list_user_collections" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       // SH: array of user collections — validate shape of each item
@@ -764,12 +763,12 @@ describe('user collections', () => {
     log('list_user_collections (GQL)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     const isShResult = text.startsWith('[');
     expect(isCloudError || isShResult).toBe(true);
 
     if (isCloudError) {
-      expect(text).toContain('"list_user_collections" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       const collections = jsonOf<Record<string, unknown>[]>(text);
@@ -788,9 +787,9 @@ describe('user collections', () => {
     log('get_user_collection (REST)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     if (isCloudError) {
-      expect(text).toContain('"get_user_collection" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       // SH: collection object with matching ID
@@ -810,9 +809,9 @@ describe('user collections', () => {
     log('get_user_collection (GQL)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     if (isCloudError) {
-      expect(text).toContain('"get_user_collection" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       if (!PERSONAL_GQL_COLLECTION_ID) { console.log('[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'); return; }
@@ -911,12 +910,12 @@ describe('user collections', () => {
     log('export_user_collection (REST)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     const isShResult = text.startsWith('Exported');
     expect(isCloudError || isShResult).toBe(true);
 
     if (isCloudError) {
-      expect(text).toContain('"export_user_collection" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       // SH: prose label + JSON array of exported collections
@@ -940,12 +939,12 @@ describe('user collections', () => {
     log('export_user_collection (GQL)', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
     const isShResult = text.startsWith('Exported');
     expect(isCloudError || isShResult).toBe(true);
 
     if (isCloudError) {
-      expect(text).toContain('"export_user_collection" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
       expect(text).toMatch(/^Exported all GQL user collections/m);
@@ -1185,7 +1184,8 @@ describe('team requests', () => {
 
 // ---------------------------------------------------------------------------
 // User requests
-// Cloud: list_user_requests returns "not available" error; write ops work
+// Cloud: personal workspace not supported as of now — list_user_requests
+//        returns a clear error; write ops are ungated but unsupported
 // SH: all ops work
 // ---------------------------------------------------------------------------
 
@@ -1198,10 +1198,10 @@ describe('user requests', () => {
     log('list_user_requests', text);
     expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not available on Hoppscotch Cloud');
+    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
 
     if (isCloudError) {
-      expect(text).toContain('"list_user_requests" is not available on Hoppscotch Cloud');
+      expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team requests instead');
     } else {
       // SH: array of user requests
@@ -1266,7 +1266,7 @@ describe('user requests', () => {
     }
   });
 
-  e2e('create, update, delete user GQL request — full lifecycle (SH only)', async () => {
+  e2e('create, update, delete user GQL request — full lifecycle (self-hosted)', async () => {
     if (!PERSONAL_GQL_COLLECTION_ID) { console.log('[e2e] skip: no PERSONAL_GQL_COLLECTION_ID'); return; }
 
     const requestData = JSON.stringify({ v: '4', url: 'https://httpbin.org/post', query: '{ hello }', variables: '{}', headers: [] });
