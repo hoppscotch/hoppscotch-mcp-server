@@ -2,26 +2,21 @@
  * GraphQL queries for Hoppscotch API
  *
  * Field-name reference (verified against live schemas):
- *   Cloud  — https://api.hoppscotch.io/graphql  (introspected 2025-03)
+ *   Cloud  — https://api.hoppscotch.io/graphql
  *   SH OSS — packages/hoppscotch-backend/src/user-collection/user-collection.resolver.ts
  *
- * Key divergences
- * ───────────────
- * • rootRESTUserCollections / rootGQLUserCollections — present on SH, absent on Cloud.
- *   Cloud has NO query for listing user (personal) collections.
- * • userCollection(userCollectionID) — SH only.
- * • exportUserCollectionsToJSON / exportUserCollectionToJSON — SH only.
- * • Team queries (rootCollectionsOfTeam, collection, exportCollectionsToJSON,
- *   exportCollectionToJSON) — present on BOTH.
- * • me.environments — resolveField on SH; Cloud has no user-environment GQL.
+ * The personal (user) workspace fields below now exist on live Cloud (they were
+ * absent on the older Firestore backend, hence the historical "SH only" notes).
+ * The MCP still gates them client-side as "not supported on Cloud as of now" —
+ * see the assertNotCloud guards. Team queries work on both backends.
  */
 
-// ─── User Collections (SH only) ─────────────────────────────────────────────
+// ─── User Collections (gated on Cloud as of now) ────────────────────────────
 
 /**
  * Get root REST user collections.
  * SH field: rootRESTUserCollections(cursor, take)
- * Cloud:    NOT available — Cloud has no personal-collection read query.
+ * Cloud:    present on the live schema post-migration, but gated client-side as of now.
  */
 export const GET_USER_REST_COLLECTIONS = `
   query GetUserRESTCollections($cursor: ID, $take: Int) {
@@ -39,7 +34,7 @@ export const GET_USER_REST_COLLECTIONS = `
 /**
  * Get root GraphQL user collections.
  * SH field: rootGQLUserCollections(cursor, take)
- * Cloud:    NOT available.
+ * Cloud:    present on the live schema; gated client-side as of now.
  */
 export const GET_USER_GQL_COLLECTIONS = `
   query GetUserGQLCollections($cursor: ID, $take: Int) {
@@ -57,7 +52,7 @@ export const GET_USER_GQL_COLLECTIONS = `
 /**
  * Get a specific user collection by ID.
  * SH field: userCollection(userCollectionID: ID!)
- * Cloud:    NOT available.
+ * Cloud:    present on the live schema; gated client-side as of now.
  */
 export const GET_USER_COLLECTION = `
   query GetUserCollection($collectionID: ID!) {
@@ -75,7 +70,7 @@ export const GET_USER_COLLECTION = `
 /**
  * Export all user collections of a given type to JSON.
  * SH field: exportUserCollectionsToJSON(collectionID: ID, collectionType: ReqType!)
- * Cloud:    NOT available.
+ * Cloud:    present on the live schema; gated client-side as of now.
  */
 export const EXPORT_USER_COLLECTIONS_JSON = `
   query ExportUserCollectionsJSON($collectionType: ReqType!) {
@@ -89,7 +84,7 @@ export const EXPORT_USER_COLLECTIONS_JSON = `
 /**
  * Export a specific user collection to JSON.
  * SH field: exportUserCollectionToJSON(collectionID: ID!)
- * Cloud:    NOT available.
+ * Cloud:    present on the live schema; gated client-side as of now.
  */
 export const EXPORT_USER_COLLECTION_JSON = `
   query ExportUserCollectionJSON($collectionID: ID!) {
@@ -97,12 +92,12 @@ export const EXPORT_USER_COLLECTION_JSON = `
   }
 `;
 
-// ─── User Environments (SH only, via me resolver-field) ─────────────────────
+// ─── User Environments (via me resolver-field; gated on Cloud as of now) ────
 
 /**
  * List all personal environments for the authenticated user.
  * SH: resolved via me { environments { ... } }
- * Cloud: NOT available — no user-environment GQL field.
+ * Cloud: present on the live schema; gated client-side as of now.
  */
 export const GET_USER_ENVIRONMENTS = `
   query GetUserEnvironments {
@@ -234,13 +229,13 @@ export const GET_TEAM_REQUEST = `
   }
 `;
 
-// ─── User Requests (SH only — user request read queries not available on Cloud) ──
+// ─── User Requests (reads gated on Cloud as of now) ─────────────────────────
 
 /**
  * List requests in a user collection.
- * SH only: userCollection(userCollectionID: ID!) { requests { ... } }
+ * Field: userCollection(userCollectionID: ID!) { requests { ... } }
  * Note: arg is userCollectionID (not collectionID) — same as GET_USER_COLLECTION.
- * Cloud UserCollection has no requests field.
+ * Cloud: gated client-side as of now.
  */
 export const GET_USER_REQUESTS = `
   query GetUserRequests($userCollectionID: ID!) {

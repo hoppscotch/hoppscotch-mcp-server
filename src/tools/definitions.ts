@@ -6,7 +6,7 @@
 const USER_COLLECTION_TOOLS = {
   list_user_collections: {
     name: 'list_user_collections',
-    description: 'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL). Self-hosted only — Cloud does not expose user-collection reads.',
+    description: 'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL). Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -32,7 +32,7 @@ const USER_COLLECTION_TOOLS = {
 
   get_user_collection: {
     name: 'get_user_collection',
-    description: 'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Self-hosted only — Cloud does not expose user-collection reads.',
+    description: 'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -113,7 +113,7 @@ const USER_COLLECTION_TOOLS = {
 
   export_user_collection: {
     name: 'export_user_collection',
-    description: 'Export user collection(s) as JSON. Can export a specific collection or all collections of a type. Self-hosted only — Cloud does not expose user-collection reads.',
+    description: 'Export user collection(s) as JSON. Can export a specific collection or all collections of a type. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -159,7 +159,7 @@ const USER_COLLECTION_TOOLS = {
 const USER_ENVIRONMENT_TOOLS = {
   list_user_environments: {
     name: 'list_user_environments',
-    description: 'List all user environments with their variables. Self-hosted only — on Cloud this returns an empty list (Cloud has no user-environment reads).',
+    description: 'List all user environments with their variables. On Hoppscotch Cloud, personal environments are not supported as of now, so this returns an empty list.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -1009,8 +1009,7 @@ const CODE_GENERATION_TOOLS = {
 
 // ─── Request CRUD Tools ───────────────────────────────────────────────────────
 // Team request reads/writes work on both Cloud and SH.
-// User request reads (list_user_requests) are SH only.
-// User request writes (create/update/delete/move) work on both.
+// User request reads/writes: supported on self-hosted; personal workspace not supported on Cloud as of now.
 const REQUEST_CRUD_TOOLS = {
   list_team_requests: {
     name: 'list_team_requests',
@@ -1132,7 +1131,7 @@ const REQUEST_CRUD_TOOLS = {
 
   list_user_requests: {
     name: 'list_user_requests',
-    description: 'List all requests in a personal (user) collection. Self-hosted only — not available on Hoppscotch Cloud.',
+    description: 'List all requests in a personal (user) collection. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {

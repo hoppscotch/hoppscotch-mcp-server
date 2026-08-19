@@ -2,7 +2,7 @@
  * GraphQL mutations for Hoppscotch API
  *
  * Arg names verified against:
- *   Cloud  — live schema introspection (api.hoppscotch.io, 2025-03)
+ *   Cloud  — live schema introspection (api.hoppscotch.io/graphql)
  *   SH OSS — packages/hoppscotch-backend/src/user-collection/input-type.args.ts
  *
  * IMPORTANT — TeamCollection and UserCollection schema facts (verified live):
@@ -387,7 +387,7 @@ export const MOVE_TEAM_REQUEST = `
   }
 `;
 
-// ─── User Requests (both Cloud + SH for writes; reads are SH only) ───────────
+// ─── User Requests (personal workspace — not supported on Cloud as of now) ──
 
 /**
  * Create a REST user request.

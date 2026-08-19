@@ -33,13 +33,13 @@ interface RawUserCollection {
 /**
  * Repository for managing collections (user and team).
  *
- * User collection READS (list, get, export) are only available on Self-Hosted
- * backends. The Cloud backend (api.hoppscotch.io) does not expose a GraphQL
- * query for personal collections. Calling these methods against Cloud will
- * throw a clear error rather than a confusing GraphQL "unknown field" response.
+ * User collection READS (list, get, export) are not supported on Cloud as of
+ * now — the MCP gates them client-side. Calling these methods against Cloud
+ * throws a clear error rather than hitting the backend.
  *
- * User collection WRITES (create, update, delete, move, duplicate, import) and
- * ALL team collection operations work on both Cloud and Self-Hosted.
+ * ALL team collection operations work on both Cloud and Self-Hosted. User
+ * collection WRITES work on self-hosted; on Cloud the personal (user) workspace
+ * is unsupported as of now.
  */
 export class CollectionRepository {
   constructor(private client: HoppscotchClient) {}
@@ -53,8 +53,7 @@ export class CollectionRepository {
   private assertNotCloud(operation: string): void {
     if (this.isCloud()) {
       throw new Error(
-        `"${operation}" is not available on Hoppscotch Cloud. ` +
-          'The Cloud backend does not expose a GraphQL query for personal (user) collections. ' +
+        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
           'Use team collections instead, or switch to a self-hosted instance.'
       );
     }
@@ -92,7 +91,7 @@ export class CollectionRepository {
 
   /**
    * List root user collections (REST or GQL type).
-   * Self-Hosted only — Cloud does not expose this query.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async getUserCollections(
     type: CollectionType,
@@ -125,7 +124,7 @@ export class CollectionRepository {
 
   /**
    * Get a specific user collection by ID.
-   * Self-Hosted only.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async getUserCollection(collectionId: string): Promise<UserCollection> {
     this.assertNotCloud('get_user_collection');
@@ -231,7 +230,7 @@ export class CollectionRepository {
 
   /**
    * Export user collections to JSON.
-   * Self-Hosted only.
+   * Not supported on Cloud as of now — gated client-side.
    */
   async exportUserCollection(type: CollectionType, collectionId?: string): Promise<string> {
     this.assertNotCloud('export_user_collection');
