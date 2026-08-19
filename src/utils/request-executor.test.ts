@@ -533,6 +533,38 @@ describe('redactSecrets', () => {
     expect(out).not.toContain('a\\"b\\\\c'); // the escaped form is caught too
     expect(out).toContain('<redacted>');
   });
+
+  it('also masks the percent-/plus-/query-encoded URL forms of a secret', () => {
+    const secret = 'a b/c'; // space + slash → encoded when placed in a URL
+    expect(redactSecrets('t=a%20b%2Fc', [secret])).not.toContain('a%20b%2Fc'); // encodeURIComponent form
+    expect(redactSecrets('t=a+b%2Fc', [secret])).not.toContain('a+b%2Fc'); // URLSearchParams + form
+    expect(redactSecrets('t=a%20b/c', [secret])).not.toContain('a%20b/c'); // WHATWG query form (slash kept)
+    expect(redactSecrets('raw a b/c', [secret])).toBe('raw <redacted>'); // raw still caught
+  });
+
+  it('masks the wire form of a secret that itself contains a literal `%HH`', () => {
+    const secret = 'a%2Fb c'; // literal %2F + space → wire form `a%2Fb%20c`
+    expect(redactSecrets('q=a%2Fb%20c', [secret])).not.toContain('a%2Fb%20c');
+    expect(redactSecrets('raw a%2Fb c', [secret])).toBe('raw <redacted>');
+  });
+
+  it('masks the exact URLSearchParams form (e.g. tilde → %7E), not just an approximation', () => {
+    const secret = 'a~b c'; // URLSearchParams serializes to `a%7Eb+c`
+    expect(redactSecrets('x=a%7Eb+c', [secret])).not.toContain('a%7Eb+c');
+    expect(redactSecrets('raw a~b c', [secret])).toBe('raw <redacted>');
+  });
+
+  it('does not over-redact on a trailing `#` (query form is skipped, not truncated)', () => {
+    const secret = 'abc#';
+    expect(redactSecrets('the abc word stays', [secret])).toBe('the abc word stays'); // no bare `abc` variant
+    expect(redactSecrets('raw abc#', [secret])).toBe('raw <redacted>');
+  });
+
+  it('does not over-redact when the query-form guard would truncate a `#`-bearing secret', () => {
+    const secret = 'a#b'; // `?a#b` splits at the fragment → truncated 'a' must NOT become a variant
+    expect(redactSecrets('the letter a appears here', [secret])).toBe('the letter a appears here');
+    expect(redactSecrets('raw a#b', [secret])).toBe('raw <redacted>'); // raw form still caught
+  });
 });
 
 describe('redactSecretsClamped — bounded, leak-free redaction', () => {

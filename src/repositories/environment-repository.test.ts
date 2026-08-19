@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EnvironmentRepository, redactEnvSecrets, assertNoRedactionPlaceholder, SECRET_PLACEHOLDER } from './environment-repository';
 import { ApiType, type Config } from '../config';
 import type { UserEnvironment } from '../types';
+import { HoppscotchError } from '../types';
 import type { HoppscotchClient } from '../client';
 
 describe('redactEnvSecrets — secret values never cross the MCP boundary', () => {
@@ -28,9 +29,17 @@ describe('redactEnvSecrets — secret values never cross the MCP boundary', () =
     expect(redactEnvSecrets(env)).toBe(env);
   });
 
-  it('returns the input unchanged when variables is not parseable', () => {
+  it('fails closed when variables is not parseable — never surfaces the raw blob', () => {
     const env = { variables: 'not-json' };
-    expect(redactEnvSecrets(env)).toBe(env);
+    const out = redactEnvSecrets(env);
+    expect(out.variables).toBe(JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]));
+  });
+
+  it('fails closed on a parseable-but-non-array blob carrying a secret', () => {
+    const env = { variables: JSON.stringify({ key: 'TOKEN', value: 's3cr3t', secret: true }) };
+    const out = redactEnvSecrets(env);
+    expect(out.variables).not.toContain('s3cr3t');
+    expect(out.variables).toBe(JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]));
   });
 });
 
@@ -103,6 +112,48 @@ describe('EnvironmentRepository', () => {
       const updateArgs = vi.mocked(client.graphql).mock.calls[1][1] as { variables: string };
       expect(updateArgs.variables).toContain('real-secret');
       expect(updateArgs.variables).not.toContain(SECRET_PLACEHOLDER);
+    });
+  });
+
+  describe('backend-error secret scrub — a submitted secret echoed in an error never reaches the caller', () => {
+    it('scrubs the submitted secret value from a rejected mutation error', async () => {
+      const client = makeMockClient(ApiType.SELFHOST);
+      vi.mocked(client.graphql).mockRejectedValue(
+        new HoppscotchError('backend rejected: value "sup3r-s3cret" is invalid', 'GRAPHQL_ERROR')
+      );
+      const repo = new EnvironmentRepository(client);
+      const err = (await repo
+        .createUserEnvironment({ name: 'e', variables: [{ key: 'API_KEY', value: 'sup3r-s3cret', secret: true }] })
+        .catch((e) => e)) as Error;
+      expect(err.message).not.toContain('sup3r-s3cret');
+      expect(err.message).toContain('<redacted>');
+      expect(err).toBeInstanceOf(HoppscotchError);
+      expect((err as HoppscotchError).code).toBe('GRAPHQL_ERROR');
+    });
+
+    it('leaves a non-secret error message untouched', async () => {
+      const client = makeMockClient(ApiType.SELFHOST);
+      vi.mocked(client.graphql).mockRejectedValue(
+        new HoppscotchError('backend rejected: name "demo" already exists', 'GRAPHQL_ERROR')
+      );
+      const repo = new EnvironmentRepository(client);
+      const err = (await repo
+        .createUserEnvironment({ name: 'demo', variables: [{ key: 'PUB', value: 'not-secret', secret: false }] })
+        .catch((e) => e)) as Error;
+      expect(err.message).toContain('demo');
+    });
+
+    it('applies on a team-env mutation too (all 4 sites share the helper)', async () => {
+      const client = makeMockClient(ApiType.SELFHOST);
+      vi.mocked(client.graphql).mockRejectedValue(
+        new HoppscotchError('team backend rejected "t34m-s3cret"', 'GRAPHQL_ERROR')
+      );
+      const repo = new EnvironmentRepository(client);
+      const err = (await repo
+        .createTeamEnvironment('team1', { name: 'e', variables: [{ key: 'K', value: 't34m-s3cret', secret: true }] })
+        .catch((e) => e)) as Error;
+      expect(err.message).not.toContain('t34m-s3cret');
+      expect(err.message).toContain('<redacted>');
     });
   });
 
