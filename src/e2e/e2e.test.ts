@@ -729,8 +729,8 @@ describe('team environments', () => {
 
 // ---------------------------------------------------------------------------
 // User collections
-// Cloud: personal workspace not supported as of now — READ ops (list, get,
-//        export) return a clear error; WRITE ops are ungated but unsupported.
+// Cloud: READ ops (list, get, export) are gated client-side and return a clear
+//        error; WRITE ops are ungated and use the *_CLOUD mutations (reqType).
 // SH:    All ops work. READ ops assert proper shape of returned data.
 // ---------------------------------------------------------------------------
 
@@ -1184,8 +1184,8 @@ describe('team requests', () => {
 
 // ---------------------------------------------------------------------------
 // User requests
-// Cloud: personal workspace not supported as of now — list_user_requests
-//        returns a clear error; write ops are ungated but unsupported
+// Cloud: list_user_requests is gated client-side and returns a clear error;
+//        write ops are ungated and go to Cloud unchanged
 // SH: all ops work
 // ---------------------------------------------------------------------------
 

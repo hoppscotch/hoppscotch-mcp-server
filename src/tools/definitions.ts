@@ -1009,7 +1009,7 @@ const CODE_GENERATION_TOOLS = {
 
 // ─── Request CRUD Tools ───────────────────────────────────────────────────────
 // Team request reads/writes work on both Cloud and SH.
-// User request reads/writes: supported on self-hosted; personal workspace not supported on Cloud as of now.
+// User request reads: gated, self-hosted only. User request writes: ungated, sent to Cloud unchanged.
 const REQUEST_CRUD_TOOLS = {
   list_team_requests: {
     name: 'list_team_requests',

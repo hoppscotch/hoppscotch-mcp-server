@@ -179,16 +179,21 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 
 Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
 Hoppscotch Cloud (`hoppscotch.io`), the **team** tools (except
-`search_team_requests`, below) and request execution work; the **personal
-(user) workspace** — user collections, user requests, and user environments —
-is **not supported on Cloud as of now**. Use team workspaces on Cloud instead.
+`search_team_requests`, below) and request execution work. The **personal
+(user) workspace** is only partly available: reading personal collections and
+requests is gated client-side, as are the user-environment create/update/delete
+tools. The personal collection and request **write** tools are not gated — user
+collections use Cloud-specific mutations, and user requests are sent to Cloud
+unchanged. Use team workspaces on Cloud when you need the full surface.
 
 `search_team_requests` is separately unavailable on Cloud: the backend rejects
 the query with `bug/team/no_require_team_role`, surfaced as an error.
 
-The client-side-gated personal tools (user-collection/request reads and all
-user-environment tools) return an `isError: true` response on Cloud rather than
-failing silently.
+The client-side-gated personal tools — `list_user_collections`,
+`get_user_collection`, `export_user_collection`, `list_user_requests`, and the
+user-environment create/update/delete tools — return an `isError: true`
+response on Cloud rather than failing silently. `list_user_environments` is the
+exception: on Cloud it returns an empty list.
 
 ### Teams
 
@@ -231,7 +236,7 @@ failing silently.
 
 ### User (Personal) Collections
 
-> Personal (user) collections work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now** — use team collections instead.
+> Personal (user) collections work on **self-hosted**. On Hoppscotch Cloud the reads (`list_user_collections`, `get_user_collection`, `export_user_collection`) are gated and return an error; the writes run against Cloud-specific mutations. Use team collections if you need to list them.
 
 | Tool | Description |
 |------|-------------|
@@ -269,7 +274,7 @@ failing silently.
 
 ### User (Personal) Requests
 
-> Personal (user) requests work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now** — use team requests instead.
+> Personal (user) requests work on **self-hosted**. On Hoppscotch Cloud `list_user_requests` is gated and returns an error; the write tools are sent to Cloud unchanged. Use team requests if you need to list them.
 
 | Tool | Description |
 |------|-------------|
@@ -472,7 +477,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### User collections unavailable
 
-`list_user_collections`, `get_user_collection`, and `export_user_collection` are not supported on Hoppscotch Cloud as of now — the personal (user) workspace is available on self-hosted instances. Use team collections instead, or switch to a self-hosted instance.
+`list_user_collections`, `get_user_collection`, and `export_user_collection` are gated client-side and not supported on Hoppscotch Cloud as of now; the personal-collection write tools are not gated and do run against Cloud. The full personal (user) workspace is available on self-hosted instances. Use team collections instead, or switch to a self-hosted instance.
 
 ## Security
 
