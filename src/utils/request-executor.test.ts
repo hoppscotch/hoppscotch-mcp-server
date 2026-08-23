@@ -542,6 +542,19 @@ describe('redactSecrets', () => {
     expect(redactSecrets('raw a b/c', [secret])).toBe('raw <redacted>'); // raw still caught
   });
 
+  it('masks the shortened wire form of a secret the URL parser stripped', () => {
+    // Tab, LF and CR are removed by the parser rather than encoded, so a secret
+    // pasted with a trailing newline travels WITHOUT it — and that shortened
+    // string, not the raw value, is what a target can echo back. Ask the parser
+    // for it rather than stripping by hand, so the expectation cannot drift from
+    // what actually goes on the wire.
+    const token = 'fixture-newline-token-value\n';
+    const wire = new URL(`http://h/?${token}`).search.slice(1);
+    expect(wire).toBe('fixture-newline-token-value');
+    expect(redactSecrets(`{"key":"${wire}"}`, [token])).toBe('{"key":"<redacted>"}');
+    expect(redactSecrets(`raw ${token}`, [token])).toBe('raw <redacted>'); // raw still caught
+  });
+
   it('masks the wire form of a secret that itself contains a literal `%HH`', () => {
     const secret = 'a%2Fb c'; // literal %2F + space → wire form `a%2Fb%20c`
     expect(redactSecrets('q=a%2Fb%20c', [secret])).not.toContain('a%2Fb%20c');
