@@ -56,13 +56,19 @@ selects how many are exposed — `minimal`, `core` (the default), `standard`, or
   (`HOPPSCOTCH_MAX_RESPONSE_BYTES`) are truncated and flagged.
 - `secret: true` environment values are masked in environment listings, and any that
   were substituted into a request are scrubbed from the response body, headers and
-  error text before they reach the model.
+  error text before they reach the model. Scrubbing is best-effort: a secret
+  containing a `#` reaches the target truncated there, and one mixing whitespace
+  the URL parser strips (tab, newline, carriage return) with a character it
+  encodes is decoded back into a form that is not matched. Credentials passed in
+  `auth`, or set directly in an `Authorization` header, are not scrubbed.
 - `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` optionally restricts which origins may receive
   secret values at all. `HOPPSCOTCH_STRICT_ENV` optionally ignores trust-sensitive
   variables introduced by a working-directory `.env`, for hosts that open untrusted
   repositories.
 - When an environment is selected, an unresolved `{{placeholder}}` fails the call
-  rather than going out on the wire literally.
+  rather than going out on the wire literally. Substitution covers the URL,
+  headers and body; the `auth` block is sent as given, so pass credentials there
+  directly.
 - `generate_code` emits runnable snippets with live credentials; pass
   `redactCredentials: true` to mask them. `generate_documentation` masks by default.
 - GraphQL mutations are not retried on network errors, so a lost response cannot
