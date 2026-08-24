@@ -57,18 +57,20 @@ selects how many are exposed — `minimal`, `core` (the default), `standard`, or
 - `secret: true` environment values are masked in environment listings, and any that
   were substituted into a request are scrubbed from the response body, headers and
   error text before they reach the model. Scrubbing is best-effort: it matches the
-  forms a secret takes when sent, so a target that transforms the value before
-  echoing it — decoding a percent-escape, splitting at a delimiter, dropping
-  everything after a `#` in a URL — can surface something those forms miss.
-  Credentials passed in `auth`, or written straight into a header rather than
-  substituted from an environment, are never added to the scrub set.
+  forms a secret takes when sent. Everything after a `#` becomes a URL fragment
+  and is never sent at all, and a target can transform what it did receive before
+  echoing it — decoding a percent-escape, turning a `+` back into a space,
+  splitting at a delimiter — so either end can produce something those forms
+  miss. Only `secret: true` values are tracked: a non-secret variable, a
+  credential passed in `auth`, and anything written straight into a header are
+  never added to the scrub set.
 - `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` optionally restricts which origins may receive
   secret values at all. `HOPPSCOTCH_STRICT_ENV` optionally ignores trust-sensitive
   variables introduced by a working-directory `.env`, for hosts that open untrusted
   repositories.
 - When an environment is selected, an unresolved `{{placeholder}}` fails the call
-  rather than going out on the wire literally. Substitution covers the URL,
-  headers and body; the `auth` block is sent as given, so pass credentials there
+  rather than going out on the wire literally. Substitution covers the URL, header
+  values and body; the `auth` block is not substituted, so pass credentials there
   directly.
 - `generate_code` emits runnable snippets with live credentials; pass
   `redactCredentials: true` to mask them. `generate_documentation` masks by default.
