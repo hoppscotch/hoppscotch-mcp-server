@@ -56,9 +56,20 @@ substituted only when the request's target origin is allowlisted, otherwise the
 call is refused, so a prompt-injected request cannot exfiltrate a secret to an
 attacker-chosen origin. Independently of that setting, when an environment is
 requested an unresolved `{{placeholder}}` fails the call rather than being sent
-literally, secret values are scrubbed from any surfaced error text, and secret
-values echoed in a response body/headers are scrubbed before they reach the
-model.
+literally (substitution covers the URL, headers and body — the `auth` block is
+sent as given), secret values are scrubbed from any surfaced error text, and
+secret values echoed in a response body/headers are scrubbed before they reach
+the model.
+
+Scrubbing matches the forms a secret takes on the wire, and it is best-effort
+rather than complete. A secret whose value contains a `#` reaches the target
+truncated at that character. A secret that mixes whitespace the URL parser
+strips (tab, newline, carriage return) with a character it encodes (a space,
+anything non-ASCII) is decoded back by the target into a form that is not
+matched. In both cases a target that echoes the value can still surface it.
+Credentials passed in a request's `auth` block, or set directly in an
+`Authorization` header, are not scrubbed at all. Treat responses from untrusted
+targets accordingly.
 
 Even with the guard enabled, the tool can still reach any **public** host the
 machine can, using the request's own auth — agents should apply their own
