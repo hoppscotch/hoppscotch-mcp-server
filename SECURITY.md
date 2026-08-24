@@ -56,20 +56,25 @@ substituted only when the request's target origin is allowlisted, otherwise the
 call is refused, so a prompt-injected request cannot exfiltrate a secret to an
 attacker-chosen origin. Independently of that setting, when an environment is
 requested an unresolved `{{placeholder}}` fails the call rather than being sent
-literally (substitution covers the URL, headers and body — the `auth` block is
+literally (substitution covers the URL, header values and body — the `auth` block is
 sent as given), secret values are scrubbed from any surfaced error text, and
 secret values echoed in a response body/headers are scrubbed before they reach
 the model.
 
 Scrubbing works by matching the forms a secret takes when it is sent, so it is
-best-effort rather than complete. A target that transforms the value before
-echoing it can produce something those forms do not cover — decoding a
-percent-escape, splitting at a delimiter, or dropping everything after a `#`
-when the secret was substituted into the URL. Credentials passed in a request's
-`auth` block, or written straight into a header rather than substituted from an
-environment, are never added to the scrub set at all. Do not rely on response
-scrubbing for confidentiality; `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` is the
-stronger boundary.
+best-effort rather than complete, and two things defeat it. The request can drop
+part of the value before it is sent: everything after a `#` becomes a URL
+fragment and never leaves this machine, so a target echoing back what it did
+receive returns a prefix no form matches. And a target can transform what it
+received before echoing it — decoding a percent-escape, turning a `+` back into
+a space, splitting at a delimiter.
+
+Only `secret: true` environment values are tracked and scrubbed. A non-secret
+variable, a credential passed in a request's `auth` block, and anything written
+straight into a header are never added to the scrub set at all.
+`HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` does not cover them either — it gates which
+origins may receive `secret: true` values, and has no bearing on the other
+three. Do not rely on response scrubbing for confidentiality.
 
 Even with the guard enabled, the tool can still reach any **public** host the
 machine can, using the request's own auth — agents should apply their own
