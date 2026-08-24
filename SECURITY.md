@@ -61,15 +61,15 @@ sent as given), secret values are scrubbed from any surfaced error text, and
 secret values echoed in a response body/headers are scrubbed before they reach
 the model.
 
-Scrubbing matches the forms a secret takes on the wire, and it is best-effort
-rather than complete. A secret whose value contains a `#` reaches the target
-truncated at that character. A secret that mixes whitespace the URL parser
-strips (tab, newline, carriage return) with a character it encodes (a space,
-anything non-ASCII) is decoded back by the target into a form that is not
-matched. In both cases a target that echoes the value can still surface it.
-Credentials passed in a request's `auth` block, or set directly in an
-`Authorization` header, are not scrubbed at all. Treat responses from untrusted
-targets accordingly.
+Scrubbing works by matching the forms a secret takes when it is sent, so it is
+best-effort rather than complete. A target that transforms the value before
+echoing it can produce something those forms do not cover — decoding a
+percent-escape, splitting at a delimiter, or dropping everything after a `#`
+when the secret was substituted into the URL. Credentials passed in a request's
+`auth` block, or written straight into a header rather than substituted from an
+environment, are never added to the scrub set at all. Do not rely on response
+scrubbing for confidentiality; `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` is the
+stronger boundary.
 
 Even with the guard enabled, the tool can still reach any **public** host the
 machine can, using the request's own auth — agents should apply their own

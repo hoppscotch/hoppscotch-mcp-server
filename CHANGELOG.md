@@ -56,11 +56,12 @@ selects how many are exposed — `minimal`, `core` (the default), `standard`, or
   (`HOPPSCOTCH_MAX_RESPONSE_BYTES`) are truncated and flagged.
 - `secret: true` environment values are masked in environment listings, and any that
   were substituted into a request are scrubbed from the response body, headers and
-  error text before they reach the model. Scrubbing is best-effort: a secret
-  containing a `#` reaches the target truncated there, and one mixing whitespace
-  the URL parser strips (tab, newline, carriage return) with a character it
-  encodes is decoded back into a form that is not matched. Credentials passed in
-  `auth`, or set directly in an `Authorization` header, are not scrubbed.
+  error text before they reach the model. Scrubbing is best-effort: it matches the
+  forms a secret takes when sent, so a target that transforms the value before
+  echoing it — decoding a percent-escape, splitting at a delimiter, dropping
+  everything after a `#` in a URL — can surface something those forms miss.
+  Credentials passed in `auth`, or written straight into a header rather than
+  substituted from an environment, are never added to the scrub set.
 - `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` optionally restricts which origins may receive
   secret values at all. `HOPPSCOTCH_STRICT_ENV` optionally ignores trust-sensitive
   variables introduced by a working-directory `.env`, for hosts that open untrusted
