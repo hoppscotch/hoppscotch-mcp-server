@@ -548,11 +548,13 @@ describe('redactSecrets', () => {
     // string, not the raw value, is what a target can echo back. Ask the parser
     // for it rather than stripping by hand, so the expectation cannot drift from
     // what actually goes on the wire.
-    const token = 'fixture-newline-token-value\n';
-    const wire = new URL(`http://h/?${token}`).search.slice(1);
-    expect(wire).toBe('fixture-newline-token-value');
-    expect(redactSecrets(`{"key":"${wire}"}`, [token])).toBe('{"key":"<redacted>"}');
-    expect(redactSecrets(`raw ${token}`, [token])).toBe('raw <redacted>'); // raw still caught
+    for (const trailing of ['\n', '\t', '\r']) {
+      const token = `fixture-newline-token-value${trailing}`;
+      const wire = new URL(`http://h/?${token}`).search.slice(1);
+      expect(wire).toBe('fixture-newline-token-value');
+      expect(redactSecrets(`{"key":"${wire}"}`, [token])).toBe('{"key":"<redacted>"}');
+      expect(redactSecrets(`raw ${token}`, [token])).toBe('raw <redacted>'); // raw still caught
+    }
   });
 
   it('masks the wire form of a secret that itself contains a literal `%HH`', () => {
