@@ -1,0 +1,14 @@
+# Check out LF on every platform, Windows included. Without this a Windows
+# runner gets CRLF, and `prettier --check` (whose endOfLine default is lf)
+# then fails on every file. It also keeps any newline-sensitive comparison
+# in the tests and in the generated snippets platform-independent.
+* text=auto eol=lf
+
+# Never touch binary content.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
