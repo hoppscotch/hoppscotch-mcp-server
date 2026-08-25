@@ -1311,15 +1311,16 @@ function annotationsFor(name: string): ToolAnnotations {
   if (/^(create|import|invite|duplicate)_/.test(name)) {
     return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
   }
-  // In-place updates: not destructive (same entity kept), not idempotent
-  // (repeat writes may still change timestamps / revisions).
+  // In-place updates overwrite fields that were already set, so they fail the
+  // spec's "additive only" test for destructiveHint: false. Not idempotent
+  // either, since a repeat write may still bump timestamps or revisions.
   if (/^(update|rename)_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+    return { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false };
   }
-  // Structural moves within our hierarchy: not destructive, idempotent
-  // (second call with same source+dest is a no-op).
+  // Moves detach the entity from its old parent, which is not additive either.
+  // Idempotent, though: a second call with the same source and dest is a no-op.
   if (/^move_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+    return { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false };
   }
   // reauth: triggers an external browser sign-in (open-world), not destructive
   // to user data, not idempotent (each call restarts the flow).
