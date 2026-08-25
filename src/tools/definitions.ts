@@ -83,6 +83,11 @@ const USER_COLLECTION_TOOLS = {
           type: 'string',
           description: 'ID of the collection to update',
         },
+        type: {
+          type: 'string',
+          enum: ['REST', 'GQL'],
+          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+        },
         title: {
           type: 'string',
           description: 'New title for the collection',
@@ -105,6 +110,11 @@ const USER_COLLECTION_TOOLS = {
         collectionId: {
           type: 'string',
           description: 'ID of the collection to delete',
+        },
+        type: {
+          type: 'string',
+          enum: ['REST', 'GQL'],
+          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
       },
       required: ['collectionId'],
@@ -479,6 +489,11 @@ const ADVANCED_COLLECTION_TOOLS = {
         collectionId: {
           type: 'string',
           description: 'ID of the collection to duplicate',
+        },
+        type: {
+          type: 'string',
+          enum: ['REST', 'GQL'],
+          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
       },
       required: ['collectionId'],
