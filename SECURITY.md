@@ -37,14 +37,14 @@ The `execute_request` / `validate_response` tools are the generic
 API-workbench capability of the server: they fetch a host-supplied URL and
 return the response into model context. By **default** they block targets
 that resolve to loopback, link-local, cloud-metadata (`169.254.169.254`),
-private, and CGNAT addresses — plus additional special-use ranges (IETF
+private, and CGNAT addresses, plus additional special-use ranges (IETF
 protocol assignments incl. `192.0.0.192`, TEST-NETs, multicast, reserved,
 broadcast, and IPv6 site-local/multicast), covering IPv4, IPv6, and
 v4-mapped/compatible forms, with DNS resolution validated and **failing closed**
-on resolution error — and restrict the scheme to `http`/`https`. The validated
+on resolution error, and restrict the scheme to `http`/`https`. The validated
 address is **pinned at connect time** (an undici dispatcher whose lookup
 re-validates and connects only to a permitted address), so the same resolution
-is used for the check and the connection — closing the resolve-then-reconnect
+is used for the check and the connection, closing the resolve-then-reconnect
 DNS-rebinding TOCTOU. Redirects are not auto-followed (`redirect: 'manual'`), so
 a permitted host cannot 30x-redirect to a private/metadata address or leak auth
 headers cross-origin. Set `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true` to opt out for
@@ -56,7 +56,7 @@ substituted only when the request's target origin is allowlisted, otherwise the
 call is refused, so a prompt-injected request cannot exfiltrate a secret to an
 attacker-chosen origin. Independently of that setting, when an environment is
 requested an unresolved `{{placeholder}}` fails the call rather than being sent
-literally (substitution covers the URL, header values and body — the `auth` block is
+literally (substitution covers the URL, header values and body; the `auth` block is
 sent as given), secret values are scrubbed from any surfaced error text, and
 secret values echoed in a response body/headers are scrubbed before they reach
 the model.
@@ -66,18 +66,18 @@ best-effort rather than complete, and two things defeat it. The request can drop
 part of the value before it is sent: everything after a `#` becomes a URL
 fragment and never leaves this machine, so a target echoing back what it did
 receive returns a prefix no form matches. And a target can transform what it
-received before echoing it — decoding a percent-escape, turning a `+` back into
+received before echoing it, by decoding a percent-escape, turning a `+` back into
 a space, splitting at a delimiter.
 
 Only `secret: true` environment values are tracked and scrubbed. A non-secret
 variable, a credential passed in a request's `auth` block, and anything written
 straight into a header are never added to the scrub set at all.
-`HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` does not cover them either — it gates which
+`HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` does not cover them either; it gates which
 origins may receive `secret: true` values, and has no bearing on the other
 three. Do not rely on response scrubbing for confidentiality.
 
 Even with the guard enabled, the tool can still reach any **public** host the
-machine can, using the request's own auth — agents should apply their own
+machine can, using the request's own auth, so agents should apply their own
 redaction / approval policy.
 
 ## Non-goals
@@ -95,13 +95,13 @@ redaction / approval policy.
 
 - The Cloud Firebase Web API key is the public client key from the
   hoppscotch.io frontend. Firebase web API keys are client identifiers, not
-  secrets. It is no longer hardcoded in the source — the release build bakes it in from
+  secrets. It is no longer hardcoded in the source; the release build bakes it in from
   `HOPPSCOTCH_FIREBASE_API_KEY` (see `tsup.config.ts`), and the same variable
   overrides it at runtime. It still ships inside the published bundle, so what
   protects it is the Google Cloud API-key restrictions and Firebase Security
   Rules on that key, not secrecy.
 - The local device-login callback server dual-binds to `127.0.0.1` and
-  `::1` (both loopback families) on the same random ephemeral port —
+  `::1` (both loopback families) on the same random ephemeral port, so
   no non-local traffic can reach it. It enforces origin server-side:
   any request whose `Origin` header is set and does not match the
   configured Hoppscotch frontend origin is rejected with HTTP 403
