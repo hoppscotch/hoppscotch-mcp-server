@@ -363,6 +363,33 @@ describe('substituteRequestVariables — secret-egress policy', () => {
     expect(out.headers.Authorization).toBe('Bearer super-secret');
   });
 
+  // .env.example documents "set it empty to deny all". That works because the
+  // lookup tests for `undefined`, not falsiness, so '' is an allowlist with no
+  // entries rather than an absent one.
+  it('denies every secret when the allowlist is set but empty', () => {
+    process.env.HOPPSCOTCH_SECRET_ALLOWED_ORIGINS = '';
+    expect(() =>
+      substituteRequestVariables(
+        base({ headers: { Authorization: 'Bearer {{TOKEN}}' } }),
+        [secret('TOKEN', 'super-secret')],
+        { requireResolved: true }
+      )
+    ).toThrow(SecretEgressBlockedError);
+  });
+
+  // The allowlist gates secret egress, not requests. A call that references no
+  // secret reaches a non-allowlisted origin untouched.
+  it('leaves a request carrying no secret alone even when the allowlist is empty', () => {
+    process.env.HOPPSCOTCH_SECRET_ALLOWED_ORIGINS = '';
+    const out = substituteRequestVariables(
+      base({ url: 'https://api.example.com/{{ver}}/u' }),
+      [nonSecret('ver', 'v2'), secret('UNUSED', 'super-secret')],
+      { requireResolved: true }
+    );
+    expect(out.url).toBe('https://api.example.com/v2/u');
+    expect(out.substitutedSecretValues).toEqual([]);
+  });
+
   it('gates a transitively-referenced secret when the allowlist is enforced', () => {
     process.env.HOPPSCOTCH_SECRET_ALLOWED_ORIGINS = 'https://allowed.example.com';
     expect(() =>

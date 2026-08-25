@@ -2,6 +2,10 @@
 
 This document contains example prompts you can use with Claude to interact with Hoppscotch via the MCP server.
 
+Some of these need more than the default `core` tool profile. Moving, duplicating,
+and importing into a team collection live in `standard` and `full`, so set
+`HOPPSCOTCH_TOOL_PROFILE=full` if a prompt below reports that the tool is unavailable.
+
 ## Collection Management
 
 ### Create a Simple REST Collection
