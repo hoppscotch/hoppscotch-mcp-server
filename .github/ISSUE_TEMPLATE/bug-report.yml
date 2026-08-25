@@ -1,0 +1,69 @@
+name: Bug report
+description: Something the server does that it should not, or does not do that it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you asked the agent to do, and what the server did.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: input
+    id: tool
+    attributes:
+      label: Tool involved
+      description: The tool name, if you know it.
+      placeholder: execute_request
+
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend
+      options:
+        - Hoppscotch Cloud (hoppscotch.io)
+        - Self-hosted (Community)
+        - Self-hosted (Enterprise)
+    validations:
+      required: true
+
+  - type: input
+    id: host
+    attributes:
+      label: MCP host
+      description: The app running the agent, with its version.
+      placeholder: Claude Code 2.x
+    validations:
+      required: true
+
+  - type: input
+    id: profile
+    attributes:
+      label: HOPPSCOTCH_TOOL_PROFILE
+      description: Leave blank if you have not set it.
+      placeholder: core
+
+  - type: input
+    id: versions
+    attributes:
+      label: Package and Node versions
+      placeholder: "@hoppscotch/mcp-server 1.0.0, Node 22.11.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server output
+      description: >
+        Anything the server wrote to stderr. Your MCP host keeps this in its own
+        log. Please remove tokens and any other credential before pasting.
+      render: shell
