@@ -209,4 +209,3 @@ describe('sanitizeTrustSensitiveEnv', () => {
     expect(env.HOPPSCOTCH_FORCE_BROWSER_LOGIN).toBeUndefined();
   });
 });
-

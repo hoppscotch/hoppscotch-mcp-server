@@ -76,7 +76,9 @@ describe('selectProfileTools', () => {
     expect(Object.keys(tools)).toEqual(Object.keys(selectProfileTools(undefined)));
     expect(new Set(Object.keys(tools)).has('delete_team')).toBe(false);
     expect(stderr).toHaveBeenCalledWith(
-      expect.stringMatching(/Unknown HOPPSCOTCH_TOOL_PROFILE.*premium.*falling back to the default \(core\)/i)
+      expect.stringMatching(
+        /Unknown HOPPSCOTCH_TOOL_PROFILE.*premium.*falling back to the default \(core\)/i
+      )
     );
   });
 

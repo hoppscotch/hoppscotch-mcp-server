@@ -100,10 +100,7 @@ export function assertValidServerUrl(serverUrl: string): void {
  * does NOT work here (PATs are REST-only; the GraphQL API requires a JWT).
  */
 const configSchema = z.object({
-  serverUrl: z
-    .string()
-    .url('HOPPSCOTCH_SERVER_URL must be a valid URL')
-    .default(CLOUD_SERVER_URL),
+  serverUrl: z.string().url('HOPPSCOTCH_SERVER_URL must be a valid URL').default(CLOUD_SERVER_URL),
 
   // Derived from serverUrl, not exposed as env vars
   apiUrl: z.string(),

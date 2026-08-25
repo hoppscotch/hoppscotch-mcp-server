@@ -168,8 +168,7 @@ export class RequestRepository {
         ? mutations.CREATE_REST_USER_REQUEST
         : mutations.CREATE_GQL_USER_REQUEST;
 
-    const key =
-      type === CollectionType.REST ? 'createRESTUserRequest' : 'createGQLUserRequest';
+    const key = type === CollectionType.REST ? 'createRESTUserRequest' : 'createGQLUserRequest';
 
     const result = await this.client.graphql<Record<string, UserRequest>>(mutation, {
       collectionID: collectionId,
@@ -196,8 +195,7 @@ export class RequestRepository {
         ? mutations.UPDATE_REST_USER_REQUEST
         : mutations.UPDATE_GQL_USER_REQUEST;
 
-    const key =
-      type === CollectionType.REST ? 'updateRESTUserRequest' : 'updateGQLUserRequest';
+    const key = type === CollectionType.REST ? 'updateRESTUserRequest' : 'updateGQLUserRequest';
 
     const result = await this.client.graphql<Record<string, UserRequest>>(mutation, {
       id: requestId,
@@ -245,10 +243,7 @@ export class RequestRepository {
    * the field is named "search…request" upstream and there is no team-collection
    * title search.
    */
-  async searchTeamRequests(
-    teamId: string,
-    query: string
-  ): Promise<TeamRequestSearchResult[]> {
+  async searchTeamRequests(teamId: string, query: string): Promise<TeamRequestSearchResult[]> {
     const result = await this.client.graphql<{
       searchForRequest: TeamRequestSearchResult[];
     }>(queries.SEARCH_TEAM_REQUESTS, {

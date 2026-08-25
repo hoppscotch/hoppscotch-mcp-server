@@ -17,7 +17,11 @@ function clientErrorWith(opts: {
   errors?: Array<{ message: string }>;
 }): ClientError {
   return new ClientError(
-    { status: opts.status, headers: {} as never, ...(opts.errors ? { errors: opts.errors } : {}) } as never,
+    {
+      status: opts.status,
+      headers: {} as never,
+      ...(opts.errors ? { errors: opts.errors } : {}),
+    } as never,
     {
       query: 'mutation UpdateUserEnvironment($id: ID!, $variables: String!) { ... }',
       variables: {

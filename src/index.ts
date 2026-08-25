@@ -28,7 +28,7 @@ if (strictEnv) {
   if (strippedEnv.length > 0) {
     console.error(
       `[MCP] HOPPSCOTCH_STRICT_ENV: ignored ${strippedEnv.join(', ')} introduced by .env — ` +
-      `these are operator-only and must be set in the real environment.`
+        `these are operator-only and must be set in the real environment.`
     );
   }
 }

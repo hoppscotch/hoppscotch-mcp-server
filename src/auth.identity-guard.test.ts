@@ -134,7 +134,9 @@ describe('identity-switch guard (getValidToken disk-read refusal)', () => {
     await expect(getValidToken(...SH)).rejects.toThrow(/Signed-in account changed/);
     const persistedB = vi
       .mocked(writeFileSync)
-      .mock.calls.some(([, data]) => typeof data === 'string' && data.includes(jwtFor('account-B')));
+      .mock.calls.some(
+        ([, data]) => typeof data === 'string' && data.includes(jwtFor('account-B'))
+      );
     expect(persistedB).toBe(false);
     vi.unstubAllGlobals();
   });

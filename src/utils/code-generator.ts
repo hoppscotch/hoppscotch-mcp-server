@@ -21,20 +21,12 @@ function shToken(s: string): string {
 
 /** Inner content of a single-quoted source literal (JS / Python). */
 function sq(s: string): string {
-  return s
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n');
+  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
 /** Inner content of a double-quoted source literal (Go / Rust). */
 function dq(s: string): string {
-  return s
-    .replace(/\\/g, '\\\\')
-    .replace(/"/g, '\\"')
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n');
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
 /** Markdown table cell: keep a pipe or newline from breaking the table row. */
@@ -47,13 +39,12 @@ function mdCell(s: string): string {
  * either a header to inject, or a URL with the key=value baked into the query
  * string. Keeps the addTo='query' branch consistent across all 5 languages.
  */
-function resolveApiKeyPlacement(request: RequestDefinition): { url: string; apiKeyHeader: { key: string; value: string } | null } {
+function resolveApiKeyPlacement(request: RequestDefinition): {
+  url: string;
+  apiKeyHeader: { key: string; value: string } | null;
+} {
   const auth = request.auth;
-  if (
-    auth?.type !== 'api-key' ||
-    !auth.key ||
-    !auth.value
-  ) {
+  if (auth?.type !== 'api-key' || !auth.key || !auth.value) {
     return { url: request.url, apiKeyHeader: null };
   }
   const addTo = auth.addTo ?? 'header';
@@ -120,9 +111,9 @@ function generateJavaScript(request: RequestDefinition): string {
     if (request.auth.type === 'bearer' && request.auth.token) {
       headers['Authorization'] = `Bearer ${request.auth.token}`;
     } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
-      const credentials = Buffer.from(
-        `${request.auth.username}:${request.auth.password}`
-      ).toString('base64');
+      const credentials = Buffer.from(`${request.auth.username}:${request.auth.password}`).toString(
+        'base64'
+      );
       headers['Authorization'] = `Basic ${credentials}`;
     } else if (apiKeyHeader) {
       headers[apiKeyHeader.key] = apiKeyHeader.value;
@@ -181,9 +172,7 @@ function generatePython(request: RequestDefinition): string {
   }
 
   if (request.auth?.type === 'basic' && request.auth.username && request.auth.password) {
-    lines.push(
-      `auth = ('${sq(request.auth.username)}', '${sq(request.auth.password)}')`
-    );
+    lines.push(`auth = ('${sq(request.auth.username)}', '${sq(request.auth.password)}')`);
   }
 
   if (request.body) {
@@ -239,7 +228,9 @@ function generateGo(request: RequestDefinition): string {
   }
 
   lines.push('');
-  lines.push(`\treq, err := http.NewRequest("${dq(request.method)}", "${dq(url)}", bytes.NewBuffer(payload))`);
+  lines.push(
+    `\treq, err := http.NewRequest("${dq(request.method)}", "${dq(url)}", bytes.NewBuffer(payload))`
+  );
   lines.push('\tif err != nil {');
   lines.push('\t\tpanic(err)');
   lines.push('\t}');
@@ -319,7 +310,9 @@ function generateRust(request: RequestDefinition): string {
   // reqwest's RequestBuilder.basic_auth(username, Some(password)) sets the
   // Authorization header; mirror curl/JS/Python which all support basic auth.
   if (request.auth?.type === 'basic' && request.auth.username && request.auth.password) {
-    lines.push(`        .basic_auth("${dq(request.auth.username)}", Some("${dq(request.auth.password)}"))`);
+    lines.push(
+      `        .basic_auth("${dq(request.auth.username)}", Some("${dq(request.auth.password)}"))`
+    );
   }
 
   if (request.body) {
@@ -359,8 +352,7 @@ export function generateCode(
     redactCredentials?: boolean;
   } = {}
 ): string {
-  const req =
-    options.redactCredentials === true ? redactRequestForDocs(request) : request;
+  const req = options.redactCredentials === true ? redactRequestForDocs(request) : request;
   switch (language) {
     case 'curl':
       return generateCurl(req);
@@ -440,18 +432,18 @@ function isSensitiveHeader(name: string): boolean {
 function isSensitiveParamName(name: string): boolean {
   const n = name.toLowerCase();
   return (
-    n.includes('secret') ||      // secret, client_secret, app_secret
+    n.includes('secret') || // secret, client_secret, app_secret
     n.includes('password') ||
     n.includes('passwd') ||
-    n.includes('token') ||       // token, access_token, refresh_token, id_token, session_token, auth_token
+    n.includes('token') || // token, access_token, refresh_token, id_token, session_token, auth_token
     n.includes('signature') ||
     n.includes('credential') ||
     n.includes('apikey') ||
     n.includes('api_key') ||
     n.includes('api-key') ||
-    n.includes('assertion') ||   // client_assertion (private_key_jwt client auth)
-    n.includes('verifier') ||    // code_verifier (PKCE secret)
-    n.includes('private') ||     // private_key / privatekey
+    n.includes('assertion') || // client_assertion (private_key_jwt client auth)
+    n.includes('verifier') || // code_verifier (PKCE secret)
+    n.includes('private') || // private_key / privatekey
     n.includes('authorization') || // authorization_code (OAuth)
     n === 'key' ||
     n === 'pwd' ||
@@ -587,8 +579,7 @@ export function generateDocumentation(
   // credential-bearing raw headers and query params; the whole doc, meaning the
   // request line, headers table, and examples, is generated from the redacted view.
   // Opt out with redactCredentials:false for runnable snippets with live values.
-  const docRequest =
-    options.redactCredentials === false ? request : redactRequestForDocs(request);
+  const docRequest = options.redactCredentials === false ? request : redactRequestForDocs(request);
 
   // Title
   lines.push(`# ${options.title || docRequest.method + ' ' + docRequest.url}`);

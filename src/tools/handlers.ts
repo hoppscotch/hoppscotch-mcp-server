@@ -34,7 +34,10 @@ export class ToolHandlers {
       await this.client.reauthenticate();
       return {
         content: [
-          { type: 'text', text: 'Re-authenticated successfully — a fresh Hoppscotch session is now active.' },
+          {
+            type: 'text',
+            text: 'Re-authenticated successfully — a fresh Hoppscotch session is now active.',
+          },
         ],
       };
     } catch (err) {
@@ -62,10 +65,10 @@ export class ToolHandlers {
    */
   async listUserCollections(args: unknown) {
     const { type, cursor, limit } = schemas.ListUserCollectionsSchema.parse(args);
-    const collections = await this.collectionRepo.getUserCollections(
-      type as CollectionType,
-      { cursor, limit }
-    );
+    const collections = await this.collectionRepo.getUserCollections(type as CollectionType, {
+      cursor,
+      limit,
+    });
     return {
       content: [
         {
@@ -174,8 +177,7 @@ export class ToolHandlers {
   }
 
   async importUserCollection(args: unknown) {
-    const { jsonString, type, parentCollectionId } =
-      schemas.ImportUserCollectionSchema.parse(args);
+    const { jsonString, type, parentCollectionId } = schemas.ImportUserCollectionSchema.parse(args);
 
     await this.collectionRepo.importUserCollections(
       type as CollectionType,
@@ -204,7 +206,11 @@ export class ToolHandlers {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(environments.map((e) => redactEnvSecrets(e)), null, 2),
+          text: JSON.stringify(
+            environments.map((e) => redactEnvSecrets(e)),
+            null,
+            2
+          ),
         },
       ],
     };
@@ -324,8 +330,7 @@ export class ToolHandlers {
   }
 
   async updateTeamCollection(args: unknown) {
-    const { collectionId, title, data } =
-      schemas.UpdateTeamCollectionSchema.parse(args);
+    const { collectionId, title, data } = schemas.UpdateTeamCollectionSchema.parse(args);
 
     const collection = await this.collectionRepo.updateTeamCollection(collectionId, {
       title,
@@ -395,7 +400,11 @@ export class ToolHandlers {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(environments.map((e) => redactEnvSecrets(e)), null, 2),
+          text: JSON.stringify(
+            environments.map((e) => redactEnvSecrets(e)),
+            null,
+            2
+          ),
         },
       ],
     };
@@ -425,7 +434,7 @@ export class ToolHandlers {
   }
 
   async updateTeamEnvironment(args: unknown) {
-    const { environmentId, name, variables} = schemas.UpdateTeamEnvironmentSchema.parse(args);
+    const { environmentId, name, variables } = schemas.UpdateTeamEnvironmentSchema.parse(args);
 
     const environment = await this.environmentRepo.updateTeamEnvironment(environmentId, {
       name,
@@ -518,8 +527,7 @@ export class ToolHandlers {
   }
 
   async moveTeamCollection(args: unknown) {
-    const { collectionId, parentCollectionId } =
-      schemas.MoveTeamCollectionSchema.parse(args);
+    const { collectionId, parentCollectionId } = schemas.MoveTeamCollectionSchema.parse(args);
 
     const collection = await this.collectionRepo.moveTeamCollection(
       collectionId,
@@ -567,11 +575,7 @@ export class ToolHandlers {
       schemas.ImportTeamCollectionSchema.parse(args);
     const resolvedTeamId = this.getTeamId(teamId);
 
-    await this.collectionRepo.importTeamCollections(
-      resolvedTeamId,
-      jsonString,
-      parentCollectionId
-    );
+    await this.collectionRepo.importTeamCollections(resolvedTeamId, jsonString, parentCollectionId);
 
     return {
       content: [
@@ -759,8 +763,11 @@ export class ToolHandlers {
     // Executor is dynamically imported to keep it off the startup path; it also
     // owns secret-egress control (opt-in via HOPPSCOTCH_SECRET_ALLOWED_ORIGINS;
     // unresolved placeholders rejected when an environment was requested).
-    const { executeRequest: execReq, formatResponse, substituteRequestVariables } =
-      await import('../utils/request-executor.js');
+    const {
+      executeRequest: execReq,
+      formatResponse,
+      substituteRequestVariables,
+    } = await import('../utils/request-executor.js');
 
     const { url, headers, body, substitutedSecretValues } = substituteRequestVariables(
       { url: params.url, headers: { ...params.headers }, body: params.body },
@@ -818,8 +825,12 @@ export class ToolHandlers {
 
     const variables = await this.resolveEnvironmentVariables(params.environmentId);
 
-    const { executeRequest: execReq, validateResponse: validateResp, formatResponse, substituteRequestVariables } =
-      await import('../utils/request-executor.js');
+    const {
+      executeRequest: execReq,
+      validateResponse: validateResp,
+      formatResponse,
+      substituteRequestVariables,
+    } = await import('../utils/request-executor.js');
 
     // Secret-egress control is opt-in via HOPPSCOTCH_SECRET_ALLOWED_ORIGINS;
     // unresolved placeholders rejected when an environment was requested.
@@ -950,10 +961,16 @@ export class ToolHandlers {
   async createTeamRequest(args: unknown) {
     const { collectionId, teamId, title, request } = schemas.CreateTeamRequestSchema.parse(args);
     const resolvedTeamId = this.getTeamId(teamId);
-    const created = await this.requestRepo.createTeamRequest(collectionId, resolvedTeamId, { title, request });
+    const created = await this.requestRepo.createTeamRequest(collectionId, resolvedTeamId, {
+      title,
+      request,
+    });
     return {
       content: [
-        { type: 'text', text: `Successfully created team request "${created.title}" (ID: ${created.id})` },
+        {
+          type: 'text',
+          text: `Successfully created team request "${created.title}" (ID: ${created.id})`,
+        },
         { type: 'text', text: JSON.stringify(created, null, 2) },
       ],
     };
@@ -964,7 +981,10 @@ export class ToolHandlers {
     const updated = await this.requestRepo.updateTeamRequest(requestId, { title, request });
     return {
       content: [
-        { type: 'text', text: `Successfully updated team request "${updated.title}" (ID: ${updated.id})` },
+        {
+          type: 'text',
+          text: `Successfully updated team request "${updated.title}" (ID: ${updated.id})`,
+        },
         { type: 'text', text: JSON.stringify(updated, null, 2) },
       ],
     };
@@ -983,7 +1003,10 @@ export class ToolHandlers {
     const moved = await this.requestRepo.moveTeamRequest(requestId, destCollectionId);
     return {
       content: [
-        { type: 'text', text: `Successfully moved team request "${moved.title}" to collection (ID: ${destCollectionId})` },
+        {
+          type: 'text',
+          text: `Successfully moved team request "${moved.title}" to collection (ID: ${destCollectionId})`,
+        },
         { type: 'text', text: JSON.stringify(moved, null, 2) },
       ],
     };
@@ -1001,10 +1024,16 @@ export class ToolHandlers {
 
   async createUserRequest(args: unknown) {
     const { collectionId, type, title, request } = schemas.CreateUserRequestSchema.parse(args);
-    const created = await this.requestRepo.createUserRequest(collectionId, type as CollectionType, { title, request });
+    const created = await this.requestRepo.createUserRequest(collectionId, type as CollectionType, {
+      title,
+      request,
+    });
     return {
       content: [
-        { type: 'text', text: `Successfully created user request "${created.title}" (ID: ${created.id})` },
+        {
+          type: 'text',
+          text: `Successfully created user request "${created.title}" (ID: ${created.id})`,
+        },
         { type: 'text', text: JSON.stringify(created, null, 2) },
       ],
     };
@@ -1012,10 +1041,16 @@ export class ToolHandlers {
 
   async updateUserRequest(args: unknown) {
     const { requestId, type, title, request } = schemas.UpdateUserRequestSchema.parse(args);
-    const updated = await this.requestRepo.updateUserRequest(requestId, type as CollectionType, { title, request });
+    const updated = await this.requestRepo.updateUserRequest(requestId, type as CollectionType, {
+      title,
+      request,
+    });
     return {
       content: [
-        { type: 'text', text: `Successfully updated user request "${updated.title}" (ID: ${updated.id})` },
+        {
+          type: 'text',
+          text: `Successfully updated user request "${updated.title}" (ID: ${updated.id})`,
+        },
         { type: 'text', text: JSON.stringify(updated, null, 2) },
       ],
     };
@@ -1030,11 +1065,19 @@ export class ToolHandlers {
   }
 
   async moveUserRequest(args: unknown) {
-    const { requestId, sourceCollectionId, destCollectionId } = schemas.MoveUserRequestSchema.parse(args);
-    const moved = await this.requestRepo.moveUserRequest(requestId, sourceCollectionId, destCollectionId);
+    const { requestId, sourceCollectionId, destCollectionId } =
+      schemas.MoveUserRequestSchema.parse(args);
+    const moved = await this.requestRepo.moveUserRequest(
+      requestId,
+      sourceCollectionId,
+      destCollectionId
+    );
     return {
       content: [
-        { type: 'text', text: `Successfully moved user request "${moved.title}" to collection (ID: ${destCollectionId})` },
+        {
+          type: 'text',
+          text: `Successfully moved user request "${moved.title}" to collection (ID: ${destCollectionId})`,
+        },
         { type: 'text', text: JSON.stringify(moved, null, 2) },
       ],
     };

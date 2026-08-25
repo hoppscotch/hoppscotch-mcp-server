@@ -193,15 +193,17 @@ export const ExecuteRequestSchema = z.object({
   url: z.string().url(),
   headers: z.record(z.string()).optional(),
   body: z.string().optional(),
-  auth: z.object({
-    type: z.enum(['bearer', 'basic', 'api-key']),
-    token: z.string().optional(),
-    username: z.string().optional(),
-    password: z.string().optional(),
-    key: z.string().optional(),
-    value: z.string().optional(),
-    addTo: z.enum(['header', 'query']).optional(),
-  }).optional(),
+  auth: z
+    .object({
+      type: z.enum(['bearer', 'basic', 'api-key']),
+      token: z.string().optional(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      key: z.string().optional(),
+      value: z.string().optional(),
+      addTo: z.enum(['header', 'query']).optional(),
+    })
+    .optional(),
   environmentId: z.string().optional(),
   timeout: z.number().min(1000).max(120000).optional(),
 });
@@ -211,21 +213,25 @@ export const ValidateResponseSchema = z.object({
   url: z.string().url(),
   headers: z.record(z.string()).optional(),
   body: z.string().optional(),
-  auth: z.object({
-    type: z.enum(['bearer', 'basic', 'api-key']),
-    token: z.string().optional(),
-    username: z.string().optional(),
-    password: z.string().optional(),
-    key: z.string().optional(),
-    value: z.string().optional(),
-    addTo: z.enum(['header', 'query']).optional(),
-  }).optional(),
+  auth: z
+    .object({
+      type: z.enum(['bearer', 'basic', 'api-key']),
+      token: z.string().optional(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      key: z.string().optional(),
+      value: z.string().optional(),
+      addTo: z.enum(['header', 'query']).optional(),
+    })
+    .optional(),
   criteria: z.object({
     expectedStatus: z.number().optional(),
-    expectedStatusRange: z.object({
-      min: z.number(),
-      max: z.number(),
-    }).optional(),
+    expectedStatusRange: z
+      .object({
+        min: z.number(),
+        max: z.number(),
+      })
+      .optional(),
     expectedHeaders: z.record(z.string()).optional(),
     expectedBodyContains: z.array(z.string()).optional(),
     // `jsonObject: true` asserts the response body parses as a JSON object/array
@@ -249,15 +255,17 @@ export const GenerateCodeSchema = z.object({
   url: z.string().url(),
   headers: z.record(z.string()).optional(),
   body: z.string().optional(),
-  auth: z.object({
-    type: z.enum(['bearer', 'basic', 'api-key']),
-    token: z.string().optional(),
-    username: z.string().optional(),
-    password: z.string().optional(),
-    key: z.string().optional(),
-    value: z.string().optional(),
-    addTo: z.enum(['header', 'query']).optional(),
-  }).optional(),
+  auth: z
+    .object({
+      type: z.enum(['bearer', 'basic', 'api-key']),
+      token: z.string().optional(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      key: z.string().optional(),
+      value: z.string().optional(),
+      addTo: z.enum(['header', 'query']).optional(),
+    })
+    .optional(),
   language: z.enum(['curl', 'javascript', 'python', 'go', 'rust']),
   redactCredentials: z.boolean().optional(),
 });
@@ -267,15 +275,17 @@ export const GenerateDocumentationSchema = z.object({
   url: z.string().url(),
   headers: z.record(z.string()).optional(),
   body: z.string().optional(),
-  auth: z.object({
-    type: z.enum(['bearer', 'basic', 'api-key']),
-    token: z.string().optional(),
-    username: z.string().optional(),
-    password: z.string().optional(),
-    key: z.string().optional(),
-    value: z.string().optional(),
-    addTo: z.enum(['header', 'query']).optional(),
-  }).optional(),
+  auth: z
+    .object({
+      type: z.enum(['bearer', 'basic', 'api-key']),
+      token: z.string().optional(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      key: z.string().optional(),
+      value: z.string().optional(),
+      addTo: z.enum(['header', 'query']).optional(),
+    })
+    .optional(),
   title: z.string().optional(),
   description: z.string().optional(),
   includeExamples: z.boolean().optional(),

@@ -4,7 +4,13 @@
 
 import type { EnvironmentVariable } from '../types.js';
 import { VERSION } from '../version.js';
-import { assertScheme, assertUrlAllowed, privateHostsAllowed, getPinnedDispatcher, SSRFBlockedError } from './ssrf-guard.js';
+import {
+  assertScheme,
+  assertUrlAllowed,
+  privateHostsAllowed,
+  getPinnedDispatcher,
+  SSRFBlockedError,
+} from './ssrf-guard.js';
 
 /** Default cap on the response body we buffer into memory (bytes). */
 const DEFAULT_MAX_RESPONSE_BYTES = 5_000_000;
@@ -51,7 +57,11 @@ async function readBodyCapped(
       total += value.byteLength;
     }
   }
-  return { text: Buffer.concat(chunks).toString('utf8'), truncated: hitLimit || total > max, hitLimit };
+  return {
+    text: Buffer.concat(chunks).toString('utf8'),
+    truncated: hitLimit || total > max,
+    hitLimit,
+  };
 }
 
 export interface RequestDefinition {
@@ -85,10 +95,7 @@ export interface ExecutionResult {
 /**
  * Substitute environment variables in a string
  */
-export function substituteVariables(
-  text: string,
-  variables: EnvironmentVariable[]
-): string {
+export function substituteVariables(text: string, variables: EnvironmentVariable[]): string {
   let result = text;
 
   for (const variable of variables) {
@@ -319,7 +326,9 @@ export function redactSecretsClamped(
 ): { text: string; clamped: boolean } {
   const variants = secretRedactionVariants(secretValues);
   if (variants.length === 0) {
-    return text.length > maxOut ? { text: text.slice(0, maxOut), clamped: true } : { text, clamped: false };
+    return text.length > maxOut
+      ? { text: text.slice(0, maxOut), clamped: true }
+      : { text, clamped: false };
   }
 
   // Exclude a trailing longest-variant window when the read was cut, so a secret
@@ -438,7 +447,12 @@ export function substituteRequestVariables(
   raw: { url: string; headers: Record<string, string>; body?: string },
   variables: EnvironmentVariable[],
   options: { requireResolved: boolean }
-): { url: string; headers: Record<string, string>; body?: string; substitutedSecretValues: string[] } {
+): {
+  url: string;
+  headers: Record<string, string>;
+  body?: string;
+  substitutedSecretValues: string[];
+} {
   const nonSecret = variables.filter((v) => !v.secret);
   const secret = variables.filter((v) => v.secret);
 
@@ -637,11 +651,11 @@ export async function executeRequest(
     // fuses redaction with the clamp to the cap, so it never allocates the fully
     // expanded string, and reports whether the returned body was cut.
     const rawCap = maxResponseBytes();
-    const { text: rawBody, truncated: rawTruncated, hitLimit } = await readBodyCapped(
-      response,
-      rawCap,
-      longestVariantBytes(secretValues)
-    );
+    const {
+      text: rawBody,
+      truncated: rawTruncated,
+      hitLimit,
+    } = await readBodyCapped(response, rawCap, longestVariantBytes(secretValues));
     const { text: body, clamped } = redactSecretsClamped(rawBody, secretValues, rawCap, hitLimit);
     const truncated = rawTruncated || clamped;
 
@@ -724,9 +738,7 @@ export function validateResponse(
   // Check status code
   if (criteria.expectedStatus !== undefined) {
     if (result.status !== criteria.expectedStatus) {
-      errors.push(
-        `Expected status ${criteria.expectedStatus}, got ${result.status}`
-      );
+      errors.push(`Expected status ${criteria.expectedStatus}, got ${result.status}`);
     }
   }
 
@@ -734,9 +746,7 @@ export function validateResponse(
   if (criteria.expectedStatusRange) {
     const { min, max } = criteria.expectedStatusRange;
     if (result.status < min || result.status > max) {
-      errors.push(
-        `Expected status in range ${min}-${max}, got ${result.status}`
-      );
+      errors.push(`Expected status in range ${min}-${max}, got ${result.status}`);
     }
   }
 
@@ -745,9 +755,7 @@ export function validateResponse(
     for (const [key, value] of Object.entries(criteria.expectedHeaders)) {
       const actualValue = result.headers[key.toLowerCase()];
       if (actualValue !== value) {
-        errors.push(
-          `Expected header ${key}: ${value}, got ${actualValue || 'undefined'}`
-        );
+        errors.push(`Expected header ${key}: ${value}, got ${actualValue || 'undefined'}`);
       }
     }
   }

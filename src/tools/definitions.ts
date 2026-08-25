@@ -6,14 +6,16 @@
 const USER_COLLECTION_TOOLS = {
   list_user_collections: {
     name: 'list_user_collections',
-    description: 'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL). Not supported on Hoppscotch Cloud as of now.',
+    description:
+      'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL). Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of collections to list (REST or GQL for GraphQL). Optional — defaults to REST when omitted.',
+          description:
+            'Type of collections to list (REST or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
         cursor: {
           type: 'string',
@@ -32,7 +34,8 @@ const USER_COLLECTION_TOOLS = {
 
   get_user_collection: {
     name: 'get_user_collection',
-    description: 'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Not supported on Hoppscotch Cloud as of now.',
+    description:
+      'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -47,7 +50,8 @@ const USER_COLLECTION_TOOLS = {
 
   create_user_collection: {
     name: 'create_user_collection',
-    description: 'Create a new user collection (folder or request). Can be created at root level or as a child of another collection.',
+    description:
+      'Create a new user collection (folder or request). Can be created at root level or as a child of another collection.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -58,7 +62,8 @@ const USER_COLLECTION_TOOLS = {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+          description:
+            'Type of collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
         parentCollectionId: {
           type: 'string',
@@ -86,7 +91,8 @@ const USER_COLLECTION_TOOLS = {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+          description:
+            'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
         title: {
           type: 'string',
@@ -114,7 +120,8 @@ const USER_COLLECTION_TOOLS = {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+          description:
+            'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
       },
       required: ['collectionId'],
@@ -123,7 +130,8 @@ const USER_COLLECTION_TOOLS = {
 
   export_user_collection: {
     name: 'export_user_collection',
-    description: 'Export user collection(s) as JSON. Can export a specific collection or all collections of a type. Not supported on Hoppscotch Cloud as of now.',
+    description:
+      'Export user collection(s) as JSON. Can export a specific collection or all collections of a type. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -143,7 +151,8 @@ const USER_COLLECTION_TOOLS = {
 
   import_user_collection: {
     name: 'import_user_collection',
-    description: 'Import collection(s) from JSON string. The JSON should be in Hoppscotch export format.',
+    description:
+      'Import collection(s) from JSON string. The JSON should be in Hoppscotch export format.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -154,7 +163,8 @@ const USER_COLLECTION_TOOLS = {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of collection being imported. Optional — defaults to REST when omitted.',
+          description:
+            'Type of collection being imported. Optional — defaults to REST when omitted.',
         },
         parentCollectionId: {
           type: 'string',
@@ -169,7 +179,8 @@ const USER_COLLECTION_TOOLS = {
 const USER_ENVIRONMENT_TOOLS = {
   list_user_environments: {
     name: 'list_user_environments',
-    description: 'List all user environments with their variables. On Hoppscotch Cloud, personal environments are not supported as of now, so this returns an empty list.',
+    description:
+      'List all user environments with their variables. On Hoppscotch Cloud, personal environments are not supported as of now, so this returns an empty list.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -216,7 +227,8 @@ const USER_ENVIRONMENT_TOOLS = {
 
   update_user_environment: {
     name: 'update_user_environment',
-    description: 'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
+    description:
+      'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -265,7 +277,8 @@ const USER_ENVIRONMENT_TOOLS = {
 const TEAM_COLLECTION_TOOLS = {
   list_team_collections: {
     name: 'list_team_collections',
-    description: 'List root-level collections in a team workspace. Returns only top-level collections; use get_team_collection to browse into sub-collections. The backend GQL field accepts cursor-only pagination — there is no per-call limit knob.',
+    description:
+      'List root-level collections in a team workspace. Returns only top-level collections; use get_team_collection to browse into sub-collections. The backend GQL field accepts cursor-only pagination — there is no per-call limit knob.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -284,7 +297,8 @@ const TEAM_COLLECTION_TOOLS = {
 
   get_team_collection: {
     name: 'get_team_collection',
-    description: 'Get a team collection by ID, including its direct children (sub-collections). Works at any nesting depth. Use to browse the collection hierarchy one level at a time, or jump directly to any collection by ID. Note: the backend caps direct children at about 10 per response, so a collection with more sub-collections is truncated here.',
+    description:
+      'Get a team collection by ID, including its direct children (sub-collections). Works at any nesting depth. Use to browse the collection hierarchy one level at a time, or jump directly to any collection by ID. Note: the backend caps direct children at about 10 per response, so a collection with more sub-collections is truncated here.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -349,7 +363,8 @@ const TEAM_COLLECTION_TOOLS = {
 
   export_team_collection: {
     name: 'export_team_collection',
-    description: 'Export a team collection as a complete JSON tree with all nested sub-collections and requests. Use for full data export; prefer get_team_collection for browsing. Omit collectionId to export the entire team workspace.',
+    description:
+      'Export a team collection as a complete JSON tree with all nested sub-collections and requests. Use for full data export; prefer get_team_collection for browsing. Omit collectionId to export the entire team workspace.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -432,7 +447,8 @@ const TEAM_ENVIRONMENT_TOOLS = {
 
   update_team_environment: {
     name: 'update_team_environment',
-    description: 'Update an existing team environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
+    description:
+      'Update an existing team environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -493,7 +509,8 @@ const ADVANCED_COLLECTION_TOOLS = {
         type: {
           type: 'string',
           enum: ['REST', 'GQL'],
-          description: 'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+          description:
+            'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
         },
       },
       required: ['collectionId'],
@@ -517,7 +534,8 @@ const ADVANCED_COLLECTION_TOOLS = {
 
   move_user_collection: {
     name: 'move_user_collection',
-    description: 'Move a user collection to a different parent collection, or to root (omit parentCollectionId).',
+    description:
+      'Move a user collection to a different parent collection, or to root (omit parentCollectionId).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -531,7 +549,8 @@ const ADVANCED_COLLECTION_TOOLS = {
         },
         newParentId: {
           type: 'string',
-          description: 'Deprecated alias of parentCollectionId — prefer parentCollectionId. Accepted for backward compatibility; must not differ from parentCollectionId if both are given.',
+          description:
+            'Deprecated alias of parentCollectionId — prefer parentCollectionId. Accepted for backward compatibility; must not differ from parentCollectionId if both are given.',
         },
       },
       required: ['collectionId'],
@@ -559,7 +578,8 @@ const ADVANCED_COLLECTION_TOOLS = {
 
   search_team_requests: {
     name: 'search_team_requests',
-    description: 'Search team requests by title. Self-hosted only — on Hoppscotch Cloud the backend rejects this query (bug/team/no_require_team_role), which surfaces as an error from upstream rather than a client-side check. Returns matching requests with their parent collection id and title. Backed by the searchForRequest GQL field — searches requests, not collections. Returns only the first page (~10 matches) and exposes no cursor, so narrow the query if you expect more.',
+    description:
+      'Search team requests by title. Self-hosted only — on Hoppscotch Cloud the backend rejects this query (bug/team/no_require_team_role), which surfaces as an error from upstream rather than a client-side check. Returns matching requests with their parent collection id and title. Backed by the searchForRequest GQL field — searches requests, not collections. Returns only the first page (~10 matches) and exposes no cursor, so narrow the query if you expect more.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -603,7 +623,8 @@ const ADVANCED_COLLECTION_TOOLS = {
 const TEAM_MANAGEMENT_TOOLS = {
   list_teams: {
     name: 'list_teams',
-    description: 'List all teams the user has access to. Each team includes its members with their email address and role.',
+    description:
+      'List all teams the user has access to. Each team includes its members with their email address and role.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -613,7 +634,8 @@ const TEAM_MANAGEMENT_TOOLS = {
 
   get_team_info: {
     name: 'get_team_info',
-    description: 'Get detailed information about a specific team, including its members with their email address and role.',
+    description:
+      'Get detailed information about a specific team, including its members with their email address and role.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -750,7 +772,7 @@ const TEAM_MANAGEMENT_TOOLS = {
 
   update_team_member_role: {
     name: 'update_team_member_role',
-    description: 'Update a team member\'s role.',
+    description: "Update a team member's role.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -777,7 +799,8 @@ const TEAM_MANAGEMENT_TOOLS = {
 const REQUEST_EXECUTION_TOOLS = {
   execute_request: {
     name: 'execute_request',
-    description: 'Execute an HTTP request with the specified method, URL, headers, and body. Supports authentication and environment variable substitution. Built-in auth types are bearer, basic, and api-key — for OAuth2 / AWS-Signature / Digest / HAWK, set the Authorization header directly.',
+    description:
+      'Execute an HTTP request with the specified method, URL, headers, and body. Supports authentication and environment variable substitution. Built-in auth types are bearer, basic, and api-key — for OAuth2 / AWS-Signature / Digest / HAWK, set the Authorization header directly.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -849,7 +872,8 @@ const REQUEST_EXECUTION_TOOLS = {
   },
   validate_response: {
     name: 'validate_response',
-    description: 'Execute an HTTP request and validate the response against expected criteria (status code, headers, body content, response time, etc.)',
+    description:
+      'Execute an HTTP request and validate the response against expected criteria (status code, headers, body content, response time, etc.)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -893,7 +917,8 @@ const REQUEST_EXECUTION_TOOLS = {
             },
             expectedHeaders: {
               type: 'object',
-              description: 'Expected response headers. Header NAMES are matched case-insensitively; VALUES are compared exactly.',
+              description:
+                'Expected response headers. Header NAMES are matched case-insensitively; VALUES are compared exactly.',
               additionalProperties: { type: 'string' },
             },
             expectedBodyContains: {
@@ -903,11 +928,13 @@ const REQUEST_EXECUTION_TOOLS = {
             },
             jsonObject: {
               type: 'boolean',
-              description: 'If true, assert the response body parses as a JSON object/array. This is NOT full JSON Schema validation.',
+              description:
+                'If true, assert the response body parses as a JSON object/array. This is NOT full JSON Schema validation.',
             },
             jsonSchema: {
               type: 'object',
-              description: 'Deprecated alias of jsonObject: any value here triggers the same is-a-JSON-object check — it does NOT validate the body against the schema. Prefer jsonObject: true.',
+              description:
+                'Deprecated alias of jsonObject: any value here triggers the same is-a-JSON-object check — it does NOT validate the body against the schema. Prefer jsonObject: true.',
             },
             maxResponseTime: {
               type: 'number',
@@ -917,7 +944,8 @@ const REQUEST_EXECUTION_TOOLS = {
         },
         timeout: {
           type: 'number',
-          description: 'Per-request network timeout in milliseconds (1000–120000). Falls back to the server default when omitted.',
+          description:
+            'Per-request network timeout in milliseconds (1000–120000). Falls back to the server default when omitted.',
         },
         environmentId: {
           type: 'string',
@@ -933,7 +961,8 @@ const REQUEST_EXECUTION_TOOLS = {
 const CODE_GENERATION_TOOLS = {
   generate_code: {
     name: 'generate_code',
-    description: 'Generate a code snippet for an HTTP request in various programming languages (curl, JavaScript, Python, Go, Rust). Returns a runnable snippet with live credentials by default; set redactCredentials=true to mask them when sharing the snippet.',
+    description:
+      'Generate a code snippet for an HTTP request in various programming languages (curl, JavaScript, Python, Go, Rust). Returns a runnable snippet with live credentials by default; set redactCredentials=true to mask them when sharing the snippet.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -966,7 +995,8 @@ const CODE_GENERATION_TOOLS = {
         },
         redactCredentials: {
           type: 'boolean',
-          description: 'Mask bearer/basic/api-key values, sensitive headers, and secret URL query/body fields in the generated snippet (default false). Set true to produce a shareable snippet with credentials masked.',
+          description:
+            'Mask bearer/basic/api-key values, sensitive headers, and secret URL query/body fields in the generated snippet (default false). Set true to produce a shareable snippet with credentials masked.',
         },
       },
       required: ['method', 'url', 'language'],
@@ -974,7 +1004,8 @@ const CODE_GENERATION_TOOLS = {
   },
   generate_documentation: {
     name: 'generate_documentation',
-    description: 'Generate markdown documentation for an HTTP request, including examples in multiple languages. Credential values in the examples are masked by default (set redactCredentials=false for runnable snippets with live secrets).',
+    description:
+      'Generate markdown documentation for an HTTP request, including examples in multiple languages. Credential values in the examples are masked by default (set redactCredentials=false for runnable snippets with live secrets).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1014,7 +1045,8 @@ const CODE_GENERATION_TOOLS = {
         },
         redactCredentials: {
           type: 'boolean',
-          description: 'Mask bearer/basic/api-key credential values in the generated examples (default true). Docs are share-oriented; set false only when you want copy-paste-runnable snippets with live credentials.',
+          description:
+            'Mask bearer/basic/api-key credential values in the generated examples (default true). Docs are share-oriented; set false only when you want copy-paste-runnable snippets with live credentials.',
         },
       },
       required: ['method', 'url'],
@@ -1028,7 +1060,8 @@ const CODE_GENERATION_TOOLS = {
 const REQUEST_CRUD_TOOLS = {
   list_team_requests: {
     name: 'list_team_requests',
-    description: 'List requests in a team collection (id, title, full request JSON). Paginated — returns up to ~10 per call; pass the cursor to page through the rest.',
+    description:
+      'List requests in a team collection (id, title, full request JSON). Paginated — returns up to ~10 per call; pass the cursor to page through the rest.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1062,7 +1095,8 @@ const REQUEST_CRUD_TOOLS = {
 
   create_team_request: {
     name: 'create_team_request',
-    description: 'Create a new request in a team collection. The request field is a JSON string following the Hoppscotch request schema.',
+    description:
+      'Create a new request in a team collection. The request field is a JSON string following the Hoppscotch request schema.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1080,7 +1114,8 @@ const REQUEST_CRUD_TOOLS = {
         },
         request: {
           type: 'string',
-          description: 'JSON string of the Hoppscotch request object. Use the Hoppscotch request schema: "endpoint" (the URL — NOT "url"), "method", "headers" (array of {key,value,active}), "body" ({contentType, body}), "auth", "params". Example: {"v":"11","endpoint":"https://api.example.com/orders","method":"POST","headers":[{"key":"Content-Type","value":"application/json","active":true}],"body":{"contentType":"application/json","body":"{}"}}',
+          description:
+            'JSON string of the Hoppscotch request object. Use the Hoppscotch request schema: "endpoint" (the URL — NOT "url"), "method", "headers" (array of {key,value,active}), "body" ({contentType, body}), "auth", "params". Example: {"v":"11","endpoint":"https://api.example.com/orders","method":"POST","headers":[{"key":"Content-Type","value":"application/json","active":true}],"body":{"contentType":"application/json","body":"{}"}}',
         },
       },
       required: ['collectionId', 'title', 'request'],
@@ -1089,7 +1124,7 @@ const REQUEST_CRUD_TOOLS = {
 
   update_team_request: {
     name: 'update_team_request',
-    description: 'Update a team request\'s title and/or request data.',
+    description: "Update a team request's title and/or request data.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -1103,7 +1138,8 @@ const REQUEST_CRUD_TOOLS = {
         },
         request: {
           type: 'string',
-          description: 'Updated JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
+          description:
+            'Updated JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
         },
       },
       required: ['requestId'],
@@ -1146,7 +1182,8 @@ const REQUEST_CRUD_TOOLS = {
 
   list_user_requests: {
     name: 'list_user_requests',
-    description: 'List all requests in a personal (user) collection. Not supported on Hoppscotch Cloud as of now.',
+    description:
+      'List all requests in a personal (user) collection. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1180,7 +1217,8 @@ const REQUEST_CRUD_TOOLS = {
         },
         request: {
           type: 'string',
-          description: 'JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
+          description:
+            'JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
         },
       },
       required: ['collectionId', 'title', 'request'],
@@ -1189,7 +1227,7 @@ const REQUEST_CRUD_TOOLS = {
 
   update_user_request: {
     name: 'update_user_request',
-    description: 'Update a personal (user) request\'s title and/or request data.',
+    description: "Update a personal (user) request's title and/or request data.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -1208,7 +1246,8 @@ const REQUEST_CRUD_TOOLS = {
         },
         request: {
           type: 'string',
-          description: 'Updated JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
+          description:
+            'Updated JSON string of the Hoppscotch request object (use "endpoint" for the URL, not "url").',
         },
       },
       required: ['requestId'],
@@ -1310,40 +1349,80 @@ function annotationsFor(name: string): ToolAnnotations {
   // target server may perform any write the bearer token permits), and
   // non-idempotent (the target chooses the semantics).
   if (name === 'execute_request' || name === 'validate_response') {
-    return { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true };
+    return {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    };
   }
   // Reads that DON'T hit arbitrary URLs: list/get/search/export (our GQL
   // schema) + generate (pure code-gen, no network).
   if (/^(list|get|search|export|generate)_/.test(name)) {
-    return { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+    return {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    };
   }
   // Destructive: remove entities or irreversible membership changes.
   if (/^(delete|remove|revoke|leave)_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false };
+    return {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    };
   }
   // Creation / addition: not destructive (creates a new entity), not idempotent
   // (second call yields a second entity or a duplicate error).
   if (/^(create|import|invite|duplicate)_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+    return {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    };
   }
   // In-place updates overwrite fields that were already set, so they fail the
   // spec's "additive only" test for destructiveHint: false. Not idempotent
   // either, since a repeat write may still bump timestamps or revisions.
   if (/^(update|rename)_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false };
+    return {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    };
   }
   // Moves detach the entity from its old parent, which is not additive either.
   // Idempotent, though: a second call with the same source and dest is a no-op.
   if (/^move_/.test(name)) {
-    return { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false };
+    return {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    };
   }
   // reauth: triggers an external browser sign-in (open-world), not destructive
   // to user data, not idempotent (each call restarts the flow).
   if (name === 'reauth') {
-    return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
+    return {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    };
   }
   // Fallback: treat as non-idempotent write. Unreachable for the current tool set.
-  return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
+  return {
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: false,
+  };
 }
 
 export const ALL_FULL_TOOLS = Object.fromEntries(
@@ -1351,16 +1430,16 @@ export const ALL_FULL_TOOLS = Object.fromEntries(
     key,
     { ...tool, annotations: annotationsFor(tool.name) },
   ])
-) as { [K in keyof typeof RAW_ALL_FULL_TOOLS]: (typeof RAW_ALL_FULL_TOOLS)[K] & { annotations: ToolAnnotations } };
+) as {
+  [K in keyof typeof RAW_ALL_FULL_TOOLS]: (typeof RAW_ALL_FULL_TOOLS)[K] & {
+    annotations: ToolAnnotations;
+  };
+};
 
 type AnnotatedTool = (typeof ALL_FULL_TOOLS)[keyof typeof ALL_FULL_TOOLS];
 
-const ALL_MINIMAL_TOOL_NAMES = new Set(
-  Object.values(ALL_MINIMAL_TOOLS).map((t) => t.name)
-);
-const ALL_STANDARD_TOOL_NAMES = new Set(
-  Object.values(ALL_STANDARD_TOOLS).map((t) => t.name)
-);
+const ALL_MINIMAL_TOOL_NAMES = new Set(Object.values(ALL_MINIMAL_TOOLS).map((t) => t.name));
+const ALL_STANDARD_TOOL_NAMES = new Set(Object.values(ALL_STANDARD_TOOLS).map((t) => t.name));
 
 // `core` (the DEFAULT surface): the API-testing essentials, meaning collection and env
 // CRUD, request CRUD, request execution, and code generation, plus read-only
@@ -1401,9 +1480,7 @@ function pickByNames(names: Set<string>): Record<string, AnnotatedTool> {
  * rather than silently EXPANDING to `full` (which would hand a one-character
  * typo the entire destructive team-admin surface).
  */
-export function selectProfileTools(
-  profile: string | undefined
-): Record<string, AnnotatedTool> {
+export function selectProfileTools(profile: string | undefined): Record<string, AnnotatedTool> {
   if (profile === undefined || profile === '') {
     // Default surface is `core`: lean but functional for API work. Opt up to
     // `standard` (adds team admin + advanced collection) or `full` (everything)

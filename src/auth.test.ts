@@ -33,7 +33,12 @@ describe('getValidToken — explicit token contract', () => {
   it('returns synchronously for an explicit token (no browser login)', async () => {
     delete process.env.HOPPSCOTCH_ACCESS_TOKEN;
     const start = Date.now();
-    await getValidToken('https://hoppscotch.io', 'https://api.hoppscotch.io', 'cloud', 'jwt-from-config');
+    await getValidToken(
+      'https://hoppscotch.io',
+      'https://api.hoppscotch.io',
+      'cloud',
+      'jwt-from-config'
+    );
     expect(Date.now() - start).toBeLessThan(100);
   });
 
@@ -52,8 +57,18 @@ describe('getValidToken — explicit token contract', () => {
 
   it('repeated calls with the same explicit token return the same value', async () => {
     delete process.env.HOPPSCOTCH_ACCESS_TOKEN;
-    const a = await getValidToken('https://hoppscotch.io', 'https://api.hoppscotch.io', 'cloud', 'persistent-jwt');
-    const b = await getValidToken('https://hoppscotch.io', 'https://api.hoppscotch.io', 'cloud', 'persistent-jwt');
+    const a = await getValidToken(
+      'https://hoppscotch.io',
+      'https://api.hoppscotch.io',
+      'cloud',
+      'persistent-jwt'
+    );
+    const b = await getValidToken(
+      'https://hoppscotch.io',
+      'https://api.hoppscotch.io',
+      'cloud',
+      'persistent-jwt'
+    );
     expect(a).toBe(b);
     expect(a).toBe('persistent-jwt');
   });
