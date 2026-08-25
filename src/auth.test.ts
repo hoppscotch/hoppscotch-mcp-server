@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { getValidToken, jwtSubject } from './auth.js';
 
 // getValidToken takes an EXPLICIT token (config.accessToken). It does NOT read
-// HOPPSCOTCH_ACCESS_TOKEN itself — that env var is read only at the CLI boundary
+// HOPPSCOTCH_ACCESS_TOKEN itself; that env var is read only at the CLI boundary
 // (loadConfig), which threads it in as the 4th argument. That the env var isn't
 // read here is what keeps an ambient host token from crossing into an embedder;
 // the dedicated leak-guard lives in auth.leak-guard.test.ts. The browser

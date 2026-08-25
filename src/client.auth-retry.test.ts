@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Coverage for the auth/fail recovery branch of HoppscotchClient.graphql().
 //
 // This path was previously reachable only through the live-API integration test,
-// which is skipped unless HOPPSCOTCH_INTEGRATION=1 — so on CI it had no coverage
+// which is skipped unless HOPPSCOTCH_INTEGRATION=1, so on CI it had no coverage
 // at all, despite being the behaviour the release notes describe ("mutations are
 // not retried on network errors; an expired-token failure still re-issues the
 // request once, after re-authenticating"). Everything here is hermetic: the auth

@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 //
 // These tests replicate that EXACT behavior against the real callback
 // server, so any callback-URL shape that a literal-`?` append would mangle
-// (e.g. a nonce in the query string — the regression behind "Login timed
+// (e.g. a nonce in the query string, the regression behind "Login timed
 // out after 5 minutes") fails here.
 // ---------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ beforeEach(() => {
   // per-test, so the value is never sent anywhere.
   process.env.HOPPSCOTCH_FIREBASE_API_KEY = 'test-firebase-key';
   // runLoginFlow refuses to open a browser when it detects a headless host, and
-  // every CI runner sets CI=true — so without this override these tests would
+  // every CI runner sets CI=true, so without this override these tests would
   // pass on a developer machine and fail in CI. `open` is mocked above, so no
   // browser is ever launched; this only keeps the guard from short-circuiting
   // the flow under test. The guard itself is covered separately below.
@@ -117,7 +117,7 @@ function redirectUriFrom(loginUrl: string): string {
 
 // All tests use apiType 'selfhost' so the flow resolves with the raw callback
 // token instead of attempting the (network-bound) Firebase custom-token
-// exchange. The code under test — callback URL shape and handler parsing —
+// exchange. The code under test, callback URL shape and handler parsing,
 // runs before the apiType branch, so coverage is identical for Cloud.
 // Each test uses a distinct apiUrl so the module-level memCache never
 // satisfies a later test with an earlier token.
@@ -166,7 +166,7 @@ describe('device-login callback — survives deployed frontends', () => {
     const res = await fetch(forged);
     expect(res.status).toBe(400);
 
-    // The flow must NOT have settled — the legitimate callback still wins.
+    // The flow must NOT have settled: the legitimate callback still wins.
     const ok = await fetch(`${redirectUri}?access_token=legit`);
     expect(ok.status).toBe(200);
     await expect(tokenPromise).resolves.toBe('legit');
@@ -237,7 +237,7 @@ describe('device-login callback — survives deployed frontends', () => {
     // The blocked F1 caller is rejected (explicit re-auth abandons the old flow).
     await p1Rejected;
 
-    // F1's old callback can no longer complete a login — its listeners were torn
+    // F1's old callback can no longer complete a login: its listeners were torn
     // down by the abort (socket closed → fetch throws; or, if the ephemeral port
     // was reused by F2, the stale nonce yields a non-200). Either way: not a 200.
     const stale = await fetch(`${oldRedirect}?access_token=stale-should-be-ignored`).catch(() => null);

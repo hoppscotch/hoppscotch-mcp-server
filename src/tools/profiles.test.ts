@@ -72,7 +72,7 @@ describe('selectProfileTools', () => {
 
   it('falls back to the default (core) and warns on stderr for an unknown profile', () => {
     const tools = selectProfileTools('premium');
-    // Must NOT silently expand to full — a typo gets the lean default surface.
+    // Must NOT silently expand to full: a typo gets the lean default surface.
     expect(Object.keys(tools)).toEqual(Object.keys(selectProfileTools(undefined)));
     expect(new Set(Object.keys(tools)).has('delete_team')).toBe(false);
     expect(stderr).toHaveBeenCalledWith(
@@ -109,7 +109,7 @@ describe('selectProfileTools', () => {
     }
     for (const name of core) expect(full.has(name), `full⊇core: ${name}`).toBe(true);
     for (const name of standard) expect(full.has(name), `full⊇standard: ${name}`).toBe(true);
-    // core trades team-admin for execute/codegen — neither is a subset of the other
+    // core trades team-admin for execute/codegen, so neither is a subset of the other
     expect(core.has('execute_request') && !standard.has('execute_request')).toBe(true);
     expect(standard.has('create_team') && !core.has('create_team')).toBe(true);
   });

@@ -133,7 +133,7 @@ describe('CollectionRepository', () => {
 
       const result = await repository.updateUserCollection('col1', CollectionType.REST, { title: 'Updated' });
       expect(result.title).toBe('Updated');
-      // SH variant — no reqType
+      // SH variant, no reqType
       expect(mockClient.graphql).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ userCollectionID: 'col1', newTitle: 'Updated' })

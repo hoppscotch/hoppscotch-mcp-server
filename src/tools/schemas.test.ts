@@ -103,7 +103,7 @@ describe('MoveUserCollectionSchema — parentCollectionId rename + alias', () =>
 
   it('rejects a mistyped target key instead of silently moving to root (strict)', () => {
     // `parentId` is dropped by a non-strict schema, leaving the move targeting
-    // root — silent data movement. Strict surfaces it as an error.
+    // root: silent data movement. Strict surfaces it as an error.
     expect(() =>
       MoveUserCollectionSchema.parse({ collectionId: 'c1', parentId: 'p1' })
     ).toThrow();

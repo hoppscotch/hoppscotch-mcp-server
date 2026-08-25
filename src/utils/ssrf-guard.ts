@@ -2,7 +2,7 @@
  * SSRF guard for execute_request / validate_response.
  *
  * Those tools fetch an arbitrary, model-supplied URL and return the full
- * response (headers + body) back into model context — a textbook SSRF +
+ * response (headers + body) back into model context, a textbook SSRF and
  * read-back channel. By default we reject targets that resolve to loopback,
  * link-local (incl. cloud-metadata 169.254.169.254), private, CGNAT, or
  * unspecified addresses, and we restrict the scheme to http/https.
@@ -133,7 +133,7 @@ function isBlockedV6(ipRaw: string): boolean {
   // IPv4-mapped (::ffff:a.b.c.d) and deprecated IPv4-compatible (::a.b.c.d):
   // evaluate the embedded v4 in both hex and dotted forms. :: and ::1 are
   // already handled above, so the compatible branch (h[5]===0) only matches
-  // ::/96 embeddings — never a real public IPv6 address.
+  // ::/96 embeddings, never a real public IPv6 address.
   const v4embedded =
     h[0] === 0 && h[1] === 0 && h[2] === 0 && h[3] === 0 && h[4] === 0 &&
     (h[5] === 0xffff || h[5] === 0);
@@ -147,7 +147,7 @@ function isBlockedV6(ipRaw: string): boolean {
 
   // Transitional IPv6 forms that embed a routable IPv4 the packet ultimately
   // reaches. An attacker can embed a private/loopback v4, so decode it and reuse
-  // the v4 denylist (fail-closed bias — over-blocking a transitional address
+  // the v4 denylist (fail-closed bias: over-blocking a transitional address
   // with a private embedded v4 is acceptable for an opt-out guard).
   const v4FromHextets = (hi: number, lo: number): string =>
     `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
@@ -166,7 +166,7 @@ function isBlockedV6(ipRaw: string): boolean {
 
   // Teredo (2001:0000::/32): server IPv4 in h[2],h[3]; client IPv4 in h[6],h[7]
   // bit-inverted (XOR 0xffff). Either resolving to a private v4 means an internal
-  // tunnel endpoint — fail closed on both.
+  // tunnel endpoint, so fail closed on both.
   if (h[0] === 0x2001 && h[1] === 0x0000) {
     const server = v4FromHextets(h[2], h[3]);
     const client = v4FromHextets(h[6] ^ 0xffff, h[7] ^ 0xffff);
@@ -190,7 +190,7 @@ function canonicalHost(url: string): string {
 }
 
 /**
- * Scheme guard — enforced UNCONDITIONALLY, even when private hosts are allowed.
+ * Scheme guard, enforced UNCONDITIONALLY, even when private hosts are allowed.
  * Only http/https may be fetched.
  */
 export function assertScheme(url: string): void {
@@ -284,7 +284,7 @@ const defaultResolveAll = dnsLookupCb as unknown as ResolveAll;
 /**
  * Build the connect-time DNS lookup for the pinned dispatcher: resolve ALL
  * addresses, reject if any is blocked (fail closed), then hand the connector a
- * validated result. It MUST honor the `all` flag — Node's default
+ * validated result. It MUST honor the `all` flag, because Node's default
  * `autoSelectFamily` invokes the lookup with `{ all: true }` and requires the
  * callback's address argument to be an ARRAY of `{ address, family }`; returning
  * a single positional address there makes Node throw "Invalid IP address:
@@ -323,7 +323,7 @@ let pinnedAgent: Agent | null = null;
 
 /**
  * A shared undici dispatcher whose DNS lookup re-validates every resolved address
- * and connects only to validated ones — the SAME resolution is used for the check
+ * and connects only to validated ones: the SAME resolution is used for the check
  * and the connection, closing the DNS-rebinding TOCTOU. Pass it as fetch's
  * `dispatcher`. Lazily created and reused.
  */

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-// NOTE: `.env` loading is intentionally NOT done here — importing this module
+// NOTE: `.env` loading is intentionally NOT done here, because importing this module
 // must stay side-effect-free (no `.env` read), so the process's `.env` boundary
 // lives solely in the CLI entry (src/index.ts), which calls `dotenv.config()`
 // before `loadConfig()`.
 
-/** Cloud frontend origin — used as the default server URL and for login page */
+/** Cloud frontend origin, used as the default server URL and for the login page */
 const CLOUD_SERVER_URL = 'https://hoppscotch.io';
 /** Cloud backend API origin */
 const CLOUD_API_URL = 'https://api.hoppscotch.io';
@@ -13,7 +13,7 @@ const CLOUD_API_URL = 'https://api.hoppscotch.io';
 export const DEFAULT_MAX_RESULTS = 25;
 
 /**
- * API deployment types — inferred from the server URL; not configured explicitly.
+ * API deployment types, inferred from the server URL and not configured explicitly.
  */
 export enum ApiType {
   CLOUD = 'cloud',
@@ -61,7 +61,7 @@ export function inferApiType(serverUrl: string): ApiType {
 
 /**
  * Validate a user-supplied server URL. Rejects non-http(s) schemes, embedded
- * credentials, query strings, and fragments — each of which could corrupt the
+ * credentials, query strings, and fragments, each of which could corrupt the
  * derived apiUrl/graphqlUrl or smuggle data into the login/backend targets. A
  * path IS allowed (self-hosted instances may be served under a base path).
  * Throws a bare "<what is wrong>" message; loadConfig wraps it for display.
@@ -90,13 +90,13 @@ export function assertValidServerUrl(serverUrl: string): void {
 /**
  * Configuration schema validation.
  *
- * HOPPSCOTCH_SERVER_URL — the Hoppscotch frontend URL.
+ * HOPPSCOTCH_SERVER_URL: the Hoppscotch frontend URL.
  *   Cloud (default): https://hoppscotch.io
  *   Self-hosted:     https://your-sh.example.com  (the nginx-served frontend)
  *
- * The API URL and API type are derived automatically — no need to set them.
+ * The API URL and API type are derived automatically, so there is no need to set them.
  *
- * HOPPSCOTCH_ACCESS_TOKEN — optional JWT to skip browser login. A `pat-…` PAT
+ * HOPPSCOTCH_ACCESS_TOKEN: optional JWT to skip browser login. A `pat-…` PAT
  * does NOT work here (PATs are REST-only; the GraphQL API requires a JWT).
  */
 const configSchema = z.object({
@@ -105,11 +105,11 @@ const configSchema = z.object({
     .url('HOPPSCOTCH_SERVER_URL must be a valid URL')
     .default(CLOUD_SERVER_URL),
 
-  // Derived from serverUrl — not exposed as env vars
+  // Derived from serverUrl, not exposed as env vars
   apiUrl: z.string(),
   apiType: z.nativeEnum(ApiType),
 
-  // Optional — if omitted the server will open a browser window for login
+  // Optional; if omitted the server will open a browser window for login
   accessToken: z.string().min(1).optional(),
 
   // Optional with defaults
@@ -130,7 +130,7 @@ export type Config = z.infer<typeof configSchema>;
 export function loadConfig(): Config {
   const serverUrl = process.env.HOPPSCOTCH_SERVER_URL ?? CLOUD_SERVER_URL;
 
-  // Validate serverUrl BEFORE deriving apiUrl/apiType from it — derivation must
+  // Validate serverUrl BEFORE deriving apiUrl/apiType from it: derivation must
   // never run on an unvalidated URL. Wrapped so it surfaces through the same
   // "Configuration validation failed" channel as the schema errors below.
   try {
@@ -208,7 +208,7 @@ export const TRUST_SENSITIVE_ENV_KEYS = [
 
 /**
  * Delete any trust-sensitive var that was ABSENT from the ambient (pre-dotenv)
- * environment but is present now — i.e. introduced by a `.env` file. Returns the
+ * environment but is present now, i.e. introduced by a `.env` file. Returns the
  * keys that were stripped. `ambient` is a snapshot of the trust-sensitive keys
  * from process.env captured BEFORE dotenv.config() ran. dotenv does not override
  * an already-set real-env var, so an operator-set value is preserved; only a

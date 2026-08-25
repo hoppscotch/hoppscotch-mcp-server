@@ -80,7 +80,7 @@ export class HoppscotchMCPServer {
   private setupHandlers() {
     // HOPPSCOTCH_TOOL_PROFILE selects the tool surface: minimal | core (default)
     // | standard | full. The SAME map gates both tools/list (discovery) and
-    // tools/call (invocation) — listing without call-side gating would let a
+    // tools/call (invocation); listing without call-side gating would let a
     // caller who already knows a tool name invoke a "hidden" tool by naming it
     // directly.
     const selectedTools = selectProfileTools(this.config.toolProfile);
@@ -99,7 +99,7 @@ export class HoppscotchMCPServer {
       // Protocol-level error: unknown OR out-of-profile tool. The set is
       // built from the selected profile, so a tool that exists but is hidden
       // by HOPPSCOTCH_TOOL_PROFILE is rejected exactly like a tool that
-      // doesn't exist — same wire shape, JSON-RPC -32602 InvalidParams.
+      // doesn't exist: same wire shape, JSON-RPC -32602 InvalidParams.
       // Thrown outside the try/catch so the SDK serialises it as a JSON-RPC
       // error response, not as a tool-result with isError: true.
       if (!validToolNames.has(name)) {
@@ -108,7 +108,7 @@ export class HoppscotchMCPServer {
 
       // QoL: relay auth progress (e.g. the device-login URL) as MCP progress
       // notifications when the client supplied a progressToken. Best-effort and
-      // fully guarded — notification failures must never affect the tool call.
+      // fully guarded: notification failures must never affect the tool call.
       // The disposer removes ONLY this request's reporter, so a concurrent
       // request's reporter survives (no cross-request clobber).
       const progressToken = request.params._meta?.progressToken;
@@ -261,7 +261,7 @@ export class HoppscotchMCPServer {
           default:
             // Unreachable: validToolNames pre-check above guarantees name is
             // in ALL_FULL_TOOLS. If we ever hit this branch it means a tool
-            // was added to ALL_FULL_TOOLS without a switch case — surface as
+            // was added to ALL_FULL_TOOLS without a switch case, so surface as
             // an internal error so it's caught in dev rather than silently
             // returning isError:true to the model.
             throw new McpError(
@@ -270,7 +270,7 @@ export class HoppscotchMCPServer {
             );
         }
       } catch (error) {
-        // McpError is a protocol-level error — re-throw so the SDK
+        // McpError is a protocol-level error: re-throw so the SDK
         // serialises it as JSON-RPC error rather than wrapping in
         // CallToolResult.isError. This preserves the distinction between
         // "the tool failed at runtime" (isError:true) and "the protocol
@@ -290,7 +290,7 @@ export class HoppscotchMCPServer {
           };
         }
 
-        // ZodError (argument validation) — flatten the raw issue array into a
+        // ZodError (argument validation): flatten the raw issue array into a
         // readable "field: message" list instead of leaking JSON. Must precede
         // the generic Error branch since ZodError extends Error.
         if (error instanceof ZodError) {
@@ -342,8 +342,8 @@ export class HoppscotchMCPServer {
    * Connect the server to a transport and start serving.
    *
    * Defaults to stdio (the npm CLI usage). Embedders may pass any MCP
-   * `Transport` — e.g. an in-process transport inside a desktop app (Tauri /
-   * Electron) or a CLI that hosts the server itself — making the server
+   * `Transport`, e.g. an in-process transport inside a desktop app (Tauri or
+   * Electron) or a CLI that hosts the server itself, making the server
    * transport-agnostic without a rewrite.
    */
   async run(transport: Transport = new StdioServerTransport()): Promise<void> {

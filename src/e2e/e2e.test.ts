@@ -2,13 +2,13 @@
  * End-to-end integration tests for the Hoppscotch MCP server.
  *
  * Spawns the built MCP server (dist/index.js) via stdio and calls tools
- * through the MCP SDK client — the exact same transport Claude uses.
+ * through the MCP SDK client, the exact same transport Claude uses.
  *
  * Usage:
  *   npm run build
  *   HOPPSCOTCH_E2E=1 npx vitest run src/e2e/e2e.test.ts
  *
- * Only HOPPSCOTCH_TEAM_ID is required from .env — all other resources
+ * Only HOPPSCOTCH_TEAM_ID is required from .env; all other resources
  * (team collections, team environments, personal collections) are
  * self-provisioned in beforeAll and cleaned up in afterAll.
  * Auth token must already be stored (~/.config/hoppscotch-mcp/auth.json)
@@ -35,7 +35,7 @@ loadDotenv({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env'
 const ENABLED = process.env.HOPPSCOTCH_E2E === '1';
 const SERVER_ENTRY = resolve(dirname(fileURLToPath(import.meta.url)), '../../dist/index.js');
 
-// Only TEAM_ID is required from .env — everything else is self-provisioned
+// Only TEAM_ID is required from .env; everything else is self-provisioned
 const TEAM_ID = process.env.HOPPSCOTCH_TEAM_ID ?? '';
 const IS_CLOUD = !process.env.HOPPSCOTCH_SERVER_URL;
 
@@ -226,7 +226,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (!ENABLED) return;
 
-  // Guaranteed cleanup — delete provisioned resources in reverse order
+  // Guaranteed cleanup: delete provisioned resources in reverse order
   const cleanup = async (name: string, args: Record<string, unknown>) => {
     try { await client.callTool({ name, arguments: args }); } catch { /* best-effort */ }
   };
@@ -248,7 +248,7 @@ afterAll(async () => {
 }, 60_000);
 
 // ---------------------------------------------------------------------------
-// e2e() helper — skips when HOPPSCOTCH_E2E is not set
+// e2e() helper, skips when HOPPSCOTCH_E2E is not set
 // ---------------------------------------------------------------------------
 
 function e2e(name: string, fn: () => Promise<void>, timeout = 30_000) {
@@ -271,7 +271,7 @@ describe('server metadata', () => {
     const names = tools.map((t) => t.name).sort();
     log('available tools', names.join(', '));
 
-    // Exact set of registered tools — adding/removing a tool will surface here
+    // Exact set of registered tools; adding or removing a tool will surface here
     expect(names).toMatchInlineSnapshot(`
       [
         "create_team",
@@ -408,7 +408,7 @@ describe('team management', () => {
       const renamed = jsonOf<{ name: string }>(renameText);
       expect(renamed.name).toBe('e2e-test-team-renamed');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_team',
@@ -421,7 +421,7 @@ describe('team management', () => {
   });
 
   // invite_team_member, revoke_team_invitation, remove_team_member,
-  // update_team_member_role, leave_team — not tested in e2e because they
+  // update_team_member_role, leave_team: not tested in e2e because they
   // require real registered users or risk locking out the test account.
   // These are covered by the tool-list snapshot (wiring) and unit tests.
 });
@@ -482,7 +482,7 @@ describe('team collections – read', () => {
     expect(text).not.toMatch(/^Error:/);
     // First content part is the prose label
     expect(text).toMatch(/Exported team collection/);
-    // Second content part is the JSON — must have name, folders, requests
+    // Second content part is the JSON, which must have name, folders, requests
     const exported = jsonOf<Record<string, unknown>>(text);
     assertShape(exported, {
       id: 'string',
@@ -500,7 +500,7 @@ describe('team collections – read', () => {
     }));
     log('search_team_requests', text);
 
-    // Cloud returns bug/team/no_require_team_role — confirmed Cloud API limitation
+    // Cloud returns bug/team/no_require_team_role, a confirmed Cloud API limitation
     expect(text).not.toMatch(/auth\/fail/i);
     // Either results array or the known Cloud error
     const isCloudLimitation = text.includes('bug/team/no_require_team_role');
@@ -510,7 +510,7 @@ describe('team collections – read', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Team collections (write — create, duplicate, delete; self-contained)
+// Team collections (write: create, duplicate, delete; self-contained)
 // ---------------------------------------------------------------------------
 
 describe('team collections – write', () => {
@@ -545,7 +545,7 @@ describe('team collections – write', () => {
       expect(updated.title).toBe('e2e-test-collection-updated');
       expect(updated.id).toBe(collectionId);
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_team_collection',
@@ -577,7 +577,7 @@ describe('team collections – write', () => {
       log('duplicate_team_collection', dupText);
       expect(dupText).not.toMatch(/auth\/fail/i);
       expect(dupText).not.toMatch(/^Error:/);
-      // Returns boolean true from GQL — server returns prose message
+      // Returns boolean true from GQL; the server returns a prose message
       expect(dupText).toMatch(/^Successfully duplicated team collection \(ID: \S+\)$/);
     } finally {
       // Delete source + any orphaned duplicate (API returns no ID for the duplicate)
@@ -603,7 +603,7 @@ describe('team collections – write', () => {
     expect(importText).not.toMatch(/auth\/fail/i);
     expect(importText).toMatchInlineSnapshot(`"Successfully imported team collection(s)"`);
 
-    // Cleanup: API returns no ID for the imported collection — diff and delete orphans
+    // Cleanup: API returns no ID for the imported collection, so diff and delete orphans
     const after = await teamCollectionIds();
     await cleanupOrphanTeamCollections(before, after);
   });
@@ -714,7 +714,7 @@ describe('team environments', () => {
       const updatedVars = JSON.parse(updated.variables as string) as Array<{ key: string; value: string }>;
       expect(updatedVars).toEqual([{ key: 'BASE_URL', value: 'https://updated.example.com' }]);
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_team_environment',
@@ -749,7 +749,7 @@ describe('user collections', () => {
       expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
       expect(text).toContain('Use team collections instead');
     } else {
-      // SH: array of user collections — validate shape of each item
+      // SH: array of user collections, validate the shape of each item
       const collections = jsonOf<Record<string, unknown>[]>(text);
       expect(Array.isArray(collections)).toBe(true);
       for (const col of collections) {
@@ -850,7 +850,7 @@ describe('user collections', () => {
       expect(updated.id).toBe(collId);
       expect(updated.title).toBe('e2e-user-coll-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_user_collection',
@@ -890,7 +890,7 @@ describe('user collections', () => {
       expect(updated.id).toBe(collId);
       expect(updated.title).toBe('e2e-user-gql-coll-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_user_collection',
@@ -973,7 +973,7 @@ describe('user collections', () => {
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatchInlineSnapshot(`"Successfully imported REST user collection(s)"`);
 
-    // Cleanup: API returns no ID for the imported collection — diff and delete orphans
+    // Cleanup: API returns no ID for the imported collection, so diff and delete orphans
     // On Cloud, userCollectionIds() returns [] so this is a no-op
     const after = await userCollectionIds();
     await cleanupOrphanUserCollections(before, after);
@@ -1123,7 +1123,7 @@ describe('team requests', () => {
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-team-request-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_team_request',
@@ -1254,7 +1254,7 @@ describe('user requests', () => {
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-user-request-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_user_request',
@@ -1305,7 +1305,7 @@ describe('user requests', () => {
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-user-gql-request-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_user_request',
@@ -1372,7 +1372,7 @@ describe('user environments', () => {
     const text = textOf(await client.callTool({ name: 'list_user_environments', arguments: {} }));
     log('list_user_environments', text);
     expect(text).not.toMatch(/auth\/fail/i);
-    // Cloud returns [] — SH returns actual envs (may be [])
+    // Cloud returns []; SH returns actual envs (may be [])
     const parsed = jsonOf<unknown[]>(text);
     expect(Array.isArray(parsed)).toBe(true);
     // On SH, each env should have id/name/variables
@@ -1415,7 +1415,7 @@ describe('user environments', () => {
       expect(updatedEnv.id).toBe(envId);
       expect(updatedEnv.name).toBe('e2e-user-env-updated');
     } finally {
-      // Delete (best-effort — don't mask original test failure)
+      // Delete (best-effort, don't mask the original test failure)
       try {
         const deleteText = textOf(await client.callTool({
           name: 'delete_user_environment',
@@ -1462,7 +1462,7 @@ describe('request execution', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Code generation (pure local — no network, fully deterministic)
+// Code generation (pure local: no network, fully deterministic)
 // ---------------------------------------------------------------------------
 
 describe('code generation', () => {

@@ -2,14 +2,14 @@
  * GraphQL mutations for Hoppscotch API
  *
  * Arg names verified against:
- *   Cloud  — live schema introspection (api.hoppscotch.io/graphql)
- *   SH OSS — packages/hoppscotch-backend/src/user-collection/input-type.args.ts
+ *   Cloud:  live schema introspection (api.hoppscotch.io/graphql)
+ *   SH OSS: packages/hoppscotch-backend/src/user-collection/input-type.args.ts
  *
- * IMPORTANT — TeamCollection and UserCollection schema facts (verified live):
+ * IMPORTANT: TeamCollection and UserCollection schema facts (verified live):
  *   • Cloud TeamCollection fields: id, title, data, parent { id }, team { ... }, children
- *     — NO parentID scalar; parent is a nested object.
+ *     No parentID scalar; parent is a nested object.
  *   • Cloud UserCollection fields: id, title, data
- *     — NO parentID scalar; NO parent field at all.
+ *     No parentID scalar and no parent field at all.
  *   • Repositories normalize parent?.id → parentID after every GQL response.
  */
 
@@ -56,7 +56,7 @@ export const CREATE_GQL_CHILD_USER_COLLECTION = `
 `;
 
 /**
- * Update user collection title/data — Cloud variant.
+ * Update user collection title/data, Cloud variant.
  * Cloud requires reqType: ReqType! as an additional argument.
  */
 export const UPDATE_USER_COLLECTION_CLOUD = `
@@ -70,7 +70,7 @@ export const UPDATE_USER_COLLECTION_CLOUD = `
 `;
 
 /**
- * Update user collection title/data — SH variant.
+ * Update user collection title/data, SH variant.
  * SH does not have reqType on updateUserCollection.
  */
 export const UPDATE_USER_COLLECTION_SH = `
@@ -84,7 +84,7 @@ export const UPDATE_USER_COLLECTION_SH = `
 `;
 
 /**
- * Delete user collection — Cloud variant.
+ * Delete user collection, Cloud variant.
  * Cloud requires reqType: ReqType!.
  */
 export const DELETE_USER_COLLECTION_CLOUD = `
@@ -94,7 +94,7 @@ export const DELETE_USER_COLLECTION_CLOUD = `
 `;
 
 /**
- * Delete user collection — SH variant.
+ * Delete user collection, SH variant.
  * SH does not have reqType on deleteUserCollection.
  */
 export const DELETE_USER_COLLECTION_SH = `
@@ -236,7 +236,7 @@ export const IMPORT_TEAM_COLLECTIONS_JSON = `
 
 /**
  * Duplicate team collection.
- * Returns Boolean! (not an object) — no subfields.
+ * Returns Boolean! (not an object), so no subfields.
  */
 export const DUPLICATE_TEAM_COLLECTION = `
   mutation DuplicateTeamCollection($collectionID: String!) {
@@ -387,7 +387,7 @@ export const MOVE_TEAM_REQUEST = `
   }
 `;
 
-// ─── User Requests (personal workspace — not supported on Cloud as of now) ──
+// ─── User Requests (personal workspace, not supported on Cloud as of now) ──
 
 /**
  * Create a REST user request.

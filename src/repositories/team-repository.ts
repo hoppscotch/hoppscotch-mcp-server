@@ -68,8 +68,8 @@ export class TeamRepository {
 
   /**
    * Client-side defense-in-depth guard: refuse an operation that would strip a
-   * team of its last OWNER (orphaning it). The backend is authoritative — it
-   * rejects with `team/only_one_owner` — so this is best-effort and
+   * team of its last OWNER (orphaning it). The backend is authoritative and
+   * rejects with `team/only_one_owner`, so this is best-effort and
    * non-authoritative: it surfaces a clear error earlier (esp. for remove/demote,
    * which have no obvious client-visible backend error here), and a concurrent
    * change between this read and the mutation is still caught by the backend. If

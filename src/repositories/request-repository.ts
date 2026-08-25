@@ -20,7 +20,7 @@ import * as mutations from '../graphql/mutations.js';
  *   - User request WRITE (create/update/delete/move) works on self-hosted; on
  *     Cloud the personal (user) workspace is unsupported as of now.
  *   - User request READ (`userCollection { requests }`) is not supported on
- *     Cloud as of now — the MCP gates it client-side.
+ *     Cloud as of now; the MCP gates it client-side.
  */
 export class RequestRepository {
   constructor(private client: HoppscotchClient) {}
@@ -135,7 +135,7 @@ export class RequestRepository {
 
   /**
    * List requests in a user collection.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async getUserRequests(collectionId: string): Promise<UserRequest[]> {
     this.assertNotCloud('list_user_requests');
@@ -241,7 +241,7 @@ export class RequestRepository {
 
   /**
    * Search team requests by title via the `searchForRequest` GQL field.
-   * Returns request rows (with parent collection metadata), not collection rows —
+   * Returns request rows (with parent collection metadata), not collection rows:
    * the field is named "search…request" upstream and there is no team-collection
    * title search.
    */
