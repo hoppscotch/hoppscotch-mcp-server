@@ -1,6 +1,6 @@
 # Hoppscotch MCP Server
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI agents like Claude to interact with [Hoppscotch](https://hoppscotch.io) — managing collections, environments, teams, and API workflows programmatically.
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI agents like Claude to interact with [Hoppscotch](https://hoppscotch.io): managing collections, environments, teams, and API workflows programmatically.
 
 [![npm version](https://img.shields.io/npm/v/@hoppscotch/mcp-server)](https://www.npmjs.com/package/@hoppscotch/mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -17,11 +17,11 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that en
 - **Documentation generation**: auto-generate API documentation in Markdown
 - **REST and GraphQL collections**: both collection types supported
 - **Cloud and self-hosted**: works with Hoppscotch Cloud (`hoppscotch.io`) and any self-hosted instance
-- **Browser-based login**: no token setup required for interactive use — sign in through Hoppscotch's device-login page and the session is cached
+- **Browser-based login**: no token setup required for interactive use. Sign in through Hoppscotch's device-login page and the session is cached
 
 ## Installation
 
-### Via npx (recommended — no install needed)
+### Via npx (recommended, no install needed)
 
 ```bash
 npx @hoppscotch/mcp-server
@@ -47,7 +47,7 @@ pnpm run build
 Released builds carry the Firebase Web API key needed for **Cloud** sign-in; a build
 from source does not. To use Cloud from a source build, provide
 `HOPPSCOTCH_FIREBASE_API_KEY` either at build time (it gets baked into the bundle) or
-at runtime in your MCP client's `env` block — the runtime value takes precedence, so
+at runtime in your MCP client's `env` block. The runtime value takes precedence, so
 no rebuild is needed. Without it, Cloud sign-in fails with a clear error. Self-hosted
 instances don't use Firebase and need nothing extra.
 
@@ -55,7 +55,7 @@ instances don't use Firebase and need nothing extra.
 
 ### 1. Configure your MCP client
 
-**Claude Desktop** — edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+**Claude Desktop**: edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
@@ -86,7 +86,7 @@ For a self-hosted instance:
 
 ### 2. Authenticate
 
-On the first tool call the server opens `hoppscotch.io/device-login` (or your self-hosted equivalent) in your browser. Sign in and the session is saved automatically — subsequent calls skip the browser step.
+On the first tool call the server opens `hoppscotch.io/device-login` (or your self-hosted equivalent) in your browser. Sign in and the session is saved automatically, so subsequent calls skip the browser step.
 
 > **Note:** Tokens are refreshed automatically while the backend keeps issuing refreshes; Cloud (Firebase) sessions may occasionally re-prompt for login.
 
@@ -128,13 +128,13 @@ Both default to off, so behaviour is unchanged unless you set them.
 | Variable | Default | Purpose |
 |---|---|---|
 | `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` | — | Comma-separated origins (e.g. `https://api.example.com`) allowed to receive **secret** environment values via `{{var}}` substitution in `execute_request`/`validate_response`. Unset ⇒ **no restriction** (secrets substitute freely). Set it to opt in: only the listed origins may then receive secrets; a secret referenced in a request to any other origin is refused. |
-| `HOPPSCOTCH_STRICT_ENV` | `false` | Set `true` to harden against a hostile working-directory `.env`: trust-sensitive vars (auth target/token, tool profile, SSRF/secret-egress toggles, default team) that a `.env` *introduces* are then ignored and must come from the real environment. Off by default — a `.env` is honoured in full. |
+| `HOPPSCOTCH_STRICT_ENV` | `false` | Set `true` to harden against a hostile working-directory `.env`: trust-sensitive vars (auth target/token, tool profile, SSRF/secret-egress toggles, default team) that a `.env` *introduces* are then ignored and must come from the real environment. Off by default; a `.env` is honoured in full. |
 
 ### Building from source
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `HOPPSCOTCH_FIREBASE_API_KEY` | baked in at build | Firebase Web API key used for Hoppscotch **Cloud** sign-in. Released builds have it baked in, so you normally never set this. Set it when building from source and using Cloud — a source build without it fails Cloud sign-in with a clear error. Not used by self-hosted instances. |
+| `HOPPSCOTCH_FIREBASE_API_KEY` | baked in at build | Firebase Web API key used for Hoppscotch **Cloud** sign-in. Released builds have it baked in, so you normally never set this. Set it when building from source and using Cloud: a source build without it fails Cloud sign-in with a clear error. Not used by self-hosted instances. |
 
 > **Hardening a `.env`-loading setup.** By default a working-directory `.env` is honoured for every variable (backwards-compatible). If you run this server in an editor that may open untrusted repositories, set `HOPPSCOTCH_STRICT_ENV=true` in your MCP client's `env` block so a hostile repo `.env` can't repoint the auth target, disable the SSRF guard, or allowlist a secret-exfiltration origin.
 
@@ -148,9 +148,9 @@ The server uses a **browser-based device login flow**, driven by Hoppscotch's `/
 2. Your browser opens `<HOPPSCOTCH_SERVER_URL>/device-login?redirect_uri=http://localhost:<port>/callback/<nonce>`.
 3. After sign-in, the server receives your tokens via the callback.
 4. Tokens are stored at `~/.config/hoppscotch-mcp/auth.json` (permissions: `600`).
-5. Tokens are refreshed automatically before expiry — self-hosted via `/auth/refresh`, Cloud (Firebase-backed, ~1 hour) via the stored Firebase refresh token. A new browser login is needed only if a refresh fails.
+5. Tokens are refreshed automatically before expiry: self-hosted via `/auth/refresh`, Cloud (Firebase-backed, ~1 hour) via the stored Firebase refresh token. A new browser login is needed only if a refresh fails.
 
-**Advanced — override token:** You can set `HOPPSCOTCH_ACCESS_TOKEN` to a valid JWT (e.g. copied from `~/.config/hoppscotch-mcp/auth.json` after a device login) to skip the browser flow. Note that Hoppscotch PATs (`pat-xxx`) only work with REST API endpoints, not GQL queries — they will **not** work here.
+**Advanced: override token.** You can set `HOPPSCOTCH_ACCESS_TOKEN` to a valid JWT (e.g. copied from `~/.config/hoppscotch-mcp/auth.json` after a device login) to skip the browser flow. Note that Hoppscotch PATs (`pat-xxx`) only work with REST API endpoints, not GQL queries, so they will **not** work here.
 
 ### Non-interactive / headless (CI, containers, SSH)
 
@@ -164,14 +164,14 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 
 ## Known limitations (current release)
 
-- **`execute_request` is a real HTTP client.** By default it blocks requests to loopback, link-local, cloud-metadata (`169.254.169.254`), and private-network addresses (SSRF protection), covering IPv4/IPv6 and additional special-use ranges. The validated address is pinned at connect time (via an undici dispatcher), so a same-host DNS-rebinding race between check and connect is closed too (and redirects, which are disabled, can't reach a private IP either). To test a **local or self-hosted API on a private address**, set `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true` — only do this on trusted inputs, since the tool returns the full response into the model's context. Even with the guard on, it can still reach any **public** host using the request's own credentials.
-- **Redirects are not auto-followed** (`execute_request`/`validate_response`) — a 3xx is returned as-is, so a redirect can't silently forward your auth headers to another origin.
+- **`execute_request` is a real HTTP client.** By default it blocks requests to loopback, link-local, cloud-metadata (`169.254.169.254`), and private-network addresses (SSRF protection), covering IPv4/IPv6 and additional special-use ranges. The validated address is pinned at connect time (via an undici dispatcher), so a same-host DNS-rebinding race between check and connect is closed too (and redirects, which are disabled, can't reach a private IP either). To test a **local or self-hosted API on a private address**, set `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true`. Only do this on trusted inputs, since the tool returns the full response into the model's context. Even with the guard on, it can still reach any **public** host using the request's own credentials.
+- **Redirects are not auto-followed** (`execute_request`/`validate_response`): a 3xx is returned as-is, so a redirect can't silently forward your auth headers to another origin.
 - **Response bodies are capped** at `HOPPSCOTCH_MAX_RESPONSE_BYTES` (default 5 MB); larger responses are truncated.
-- **`validate_response` makes its own HTTP call** — it executes the request you pass rather than inspecting an earlier result, so validating a request you already ran sends it again (a non-idempotent request runs a second time).
+- **`validate_response` makes its own HTTP call.** It executes the request you pass rather than inspecting an earlier result, so validating a request you already ran sends it again (a non-idempotent request runs a second time).
 - Request execution and validation take a raw `method`/`url`; they do **not** execute a request already stored in a collection by ID.
 - The default `core` profile already keeps the surface lean (CRUD + request execution + codegen + read-only team discovery). Set `HOPPSCOTCH_TOOL_PROFILE=minimal` for an even smaller surface, or `standard`/`full` to add team administration and advanced collection ops.
-- **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account — use the `reauth` tool to switch or refresh the active identity.
-- **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments; a team-environment ID is rejected, and on Hoppscotch Cloud (where personal environments aren't supported as of now) any `environmentId` is rejected as not found. These tools also do **not** inherit authentication from a parent collection — they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally. Substitution covers the URL, header values and body only — the `auth` block is not substituted, so a `{{var}}` written there is treated as the credential text itself; pass auth credentials directly.
+- **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account. Use the `reauth` tool to switch or refresh the active identity.
+- **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments; a team-environment ID is rejected, and on Hoppscotch Cloud (where personal environments aren't supported as of now) any `environmentId` is rejected as not found. These tools also do **not** inherit authentication from a parent collection; they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally. Substitution covers the URL, header values and body only; the `auth` block is not substituted, so a `{{var}}` written there is treated as the credential text itself; pass auth credentials directly.
 
 ## Available Tools
 
@@ -182,16 +182,16 @@ Hoppscotch Cloud (`hoppscotch.io`), the **team** tools (except
 `search_team_requests`, below) and request execution work. The **personal
 (user) workspace** is only partly available: reading personal collections and
 requests is gated client-side, as are the user-environment create/update/delete
-tools. The personal collection and request **write** tools are not gated — user
+tools. The personal collection and request **write** tools are not gated: user
 collections use Cloud-specific mutations, and user requests are sent to Cloud
 unchanged. Use team workspaces on Cloud when you need the full surface.
 
 `search_team_requests` is separately unavailable on Cloud: the backend rejects
 the query with `bug/team/no_require_team_role`, surfaced as an error.
 
-The client-side-gated personal tools — `list_user_collections`,
+The client-side-gated personal tools (`list_user_collections`,
 `get_user_collection`, `export_user_collection`, `list_user_requests`, and the
-user-environment create/update/delete tools — return an `isError: true`
+user-environment create/update/delete tools) return an `isError: true`
 response on Cloud rather than failing silently. `list_user_environments` is the
 exception: on Cloud it returns an empty list.
 
@@ -223,7 +223,7 @@ exception: on Cloud it returns an empty list.
 | `move_team_collection` | Move a team collection to a new parent |
 | `import_team_collection` | Import a team collection from JSON |
 | `export_team_collection` | Export a team collection to JSON |
-| `search_team_requests` | Search team requests by title (backed by `searchForRequest` GQL — returns requests, not collections) |
+| `search_team_requests` | Search team requests by title (backed by `searchForRequest` GQL, which returns requests, not collections) |
 
 ### Team Environments
 
@@ -302,7 +302,7 @@ exception: on Cloud it returns an empty list.
 
 | Tool | Description |
 |------|-------------|
-| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Cannot replace a configured `HOPPSCOTCH_ACCESS_TOKEN` — that static token is always used. Available in every profile. |
+| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Cannot replace a configured `HOPPSCOTCH_ACCESS_TOKEN`; that static token is always used. Available in every profile. |
 
 ## Usage Examples
 
@@ -378,7 +378,7 @@ pnpm run build
 ```bash
 pnpm test                 # Unit tests (excludes e2e)
 pnpm run test:coverage    # Unit tests with coverage
-pnpm run test:e2e         # E2E integration tests (requires .env setup — see below)
+pnpm run test:e2e         # E2E integration tests (requires .env setup, see below)
 pnpm run typecheck        # TypeScript type checking
 pnpm run lint             # ESLint
 pnpm run lint:fix         # ESLint with auto-fix
@@ -388,12 +388,12 @@ pnpm run dev              # Watch mode build
 
 ### Running E2E Tests
 
-E2E tests spin up the real MCP server via stdio and call tools through the MCP SDK client — exactly how Claude uses it. They require a live Hoppscotch instance and real resource IDs.
+E2E tests spin up the real MCP server via stdio and call tools through the MCP SDK client, exactly how Claude uses it. They require a live Hoppscotch instance and real resource IDs.
 
 1. Copy `.env.example` to `.env` and fill in:
 
 ```bash
-# Only TEAM_ID is required — everything else is self-provisioned
+# Only TEAM_ID is required; everything else is self-provisioned
 HOPPSCOTCH_TEAM_ID=your-team-id
 
 # Optional: set server URL for self-hosted (omit for Cloud)
@@ -413,7 +413,7 @@ node dist/index.js  # triggers browser login; Ctrl+C after auth completes
 pnpm run test:e2e
 ```
 
-Tests create and clean up their own resources. The same suite runs correctly against both Cloud and self-hosted — Cloud-gated paths (user collection reads, user environments) are asserted to return the correct error message.
+Tests create and clean up their own resources. The same suite runs correctly against both Cloud and self-hosted; Cloud-gated paths (user collection reads, user environments) are asserted to return the correct error message.
 
 ### Project Structure
 
@@ -424,7 +424,7 @@ hoppscotch-mcp-server/
 │   ├── client.ts                     # Hoppscotch API client (GQL + REST)
 │   ├── config.ts                     # Configuration and env var parsing
 │   ├── types.ts                      # Shared TypeScript types
-│   ├── server.ts                     # MCP server — tool registration and routing
+│   ├── server.ts                     # MCP server: tool registration and routing
 │   ├── index.ts                      # Entry point
 │   ├── graphql/
 │   │   ├── queries.ts                # GraphQL queries
@@ -465,7 +465,7 @@ Cloud sessions are Firebase-backed and expire after ~1 hour. The server attempts
 
 ### GraphQL Unauthorized error
 
-Delete `~/.config/hoppscotch-mcp/auth.json` and retry — a fresh login will be triggered.
+Delete `~/.config/hoppscotch-mcp/auth.json` and retry; a fresh login will be triggered.
 
 ### Team ID required
 
@@ -473,7 +473,7 @@ Set `HOPPSCOTCH_DEFAULT_TEAM_ID` in your environment, or pass `teamId` explicitl
 
 ### SSL certificate errors (self-hosted)
 
-If your self-hosted instance uses a self-signed or private-CA certificate, point Node at the CA bundle with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` in the server environment. **Do not** use `NODE_TLS_REJECT_UNAUTHORIZED=0` — it disables TLS verification for the *entire* Node process (Cloud/Firebase token exchange and every `execute_request` to public hosts included), not just your self-hosted host.
+If your self-hosted instance uses a self-signed or private-CA certificate, point Node at the CA bundle with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` in the server environment. **Do not** use `NODE_TLS_REJECT_UNAUTHORIZED=0`: it disables TLS verification for the *entire* Node process (Cloud/Firebase token exchange and every `execute_request` to public hosts included), not just your self-hosted host.
 
 ### User collections unavailable
 
@@ -483,8 +483,8 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 - Never commit `.env` (it's gitignored); `auth.json` lives outside the repo at `~/.config/hoppscotch-mcp/`, not in your project
 - Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only, best-effort on POSIX)
-- The server is stateless — no user data is cached locally beyond the auth token
-- On Windows, file permissions (`0o600`) are not enforced — keep `auth.json` in a secure location
+- The server is stateless: no user data is cached locally beyond the auth token
+- On Windows, file permissions (`0o600`) are not enforced, so keep `auth.json` in a secure location
 
 ## Contributing
 
@@ -497,7 +497,7 @@ Please run `pnpm test` and `pnpm run typecheck` before submitting.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE) for details.
 
 ## Links
 
