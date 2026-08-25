@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.hoppscotch/mcp-server",
-  "description": "MCP server for Hoppscotch — manage teams, collections, requests, and envs from AI agents.",
+  "description": "MCP server for Hoppscotch: manage teams, collections, requests, and envs from AI agents.",
   "title": "Hoppscotch",
   "websiteUrl": "https://github.com/hoppscotch/hoppscotch-mcp-server#readme",
   "repository": {
