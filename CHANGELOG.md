@@ -32,10 +32,12 @@ enforced on Windows). Requires Node 22+. Ships as a CLI binary only; there is no
 importable library entry point.
 
 Both Hoppscotch Cloud and self-hosted instances are supported, but not with the same
-surface: the personal (user) workspace, meaning user collections, requests, and environments,
-is supported on self-hosted only; on Cloud it is not supported as of now.
-Team collections, team environments, request execution and code generation work on
-both. Individual tool descriptions state which backends they apply to.
+surface. Self-hosted has all of it. On Cloud the personal (user) workspace is only
+partly available: reading personal collections and requests is gated client-side, as
+are the user-environment create/update/delete tools, while personal collection and
+request writes still run. Team collections, team environments, request execution and
+code generation work on both, except `search_team_requests`, which the Cloud backend
+rejects. Individual tool descriptions state which backends they apply to.
 
 ### Tools
 
