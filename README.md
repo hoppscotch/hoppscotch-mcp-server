@@ -182,8 +182,8 @@ Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
 Hoppscotch Cloud (`hoppscotch.io`), the **team** tools (except
 `search_team_requests`, below) and request execution work. The **personal
 (user) workspace** is only partly available: reading personal collections and
-requests is gated client-side, as are the user-environment create/update/delete
-tools. The personal collection and request **write** tools are not gated: user
+requests is gated client-side, as are all four user-environment tools. The
+personal collection and request **write** tools are not gated: user
 collections use Cloud-specific mutations, and user requests are sent to Cloud
 unchanged. Use team workspaces on Cloud when you need the full surface.
 
@@ -191,10 +191,9 @@ unchanged. Use team workspaces on Cloud when you need the full surface.
 the query with `bug/team/no_require_team_role`, surfaced as an error.
 
 The client-side-gated personal tools (`list_user_collections`,
-`get_user_collection`, `export_user_collection`, `list_user_requests`, and the
-user-environment create/update/delete tools) return an `isError: true`
-response on Cloud rather than failing silently. `list_user_environments` is the
-exception: on Cloud it returns an empty list.
+`get_user_collection`, `export_user_collection`, `list_user_requests`, and all
+four user-environment tools) return an `isError: true` response on Cloud rather
+than failing silently.
 
 ### Teams
 
@@ -258,7 +257,7 @@ exception: on Cloud it returns an empty list.
 
 ### User (Personal) Environments
 
-> Personal (user) environments work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now**: `list_user_environments` returns an empty array and create/update/delete return a "not supported" error.
+> Personal (user) environments work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now**: all four tools (list, create, update, delete) return a "not supported" error.
 
 | Tool | Description |
 |------|-------------|
@@ -499,6 +498,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 - Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only, best-effort on POSIX)
 - The server is stateless: no user data is cached locally beyond the auth token
 - On Windows, file permissions (`0o600`) are not enforced, so keep `auth.json` in a secure location
+- Only `secret: true` environment values are masked on read. Auth credentials stored on a collection or a request (a bearer token, a basic password, an API key) are returned as stored by `list_user_collections`, `get_user_collection`, `list_user_requests`, `get_team_request` and the team equivalents, so they reach the model in plaintext
 
 ## Contributing
 

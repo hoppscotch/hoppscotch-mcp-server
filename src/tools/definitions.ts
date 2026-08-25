@@ -180,7 +180,7 @@ const USER_ENVIRONMENT_TOOLS = {
   list_user_environments: {
     name: 'list_user_environments',
     description:
-      'List all user environments with their variables. On Hoppscotch Cloud, personal environments are not supported as of now, so this returns an empty list.',
+      'List all user environments with their variables. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -962,7 +962,7 @@ const CODE_GENERATION_TOOLS = {
   generate_code: {
     name: 'generate_code',
     description:
-      'Generate a code snippet for an HTTP request in various programming languages (curl, JavaScript, Python, Go, Rust). Returns a runnable snippet with live credentials by default; set redactCredentials=true to mask them when sharing the snippet.',
+      'Generate a code snippet for an HTTP request in various programming languages (curl, JavaScript, Python, Go, Rust). Returns a runnable snippet with live credentials by default; set redactCredentials=true to mask them when sharing the snippet. Takes the request as given: collection-level auth and headers are NOT resolved, so pass them explicitly for a request whose auth type is "inherit".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1005,7 +1005,7 @@ const CODE_GENERATION_TOOLS = {
   generate_documentation: {
     name: 'generate_documentation',
     description:
-      'Generate markdown documentation for an HTTP request, including examples in multiple languages. Credential values in the examples are masked by default (set redactCredentials=false for runnable snippets with live secrets).',
+      'Generate markdown documentation for an HTTP request, including examples in cURL, JavaScript and Python. Credential values in the examples are masked by default (set redactCredentials=false for runnable snippets with live secrets). Takes the request as given: collection-level auth and headers are NOT resolved, so pass them explicitly for a request whose auth type is "inherit".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1041,7 +1041,7 @@ const CODE_GENERATION_TOOLS = {
         },
         includeExamples: {
           type: 'boolean',
-          description: 'Include code examples in multiple languages',
+          description: 'Include code examples. Emits cURL, JavaScript and Python only.',
         },
         redactCredentials: {
           type: 'boolean',

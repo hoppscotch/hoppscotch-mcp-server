@@ -111,7 +111,7 @@ export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
  * ─────────────────
  * • Self-Hosted: available via me { environments { ... } } resolver field.
  * • Cloud: not supported as of now; the MCP gates them client-side.
- *   Listing user environments on Cloud returns an empty array.
+ *   Every user-environment call on Cloud raises a "not supported" error.
  *
  * Team environments
  * ─────────────────
@@ -170,11 +170,15 @@ export class EnvironmentRepository {
   /**
    * List personal environments for the authenticated user.
    * Self-Hosted: me { environments } resolver field.
-   * Cloud: not supported as of now; returns an empty array.
+   * Cloud: not supported as of now; gated client-side. Throws like its
+   * create/update/delete siblings, since [] would be indistinguishable from
+   * an account that simply has no environments.
    */
   async getUserEnvironments(): Promise<UserEnvironment[]> {
     if (this.isCloud()) {
-      return [];
+      throw new Error(
+        'User environments are not supported on Hoppscotch Cloud. Use team environments instead.'
+      );
     }
 
     const result = await this.client.graphql<{

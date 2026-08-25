@@ -34,8 +34,8 @@ importable library entry point.
 Both Hoppscotch Cloud and self-hosted instances are supported, but not with the same
 surface. Self-hosted has all of it. On Cloud the personal (user) workspace is only
 partly available: reading personal collections and requests is gated client-side, as
-are the user-environment create/update/delete tools, while personal collection and
-request writes still run. Team collections, team environments, request execution and
+are all four user-environment tools, while personal collection and request writes
+still run. Team collections, team environments, request execution and
 code generation work on both, except `search_team_requests`, which the Cloud backend
 rejects. Individual tool descriptions state which backends they apply to.
 
