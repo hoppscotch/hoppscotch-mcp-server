@@ -91,7 +91,12 @@ function expandV6(ipRaw: string): Hextets | null {
   // the hex form (::ffff:7f00:1) and the dotted form normalize identically.
   const v4m = ip.match(/^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (v4m) {
-    const o = [Number(v4m[2]), Number(v4m[3]), Number(v4m[4]), Number(v4m[5])] as [number, number, number, number];
+    const o = [Number(v4m[2]), Number(v4m[3]), Number(v4m[4]), Number(v4m[5])] as [
+      number,
+      number,
+      number,
+      number,
+    ];
     if (o.some((n) => n > 255)) return null;
     ip = `${v4m[1]}${((o[0] << 8) | o[1]).toString(16)}:${((o[2] << 8) | o[3]).toString(16)}`;
   }
@@ -135,7 +140,11 @@ function isBlockedV6(ipRaw: string): boolean {
   // already handled above, so the compatible branch (h[5]===0) only matches
   // ::/96 embeddings, never a real public IPv6 address.
   const v4embedded =
-    h[0] === 0 && h[1] === 0 && h[2] === 0 && h[3] === 0 && h[4] === 0 &&
+    h[0] === 0 &&
+    h[1] === 0 &&
+    h[2] === 0 &&
+    h[3] === 0 &&
+    h[4] === 0 &&
     (h[5] === 0xffff || h[5] === 0);
   if (v4embedded) {
     const a = (h[6] >> 8) & 0xff;
@@ -157,8 +166,12 @@ function isBlockedV6(ipRaw: string): boolean {
 
   // NAT64 well-known prefix (64:ff9b::/96): IPv4 in the last 32 bits (h[6], h[7]).
   if (
-    h[0] === 0x0064 && h[1] === 0xff9b &&
-    h[2] === 0 && h[3] === 0 && h[4] === 0 && h[5] === 0 &&
+    h[0] === 0x0064 &&
+    h[1] === 0xff9b &&
+    h[2] === 0 &&
+    h[3] === 0 &&
+    h[4] === 0 &&
+    h[5] === 0 &&
     isBlockedV4(v4FromHextets(h[6], h[7]))
   ) {
     return true;
@@ -186,7 +199,10 @@ export function isBlockedAddress(ip: string): boolean {
 
 /** Normalize a URL host: strip IPv6 brackets and a single trailing dot. */
 function canonicalHost(url: string): string {
-  return new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  return new URL(url).hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '');
 }
 
 /**
@@ -196,7 +212,9 @@ function canonicalHost(url: string): string {
 export function assertScheme(url: string): void {
   const { protocol } = new URL(url);
   if (protocol !== 'http:' && protocol !== 'https:') {
-    throw new SSRFBlockedError(`Unsupported URL scheme '${protocol}' — only http/https are allowed.`);
+    throw new SSRFBlockedError(
+      `Unsupported URL scheme '${protocol}' — only http/https are allowed.`
+    );
   }
 }
 
@@ -226,7 +244,7 @@ export async function assertUrlAllowed(url: string): Promise<void> {
   } catch {
     throw new SSRFBlockedError(
       `Could not resolve '${host}' to verify it is not an internal address — blocking. ` +
-      `Retry if this is a transient DNS error, or set HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true for intentional local targets.`
+        `Retry if this is a transient DNS error, or set HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true for intentional local targets.`
     );
   }
   for (const { address } of resolved) {
@@ -255,7 +273,9 @@ export function assertResolvedAddressesAllowed(
 ): void {
   const valid = addresses.filter((a) => typeof a.address === 'string' && a.address.length > 0);
   if (valid.length === 0) {
-    throw new SSRFBlockedError(`Could not resolve '${hostname}' to a permitted address — blocking.`);
+    throw new SSRFBlockedError(
+      `Could not resolve '${hostname}' to a permitted address — blocking.`
+    );
   }
   const blocked = valid.find((a) => isBlockedAddress(a.address));
   if (blocked) {

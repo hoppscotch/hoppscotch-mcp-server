@@ -55,11 +55,8 @@ don't mind writing to.
   before you push. CI enforces the same.
 - Add tool `annotations` when introducing a new tool (see
   `src/tools/definitions.ts`).
-- `.prettierrc.json` is there so your editor formats new code consistently.
-  The existing sources are not uniformly Prettier-formatted, and a few spots
-  are laid out by hand because Prettier's output reads worse there. Please
-  don't run `pnpm run format` across `src/`; it produces a large diff that
-  buries the change you actually made.
+- Run `pnpm run format` before you push. `src/` is uniformly Prettier-formatted
+  and CI runs `pnpm run format:check`, so an unformatted file fails the build.
 
 ## Commit messages
 

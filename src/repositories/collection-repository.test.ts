@@ -29,7 +29,9 @@ describe('CollectionRepository', () => {
       const result = await repository.getUserCollections(CollectionType.REST);
 
       // Normalizer maps parent?.id → parentID
-      expect(result).toEqual([{ id: 'col1', title: 'My REST Collection', data: null, parentID: null }]);
+      expect(result).toEqual([
+        { id: 'col1', title: 'My REST Collection', data: null, parentID: null },
+      ]);
       expect(mockClient.graphql).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ take: 25 })
@@ -41,7 +43,9 @@ describe('CollectionRepository', () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({ rootGQLUserCollections: rawGql });
 
       const result = await repository.getUserCollections(CollectionType.GQL);
-      expect(result).toEqual([{ id: 'col2', title: 'My GQL Collection', data: null, parentID: null }]);
+      expect(result).toEqual([
+        { id: 'col2', title: 'My GQL Collection', data: null, parentID: null },
+      ]);
     });
 
     it('should normalize parent { id } to parentID', async () => {
@@ -68,7 +72,9 @@ describe('CollectionRepository', () => {
 
     it('should throw on Cloud', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
-      await expect(cloudRepo.getUserCollections(CollectionType.REST)).rejects.toThrow('not supported on Hoppscotch Cloud');
+      await expect(cloudRepo.getUserCollections(CollectionType.REST)).rejects.toThrow(
+        'not supported on Hoppscotch Cloud'
+      );
     });
   });
 
@@ -78,7 +84,12 @@ describe('CollectionRepository', () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({ userCollection: rawGql });
 
       const result = await repository.getUserCollection('col1');
-      expect(result).toEqual({ id: 'col1', title: 'My Collection', data: null, parentID: 'parent-1' });
+      expect(result).toEqual({
+        id: 'col1',
+        title: 'My Collection',
+        data: null,
+        parentID: 'parent-1',
+      });
       expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { collectionID: 'col1' });
     });
 
@@ -92,7 +103,9 @@ describe('CollectionRepository', () => {
 
     it('should throw on Cloud', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
-      await expect(cloudRepo.getUserCollection('col1')).rejects.toThrow('not supported on Hoppscotch Cloud');
+      await expect(cloudRepo.getUserCollection('col1')).rejects.toThrow(
+        'not supported on Hoppscotch Cloud'
+      );
     });
   });
 
@@ -101,15 +114,25 @@ describe('CollectionRepository', () => {
       const rawGql = { id: 'new-col', title: 'New Collection', data: null, parent: null };
       vi.mocked(mockClient.graphql).mockResolvedValue({ createRESTRootUserCollection: rawGql });
 
-      const result = await repository.createUserCollection(CollectionType.REST, { title: 'New Collection' });
-      expect(result).toEqual({ id: 'new-col', title: 'New Collection', data: null, parentID: null });
+      const result = await repository.createUserCollection(CollectionType.REST, {
+        title: 'New Collection',
+      });
+      expect(result).toEqual({
+        id: 'new-col',
+        title: 'New Collection',
+        data: null,
+        parentID: null,
+      });
     });
 
     it('should create a REST child collection with parentUserCollectionID arg', async () => {
       const rawGql = { id: 'child', title: 'Child', data: null, parent: { id: 'parent-col' } };
       vi.mocked(mockClient.graphql).mockResolvedValue({ createRESTChildUserCollection: rawGql });
 
-      const result = await repository.createUserCollection(CollectionType.REST, { title: 'Child', parentCollectionID: 'parent-col' });
+      const result = await repository.createUserCollection(CollectionType.REST, {
+        title: 'Child',
+        parentCollectionID: 'parent-col',
+      });
       expect(result.parentID).toBe('parent-col');
       expect(mockClient.graphql).toHaveBeenCalledWith(
         expect.any(String),
@@ -121,7 +144,9 @@ describe('CollectionRepository', () => {
       const rawGql = { id: 'gql-col', title: 'GQL Col', data: null, parent: null };
       vi.mocked(mockClient.graphql).mockResolvedValue({ createGQLRootUserCollection: rawGql });
 
-      const result = await repository.createUserCollection(CollectionType.GQL, { title: 'GQL Col' });
+      const result = await repository.createUserCollection(CollectionType.GQL, {
+        title: 'GQL Col',
+      });
       expect(result.id).toBe('gql-col');
     });
   });
@@ -131,7 +156,9 @@ describe('CollectionRepository', () => {
       const rawGql = { id: 'col1', title: 'Updated', data: null, parent: null };
       vi.mocked(mockClient.graphql).mockResolvedValue({ updateUserCollection: rawGql });
 
-      const result = await repository.updateUserCollection('col1', CollectionType.REST, { title: 'Updated' });
+      const result = await repository.updateUserCollection('col1', CollectionType.REST, {
+        title: 'Updated',
+      });
       expect(result.title).toBe('Updated');
       // SH variant, no reqType
       expect(mockClient.graphql).toHaveBeenCalledWith(
@@ -162,10 +189,9 @@ describe('CollectionRepository', () => {
     it('should send userCollectionID without reqType on SH', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({});
       await repository.deleteUserCollection('col1', CollectionType.REST);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { userCollectionID: 'col1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        userCollectionID: 'col1',
+      });
     });
 
     it('should send reqType on Cloud', async () => {
@@ -174,10 +200,10 @@ describe('CollectionRepository', () => {
       cloudMock.graphql = vi.fn().mockResolvedValue({});
 
       await cloudRepo.deleteUserCollection('col1', CollectionType.REST);
-      expect(cloudMock.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { userCollectionID: 'col1', reqType: CollectionType.REST }
-      );
+      expect(cloudMock.graphql).toHaveBeenCalledWith(expect.any(String), {
+        userCollectionID: 'col1',
+        reqType: CollectionType.REST,
+      });
     });
   });
 
@@ -185,10 +211,10 @@ describe('CollectionRepository', () => {
     it('should send collectionID (String) + reqType, returns void', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({});
       await repository.duplicateUserCollection('col1', CollectionType.REST);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { collectionID: 'col1', reqType: CollectionType.REST }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        collectionID: 'col1',
+        reqType: CollectionType.REST,
+      });
     });
   });
 
@@ -199,10 +225,10 @@ describe('CollectionRepository', () => {
 
       const result = await repository.moveUserCollection('col1', 'new-parent');
       expect(result.parentID).toBe('new-parent');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { userCollectionID: 'col1', destCollectionID: 'new-parent' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        userCollectionID: 'col1',
+        destCollectionID: 'new-parent',
+      });
     });
 
     it('should send destCollectionID: null when moving to root', async () => {
@@ -210,30 +236,48 @@ describe('CollectionRepository', () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({ moveUserCollection: rawGql });
 
       await repository.moveUserCollection('col1');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { userCollectionID: 'col1', destCollectionID: null }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        userCollectionID: 'col1',
+        destCollectionID: null,
+      });
     });
   });
 
   describe('Team Collections', () => {
     it('should fetch team collections', async () => {
-      const mockCollections = [{ id: 'team-col1', title: 'Team Col', data: null, parentID: null, teamID: 'team1' }];
+      const mockCollections = [
+        { id: 'team-col1', title: 'Team Col', data: null, parentID: null, teamID: 'team1' },
+      ];
       vi.mocked(mockClient.graphql).mockResolvedValue({ rootCollectionsOfTeam: mockCollections });
       expect(await repository.getTeamCollections('team1')).toEqual(mockCollections);
     });
 
     it('should create root team collection', async () => {
-      const mockResult = { id: 'new-team-col', title: 'New Team Col', data: null, parentID: null, teamID: 'team1' };
+      const mockResult = {
+        id: 'new-team-col',
+        title: 'New Team Col',
+        data: null,
+        parentID: null,
+        teamID: 'team1',
+      };
       vi.mocked(mockClient.graphql).mockResolvedValue({ createRootCollection: mockResult });
-      expect(await repository.createTeamCollection('team1', { title: 'New Team Col' })).toEqual(mockResult);
+      expect(await repository.createTeamCollection('team1', { title: 'New Team Col' })).toEqual(
+        mockResult
+      );
     });
 
     it('should update team collection', async () => {
-      const mockResult = { id: 'team-col1', title: 'Updated', data: null, parentID: null, teamID: 'team1' };
+      const mockResult = {
+        id: 'team-col1',
+        title: 'Updated',
+        data: null,
+        parentID: null,
+        teamID: 'team1',
+      };
       vi.mocked(mockClient.graphql).mockResolvedValue({ updateTeamCollection: mockResult });
-      expect((await repository.updateTeamCollection('team-col1', { title: 'Updated' })).title).toBe('Updated');
+      expect((await repository.updateTeamCollection('team-col1', { title: 'Updated' })).title).toBe(
+        'Updated'
+      );
     });
 
     it('should delete team collection', async () => {
@@ -250,15 +294,25 @@ describe('CollectionRepository', () => {
   describe('getTeamCollection (GQL)', () => {
     it('should fetch team collection via collection(collectionID) and normalise parent.id → parentID', async () => {
       // GQL returns parent as a nested object, not a parentID scalar
-      const rawGql = { id: 'team-col1', title: 'Team Col', parent: { id: 'parent-col' }, data: null };
+      const rawGql = {
+        id: 'team-col1',
+        title: 'Team Col',
+        parent: { id: 'parent-col' },
+        data: null,
+      };
       vi.mocked(mockClient.graphql).mockResolvedValue({ collection: rawGql });
 
       const result = await repository.getTeamCollection('team-col1');
-      expect(result).toEqual({ id: 'team-col1', title: 'Team Col', parentID: 'parent-col', data: null, teamID: '' });
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { collectionID: 'team-col1' }
-      );
+      expect(result).toEqual({
+        id: 'team-col1',
+        title: 'Team Col',
+        parentID: 'parent-col',
+        data: null,
+        teamID: '',
+      });
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        collectionID: 'team-col1',
+      });
     });
 
     it('should normalise null parent to parentID: null', async () => {

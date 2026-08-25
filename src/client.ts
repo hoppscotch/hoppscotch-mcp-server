@@ -13,12 +13,15 @@ import { getValidToken, clearStoredAuth, reauthenticate } from './auth.js';
  * working. Unknown codes pass through unchanged.
  */
 const BACKEND_ERROR_MESSAGES: Record<string, string> = {
-  'auth/fail': 'Authentication failed or the session expired. Run the `reauth` tool (or retry to trigger sign-in) and try again.',
+  'auth/fail':
+    'Authentication failed or the session expired. Run the `reauth` tool (or retry to trigger sign-in) and try again.',
   // Full backend token is `bug/team/no_require_team_role`, so key on the exact
   // code so the prefix is preserved in the output (matchers depend on it).
-  'bug/team/no_require_team_role': 'This operation is unavailable on this backend (the required team-role guard is not configured server-side). Known Cloud limitation for search_team_requests.',
+  'bug/team/no_require_team_role':
+    'This operation is unavailable on this backend (the required team-role guard is not configured server-side). Known Cloud limitation for search_team_requests.',
   'team_invite/member_has_invite': 'That user already has a pending invitation to this team.',
-  'email/failed': 'The invitation could not be sent — the email is not a registered Hoppscotch account (Cloud requires invitees to already have an account).',
+  'email/failed':
+    'The invitation could not be sent — the email is not a registered Hoppscotch account (Cloud requires invitees to already have an account).',
 };
 
 /**
@@ -161,8 +164,8 @@ export class HoppscotchClient {
         if (staticToken?.startsWith('pat-')) {
           throw new HoppscotchError(
             'Authentication failed. The configured access token looks like a Personal Access Token (pat-...), ' +
-            'which only works with Hoppscotch REST API endpoints, not GraphQL queries. ' +
-            'Use device-login instead (unset the token), or copy the JWT from ~/.config/hoppscotch-mcp/auth.json.',
+              'which only works with Hoppscotch REST API endpoints, not GraphQL queries. ' +
+              'Use device-login instead (unset the token), or copy the JWT from ~/.config/hoppscotch-mcp/auth.json.',
             'AUTH_PAT_INVALID'
           );
         }

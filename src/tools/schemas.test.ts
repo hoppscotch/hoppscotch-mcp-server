@@ -91,22 +91,28 @@ describe('MoveUserCollectionSchema — parentCollectionId rename + alias', () =>
   });
 
   it('accepts both when they agree', () => {
-    const v = MoveUserCollectionSchema.parse({ collectionId: 'c1', parentCollectionId: 'p1', newParentId: 'p1' });
+    const v = MoveUserCollectionSchema.parse({
+      collectionId: 'c1',
+      parentCollectionId: 'p1',
+      newParentId: 'p1',
+    });
     expect(v.parentCollectionId).toBe('p1');
   });
 
   it('rejects parentCollectionId and newParentId when they differ (ambiguous target)', () => {
     expect(() =>
-      MoveUserCollectionSchema.parse({ collectionId: 'c1', parentCollectionId: 'p1', newParentId: 'p2' })
+      MoveUserCollectionSchema.parse({
+        collectionId: 'c1',
+        parentCollectionId: 'p1',
+        newParentId: 'p2',
+      })
     ).toThrow();
   });
 
   it('rejects a mistyped target key instead of silently moving to root (strict)', () => {
     // `parentId` is dropped by a non-strict schema, leaving the move targeting
     // root: silent data movement. Strict surfaces it as an error.
-    expect(() =>
-      MoveUserCollectionSchema.parse({ collectionId: 'c1', parentId: 'p1' })
-    ).toThrow();
+    expect(() => MoveUserCollectionSchema.parse({ collectionId: 'c1', parentId: 'p1' })).toThrow();
   });
 
   it('allows omitting the parent entirely (intentional move-to-root)', () => {

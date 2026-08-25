@@ -403,11 +403,9 @@ describe('substituteRequestVariables — secret-egress policy', () => {
 
   it('rejects an unresolved placeholder when substitution was requested', () => {
     expect(() =>
-      substituteRequestVariables(
-        base({ url: 'https://api.example.com/{{missing}}' }),
-        [],
-        { requireResolved: true }
-      )
+      substituteRequestVariables(base({ url: 'https://api.example.com/{{missing}}' }), [], {
+        requireResolved: true,
+      })
     ).toThrow(UnresolvedPlaceholderError);
   });
 
@@ -693,18 +691,17 @@ describe('executeRequest — secret scrubbing on the response', () => {
       statusText: 'Unauthorized',
       ok: false,
       headers: {
-        forEach: (cb: (v: string, k: string) => void) => cb('Bearer super-secret', 'www-authenticate'),
+        forEach: (cb: (v: string, k: string) => void) =>
+          cb('Bearer super-secret', 'www-authenticate'),
       },
       body: null,
       text: async () => '{"error":"invalid token super-secret"}',
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      ['super-secret']
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      'super-secret',
+    ]);
     expect(result.body).not.toContain('super-secret');
     expect(result.body).toContain('<redacted>');
     expect(result.headers['www-authenticate']).toBe('Bearer <redacted>');
@@ -722,11 +719,9 @@ describe('executeRequest — secret scrubbing on the response', () => {
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      ['super-secret']
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      'super-secret',
+    ]);
     expect(result.statusText).toBe('Unauthorized: <redacted>');
   });
 
@@ -745,11 +740,9 @@ describe('executeRequest — secret scrubbing on the response', () => {
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      [secret]
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      secret,
+    ]);
     expect(result.body).not.toContain('SUPER'); // no fragment of the secret survives
     expect(result.body).toContain('<red'); // redaction ran before the clamp
     expect(result.body.length).toBeLessThanOrEqual(10); // clamped to the cap
@@ -770,11 +763,9 @@ describe('executeRequest — secret scrubbing on the response', () => {
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      ['a']
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      'a',
+    ]);
     // Without the post-redaction clamp this would balloon to ~10000 chars
     // (1000 × the 10-char placeholder). The clamp holds it at the cap.
     expect(result.body.length).toBeLessThanOrEqual(20);
@@ -798,11 +789,9 @@ describe('executeRequest — secret scrubbing on the response', () => {
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      [secret]
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      secret,
+    ]);
     // A char-length margin would under-buffer the 10-char escaped form and leak a
     // `\"` fragment; the byte-length margin over all variants buffers it fully.
     expect(result.body).not.toContain('\\"');
@@ -824,11 +813,9 @@ describe('executeRequest — secret scrubbing on the response', () => {
     }));
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
 
-    const result = await executeRequest(
-      { method: 'GET', url: 'https://api.example.com/x' },
-      5000,
-      ['X']
-    );
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      'X',
+    ]);
     // The raw body fit the cap (not truncated), but redaction expanded it past the
     // cap and the clamp cut it, so `truncated` must still be honest.
     expect(result.truncated).toBe(true);

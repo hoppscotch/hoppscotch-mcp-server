@@ -561,7 +561,7 @@ describe('code-generator', () => {
       headers: { 'X-Test': NASTY },
     };
 
-    it('curl: single quotes escaped as POSIX \'\\\'\', no bare breakout', () => {
+    it("curl: single quotes escaped as POSIX '\\'', no bare breakout", () => {
       const code = generateCode(nastyHeader, 'curl');
       expect(code).toContain(`'\\''`);
       // Raw breakout would emit `a'; rm` (quote closes the token); the safe

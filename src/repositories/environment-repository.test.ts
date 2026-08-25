@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { EnvironmentRepository, redactEnvSecrets, assertNoRedactionPlaceholder, SECRET_PLACEHOLDER } from './environment-repository';
+import {
+  EnvironmentRepository,
+  redactEnvSecrets,
+  assertNoRedactionPlaceholder,
+  SECRET_PLACEHOLDER,
+} from './environment-repository';
 import { ApiType, type Config } from '../config';
 import type { UserEnvironment } from '../types';
 import { HoppscotchError } from '../types';
@@ -11,7 +16,13 @@ describe('redactEnvSecrets — secret values never cross the MCP boundary', () =
       id: 'e1',
       name: 'prod',
       variables: JSON.stringify([
-        { key: 'API_KEY', value: 'live-secret', currentValue: 'live-secret', initialValue: 'live-secret', secret: true },
+        {
+          key: 'API_KEY',
+          value: 'live-secret',
+          currentValue: 'live-secret',
+          initialValue: 'live-secret',
+          secret: true,
+        },
         { key: 'BASE_URL', value: 'https://api.example.com', secret: false },
       ]),
     };
@@ -20,7 +31,13 @@ describe('redactEnvSecrets — secret values never cross the MCP boundary', () =
     const vars = JSON.parse(out.variables);
 
     expect(out.variables).not.toContain('live-secret');
-    expect(vars[0]).toMatchObject({ key: 'API_KEY', value: '<secret hidden>', currentValue: '<secret hidden>', initialValue: '<secret hidden>', secret: true });
+    expect(vars[0]).toMatchObject({
+      key: 'API_KEY',
+      value: '<secret hidden>',
+      currentValue: '<secret hidden>',
+      initialValue: '<secret hidden>',
+      secret: true,
+    });
     expect(vars[1]).toMatchObject({ key: 'BASE_URL', value: 'https://api.example.com' });
   });
 
@@ -32,14 +49,18 @@ describe('redactEnvSecrets — secret values never cross the MCP boundary', () =
   it('fails closed when variables is not parseable — never surfaces the raw blob', () => {
     const env = { variables: 'not-json' };
     const out = redactEnvSecrets(env);
-    expect(out.variables).toBe(JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]));
+    expect(out.variables).toBe(
+      JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }])
+    );
   });
 
   it('fails closed on a parseable-but-non-array blob carrying a secret', () => {
     const env = { variables: JSON.stringify({ key: 'TOKEN', value: 's3cr3t', secret: true }) };
     const out = redactEnvSecrets(env);
     expect(out.variables).not.toContain('s3cr3t');
-    expect(out.variables).toBe(JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]));
+    expect(out.variables).toBe(
+      JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }])
+    );
   });
 });
 
@@ -100,11 +121,20 @@ describe('EnvironmentRepository', () => {
 
     it('team partial update (name only) preserves the real stored secret, never the placeholder', async () => {
       const client = makeMockClient(ApiType.SELFHOST);
-      vi.mocked(client.getConfig).mockReturnValue({ apiType: ApiType.SELFHOST, defaultTeamId: 't1' } as unknown as Config);
+      vi.mocked(client.getConfig).mockReturnValue({
+        apiType: ApiType.SELFHOST,
+        defaultTeamId: 't1',
+      } as unknown as Config);
       const stored = JSON.stringify([{ key: 'API_KEY', value: 'real-secret', secret: true }]);
       vi.mocked(client.graphql)
-        .mockResolvedValueOnce({ team: { teamEnvironments: [{ id: 'env1', name: 'old', variables: stored, teamID: 't1' }] } })
-        .mockResolvedValueOnce({ updateTeamEnvironment: { id: 'env1', name: 'Renamed', variables: stored, teamID: 't1' } });
+        .mockResolvedValueOnce({
+          team: {
+            teamEnvironments: [{ id: 'env1', name: 'old', variables: stored, teamID: 't1' }],
+          },
+        })
+        .mockResolvedValueOnce({
+          updateTeamEnvironment: { id: 'env1', name: 'Renamed', variables: stored, teamID: 't1' },
+        });
       const repo = new EnvironmentRepository(client);
 
       await repo.updateTeamEnvironment('env1', { name: 'Renamed' });
@@ -123,7 +153,10 @@ describe('EnvironmentRepository', () => {
       );
       const repo = new EnvironmentRepository(client);
       const err = (await repo
-        .createUserEnvironment({ name: 'e', variables: [{ key: 'API_KEY', value: 'sup3r-s3cret', secret: true }] })
+        .createUserEnvironment({
+          name: 'e',
+          variables: [{ key: 'API_KEY', value: 'sup3r-s3cret', secret: true }],
+        })
         .catch((e) => e)) as Error;
       expect(err.message).not.toContain('sup3r-s3cret');
       expect(err.message).toContain('<redacted>');
@@ -138,7 +171,10 @@ describe('EnvironmentRepository', () => {
       );
       const repo = new EnvironmentRepository(client);
       const err = (await repo
-        .createUserEnvironment({ name: 'demo', variables: [{ key: 'PUB', value: 'not-secret', secret: false }] })
+        .createUserEnvironment({
+          name: 'demo',
+          variables: [{ key: 'PUB', value: 'not-secret', secret: false }],
+        })
         .catch((e) => e)) as Error;
       expect(err.message).toContain('demo');
     });
@@ -150,7 +186,10 @@ describe('EnvironmentRepository', () => {
       );
       const repo = new EnvironmentRepository(client);
       const err = (await repo
-        .createTeamEnvironment('team1', { name: 'e', variables: [{ key: 'K', value: 't34m-s3cret', secret: true }] })
+        .createTeamEnvironment('team1', {
+          name: 'e',
+          variables: [{ key: 'K', value: 't34m-s3cret', secret: true }],
+        })
         .catch((e) => e)) as Error;
       expect(err.message).not.toContain('t34m-s3cret');
       expect(err.message).toContain('<redacted>');
@@ -161,7 +200,14 @@ describe('EnvironmentRepository', () => {
     describe('getUserEnvironments', () => {
       it('should fetch via me { environments } on SH', async () => {
         const mockEnvironments = [
-          { id: 'env1', name: 'Development', variables: JSON.stringify([{ key: 'API_URL', value: 'https://dev.example.com', secret: false }]), isGlobal: false },
+          {
+            id: 'env1',
+            name: 'Development',
+            variables: JSON.stringify([
+              { key: 'API_URL', value: 'https://dev.example.com', secret: false },
+            ]),
+            isGlobal: false,
+          },
         ];
         vi.mocked(mockClient.graphql).mockResolvedValue({ me: { environments: mockEnvironments } });
 
@@ -196,7 +242,12 @@ describe('EnvironmentRepository', () => {
           name: 'Staging',
           variables: [{ key: 'API_URL', value: 'https://staging.example.com' }],
         };
-        const mockResult = { id: 'new-env', name: 'Staging', variables: JSON.stringify(input.variables), isGlobal: false };
+        const mockResult = {
+          id: 'new-env',
+          name: 'Staging',
+          variables: JSON.stringify(input.variables),
+          isGlobal: false,
+        };
         vi.mocked(mockClient.graphql).mockResolvedValue({ createUserEnvironment: mockResult });
 
         const result = await repository.createUserEnvironment(input);
@@ -225,10 +276,21 @@ describe('EnvironmentRepository', () => {
         // variables through unchanged.
         const existing = [{ key: 'API_KEY', value: 'preserved', secret: true }];
         const existingVarsStr = JSON.stringify(existing);
-        const mockResult = { id: 'env1', name: 'New Name', variables: existingVarsStr, isGlobal: false };
+        const mockResult = {
+          id: 'env1',
+          name: 'New Name',
+          variables: existingVarsStr,
+          isGlobal: false,
+        };
 
         vi.mocked(mockClient.graphql)
-          .mockResolvedValueOnce({ me: { environments: [{ id: 'env1', name: 'Old Name', variables: existingVarsStr, isGlobal: false }] } })
+          .mockResolvedValueOnce({
+            me: {
+              environments: [
+                { id: 'env1', name: 'Old Name', variables: existingVarsStr, isGlobal: false },
+              ],
+            },
+          })
           .mockResolvedValueOnce({ updateUserEnvironment: mockResult });
 
         const result = await repository.updateUserEnvironment('env1', { name: 'New Name' });
@@ -242,10 +304,19 @@ describe('EnvironmentRepository', () => {
       it('should fetch current name when only variables are provided', async () => {
         const newVariables = [{ key: 'NEW_VAR', value: 'new-value', secret: false }];
         const newVarsStr = JSON.stringify(newVariables);
-        const mockResult = { id: 'env1', name: 'Development', variables: newVarsStr, isGlobal: false };
+        const mockResult = {
+          id: 'env1',
+          name: 'Development',
+          variables: newVarsStr,
+          isGlobal: false,
+        };
 
         vi.mocked(mockClient.graphql)
-          .mockResolvedValueOnce({ me: { environments: [{ id: 'env1', name: 'Development', variables: '[]', isGlobal: false }] } })
+          .mockResolvedValueOnce({
+            me: {
+              environments: [{ id: 'env1', name: 'Development', variables: '[]', isGlobal: false }],
+            },
+          })
           .mockResolvedValueOnce({ updateUserEnvironment: mockResult });
 
         const result = await repository.updateUserEnvironment('env1', { variables: newVariables });
@@ -262,16 +333,19 @@ describe('EnvironmentRepository', () => {
         const mockResult = { id: 'env1', name: 'New Name', variables: newVarsStr, isGlobal: false };
         vi.mocked(mockClient.graphql).mockResolvedValueOnce({ updateUserEnvironment: mockResult });
 
-        const result = await repository.updateUserEnvironment('env1', { name: 'New Name', variables: newVariables });
+        const result = await repository.updateUserEnvironment('env1', {
+          name: 'New Name',
+          variables: newVariables,
+        });
         expect(result.name).toBe('New Name');
         expect(mockClient.graphql).toHaveBeenCalledTimes(1);
       });
 
       it('should throw when the target environment does not exist', async () => {
         vi.mocked(mockClient.graphql).mockResolvedValueOnce({ me: { environments: [] } });
-        await expect(
-          repository.updateUserEnvironment('missing', { name: 'X' })
-        ).rejects.toThrow(/not found/);
+        await expect(repository.updateUserEnvironment('missing', { name: 'X' })).rejects.toThrow(
+          /not found/
+        );
       });
     });
 
@@ -296,10 +370,7 @@ describe('EnvironmentRepository', () => {
 
         const result = await repository.getTeamEnvironments('team1');
         expect(result).toEqual(mockEnvs);
-        expect(mockClient.graphql).toHaveBeenCalledWith(
-          expect.any(String),
-          { teamID: 'team1' }
-        );
+        expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { teamID: 'team1' });
       });
 
       it('should return empty array when team has no environments', async () => {
@@ -335,8 +406,16 @@ describe('EnvironmentRepository', () => {
 
     describe('createTeamEnvironment', () => {
       it('should create team environment', async () => {
-        const input = { name: 'Team Staging', variables: [{ key: 'TEAM_API', value: 'https://team.example.com' }] };
-        const mockResult = { id: 'new-team-env', name: 'Team Staging', teamID: 'team1', variables: JSON.stringify(input.variables) };
+        const input = {
+          name: 'Team Staging',
+          variables: [{ key: 'TEAM_API', value: 'https://team.example.com' }],
+        };
+        const mockResult = {
+          id: 'new-team-env',
+          name: 'Team Staging',
+          teamID: 'team1',
+          variables: JSON.stringify(input.variables),
+        };
         vi.mocked(mockClient.graphql).mockResolvedValue({ createTeamEnvironment: mockResult });
 
         const result = await repository.createTeamEnvironment('team1', input);
@@ -351,10 +430,18 @@ describe('EnvironmentRepository', () => {
     describe('updateTeamEnvironment', () => {
       it('should pass both fields straight through when both are provided', async () => {
         const newVariables = [{ key: 'V', value: '1', secret: false }];
-        const mockResult = { id: 'team-env1', name: 'Updated', teamID: 'team1', variables: JSON.stringify(newVariables) };
+        const mockResult = {
+          id: 'team-env1',
+          name: 'Updated',
+          teamID: 'team1',
+          variables: JSON.stringify(newVariables),
+        };
         vi.mocked(mockClient.graphql).mockResolvedValue({ updateTeamEnvironment: mockResult });
 
-        const result = await repository.updateTeamEnvironment('team-env1', { name: 'Updated', variables: newVariables });
+        const result = await repository.updateTeamEnvironment('team-env1', {
+          name: 'Updated',
+          variables: newVariables,
+        });
         expect(result.name).toBe('Updated');
         expect(mockClient.graphql).toHaveBeenCalledTimes(1);
       });
@@ -362,9 +449,22 @@ describe('EnvironmentRepository', () => {
       it('should fetch current values when only one field is provided and defaultTeamId is set', async () => {
         // Regression test: previously, omitting a field could send '' / '[]'
         // as a default and wipe the unspecified field. Now we fetch and merge.
-        vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: 'selfhost', defaultTeamId: 'team1' } as unknown as Config);
-        const existing = { id: 'team-env1', name: 'Existing', teamID: 'team1', variables: JSON.stringify([{ key: 'KEEP', value: 'me', secret: false }]) };
-        const mockResult = { id: 'team-env1', name: 'Renamed', teamID: 'team1', variables: existing.variables };
+        vi.mocked(mockClient.getConfig).mockReturnValue({
+          apiType: 'selfhost',
+          defaultTeamId: 'team1',
+        } as unknown as Config);
+        const existing = {
+          id: 'team-env1',
+          name: 'Existing',
+          teamID: 'team1',
+          variables: JSON.stringify([{ key: 'KEEP', value: 'me', secret: false }]),
+        };
+        const mockResult = {
+          id: 'team-env1',
+          name: 'Renamed',
+          teamID: 'team1',
+          variables: existing.variables,
+        };
 
         vi.mocked(mockClient.graphql)
           .mockResolvedValueOnce({ team: { teamEnvironments: [existing] } })
@@ -374,14 +474,20 @@ describe('EnvironmentRepository', () => {
         expect(result.name).toBe('Renamed');
         expect(mockClient.graphql).toHaveBeenLastCalledWith(
           expect.any(String),
-          expect.objectContaining({ id: 'team-env1', name: 'Renamed', variables: existing.variables })
+          expect.objectContaining({
+            id: 'team-env1',
+            name: 'Renamed',
+            variables: existing.variables,
+          })
         );
       });
 
       it('should refuse partial update when defaultTeamId is not configured', async () => {
         // Without defaultTeamId we cannot fetch the current env to merge,
         // and silently defaulting would wipe data. Refuse instead.
-        vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: 'selfhost' } as unknown as Config);
+        vi.mocked(mockClient.getConfig).mockReturnValue({
+          apiType: 'selfhost',
+        } as unknown as Config);
         await expect(
           repository.updateTeamEnvironment('team-env1', { name: 'Renamed' })
         ).rejects.toThrow(/HOPPSCOTCH_DEFAULT_TEAM_ID/);
@@ -402,7 +508,12 @@ describe('EnvironmentRepository', () => {
         { key: 'PUBLIC', value: 'visible', secret: false },
         { key: 'SECRET', value: 'hidden', secret: true },
       ];
-      const mockEnv = { id: 'env1', name: 'Test', variables: JSON.stringify(variables), isGlobal: false };
+      const mockEnv = {
+        id: 'env1',
+        name: 'Test',
+        variables: JSON.stringify(variables),
+        isGlobal: false,
+      };
       vi.mocked(mockClient.graphql).mockResolvedValue({ createUserEnvironment: mockEnv });
 
       const result = await repository.createUserEnvironment({ name: 'Test', variables });

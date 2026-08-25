@@ -159,16 +159,13 @@ describe('TeamRepository', () => {
       expect(result.id).toBe('team1');
       expect(result.name).toBe('Engineering Team');
       expect(result.teamMembers).toHaveLength(2);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.stringContaining('team'),
-        { teamID: 'team1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.stringContaining('team'), {
+        teamID: 'team1',
+      });
     });
 
     it('should throw error when team not found', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('Team not found')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('Team not found'));
 
       await expect(repository.getTeam('invalid')).rejects.toThrow('Team not found');
     });
@@ -245,15 +242,11 @@ describe('TeamRepository', () => {
         new Error('GraphQL execution error: Field "team" not found')
       );
 
-      await expect(repository.getTeam('team1')).rejects.toThrow(
-        'GraphQL execution error'
-      );
+      await expect(repository.getTeam('team1')).rejects.toThrow('GraphQL execution error');
     });
 
     it('should handle network errors when listing teams', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('Network error: ETIMEDOUT')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('Network error: ETIMEDOUT'));
 
       await expect(repository.listTeams()).rejects.toThrow('Network error');
     });
@@ -271,9 +264,7 @@ describe('TeamRepository', () => {
         new Error('Forbidden: You do not have access to this team')
       );
 
-      await expect(repository.getTeam('restricted-team')).rejects.toThrow(
-        'Forbidden'
-      );
+      await expect(repository.getTeam('restricted-team')).rejects.toThrow('Forbidden');
     });
   });
 
@@ -378,7 +369,7 @@ describe('TeamRepository', () => {
       const mockTeams = [
         {
           id: 'team1',
-          name: "Team with 'quotes' and \"double quotes\"",
+          name: 'Team with \'quotes\' and "double quotes"',
           myRole: 'OWNER',
           teamMembers: [],
         },
@@ -396,7 +387,7 @@ describe('TeamRepository', () => {
 
       const result = await repository.listTeams();
 
-      expect(result[0].name).toBe("Team with 'quotes' and \"double quotes\"");
+      expect(result[0].name).toBe('Team with \'quotes\' and "double quotes"');
       expect(result[1].name).toBe('Team with émojis 🚀 and ünïcödé');
     });
   });
@@ -450,16 +441,11 @@ describe('TeamRepository', () => {
 
       expect(result).toEqual(mockTeam);
       expect(result.name).toBe('New Team');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { name: 'New Team' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { name: 'New Team' });
     });
 
     it('should propagate errors on failure', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/name_invalid')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/name_invalid'));
 
       await expect(repository.createTeam('')).rejects.toThrow('team/name_invalid');
     });
@@ -477,16 +463,14 @@ describe('TeamRepository', () => {
 
       expect(result).toEqual(mockTeam);
       expect(result.name).toBe('Renamed Team');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1', newName: 'Renamed Team' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        teamID: 'team1',
+        newName: 'Renamed Team',
+      });
     });
 
     it('should throw when team not found', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/not_found')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/not_found'));
 
       await expect(repository.renameTeam('bad-id', 'Name')).rejects.toThrow('team/not_found');
     });
@@ -501,16 +485,11 @@ describe('TeamRepository', () => {
       const result = await repository.deleteTeam('team1');
 
       expect(result).toBe(true);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { teamID: 'team1' });
     });
 
     it('should throw when team not found', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/not_found')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/not_found'));
 
       await expect(repository.deleteTeam('bad-id')).rejects.toThrow('team/not_found');
     });
@@ -525,16 +504,11 @@ describe('TeamRepository', () => {
       const result = await repository.leaveTeam('team1');
 
       expect(result).toBe(true);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { teamID: 'team1' });
     });
 
     it('should throw when user is sole owner', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/only_one_owner')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/only_one_owner'));
 
       await expect(repository.leaveTeam('team1')).rejects.toThrow('team/only_one_owner');
     });
@@ -558,16 +532,15 @@ describe('TeamRepository', () => {
       expect(result).toEqual(mockInvitation);
       expect(result.inviteeEmail).toBe('new@example.com');
       expect(result.inviteeRole).toBe('EDITOR');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1', inviteeEmail: 'new@example.com', inviteeRole: 'EDITOR' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        teamID: 'team1',
+        inviteeEmail: 'new@example.com',
+        inviteeRole: 'EDITOR',
+      });
     });
 
     it('should throw on duplicate invite', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team_invite/member_has_invite')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team_invite/member_has_invite'));
 
       await expect(
         repository.inviteTeamMember('team1', 'existing@example.com', 'VIEWER')
@@ -584,18 +557,15 @@ describe('TeamRepository', () => {
       const result = await repository.revokeTeamInvitation('invite1');
 
       expect(result).toBe(true);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { inviteID: 'invite1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { inviteID: 'invite1' });
     });
 
     it('should throw when invitation not found', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team_invite/not_found')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team_invite/not_found'));
 
-      await expect(repository.revokeTeamInvitation('bad-id')).rejects.toThrow('team_invite/not_found');
+      await expect(repository.revokeTeamInvitation('bad-id')).rejects.toThrow(
+        'team_invite/not_found'
+      );
     });
   });
 
@@ -608,18 +578,18 @@ describe('TeamRepository', () => {
       const result = await repository.removeTeamMember('team1', 'user1');
 
       expect(result).toBe(true);
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1', userUid: 'user1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        teamID: 'team1',
+        userUid: 'user1',
+      });
     });
 
     it('should throw when member not found', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/member_not_found')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/member_not_found'));
 
-      await expect(repository.removeTeamMember('team1', 'bad-uid')).rejects.toThrow('team/member_not_found');
+      await expect(repository.removeTeamMember('team1', 'bad-uid')).rejects.toThrow(
+        'team/member_not_found'
+      );
     });
   });
 
@@ -644,20 +614,19 @@ describe('TeamRepository', () => {
       expect(result).toEqual(mockMember);
       expect(result.role).toBe('EDITOR');
       expect(result.user.uid).toBe('user1');
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        { teamID: 'team1', userUid: 'user1', newRole: 'EDITOR' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+        teamID: 'team1',
+        userUid: 'user1',
+        newRole: 'EDITOR',
+      });
     });
 
     it('should throw on invalid role', async () => {
-      vi.mocked(mockClient.graphql).mockRejectedValue(
-        new Error('team/invalid_role')
-      );
+      vi.mocked(mockClient.graphql).mockRejectedValue(new Error('team/invalid_role'));
 
-      await expect(
-        repository.updateTeamMemberRole('team1', 'user1', 'INVALID')
-      ).rejects.toThrow('team/invalid_role');
+      await expect(repository.updateTeamMemberRole('team1', 'user1', 'INVALID')).rejects.toThrow(
+        'team/invalid_role'
+      );
     });
   });
 
@@ -672,8 +641,18 @@ describe('TeamRepository', () => {
       role: 'EDITOR' as const,
       user: { uid, displayName: uid, email: `${uid}@x.com` },
     });
-    const soleOwnerTeam = { id: 'team1', name: 'T', myRole: 'OWNER', teamMembers: [owner('owner1'), editor('ed1')] };
-    const twoOwnerTeam = { id: 'team1', name: 'T', myRole: 'OWNER', teamMembers: [owner('owner1'), owner('owner2')] };
+    const soleOwnerTeam = {
+      id: 'team1',
+      name: 'T',
+      myRole: 'OWNER',
+      teamMembers: [owner('owner1'), editor('ed1')],
+    };
+    const twoOwnerTeam = {
+      id: 'team1',
+      name: 'T',
+      myRole: 'OWNER',
+      teamMembers: [owner('owner1'), owner('owner2')],
+    };
 
     it('refuses to leave when the caller is the sole OWNER (mutation not sent)', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValueOnce({ team: soleOwnerTeam });
@@ -689,7 +668,9 @@ describe('TeamRepository', () => {
 
     it('refuses to demote the sole OWNER (mutation not sent)', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValueOnce({ team: soleOwnerTeam });
-      await expect(repository.updateTeamMemberRole('team1', 'owner1', 'EDITOR')).rejects.toThrow(/only OWNER/);
+      await expect(repository.updateTeamMemberRole('team1', 'owner1', 'EDITOR')).rejects.toThrow(
+        /only OWNER/
+      );
       expect(mockClient.graphql).toHaveBeenCalledTimes(1);
     });
 

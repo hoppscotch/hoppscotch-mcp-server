@@ -197,7 +197,10 @@ function identityConflicts(subject: string | null): boolean {
  * adopted. Fails CLOSED: if the stored token proved A but the refresh yields an
  * unidentifiable (null-subject) token, that cannot prove it is still A, so refuse.
  */
-function refreshIdentityConflicts(refreshedSubject: string | null, storedSubject: string | null): boolean {
+function refreshIdentityConflicts(
+  refreshedSubject: string | null,
+  storedSubject: string | null
+): boolean {
   return (
     identityConflicts(refreshedSubject) ||
     (storedSubject !== null && refreshedSubject !== storedSubject)
@@ -268,7 +271,12 @@ function memCacheValid(apiUrl: string): boolean {
   );
 }
 
-function setMemCache(token: string, expiresAt: number, apiUrl: string, subject: string | null): void {
+function setMemCache(
+  token: string,
+  expiresAt: number,
+  apiUrl: string,
+  subject: string | null
+): void {
   memCache = { token, expiresAt, apiUrl, subject };
   pinSessionIdentity(subject);
 }
@@ -333,9 +341,9 @@ export async function getValidToken(
       patWarningShown = true;
       process.stderr.write(
         '[MCP] Warning: the configured access token looks like a Personal Access Token (pat-...).\n' +
-        '[MCP] PATs only work with Hoppscotch REST API endpoints, not GraphQL queries.\n' +
-        '[MCP] This will likely cause auth/fail errors. Use device-login instead,\n' +
-        '[MCP] or copy the JWT from ~/.config/hoppscotch-mcp/auth.json.\n'
+          '[MCP] PATs only work with Hoppscotch REST API endpoints, not GraphQL queries.\n' +
+          '[MCP] This will likely cause auth/fail errors. Use device-login instead,\n' +
+          '[MCP] or copy the JWT from ~/.config/hoppscotch-mcp/auth.json.\n'
       );
     }
     return token;
@@ -376,14 +384,22 @@ export async function getValidToken(
         const r = await refreshFirebaseToken(stored.firebaseRefreshToken);
         refreshed = { idToken: r.idToken, refreshToken: r.refreshToken };
       } catch (err) {
-        process.stderr.write(`[MCP] Firebase token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`);
+        process.stderr.write(
+          `[MCP] Firebase token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`
+        );
       }
       if (refreshed) {
         const refreshedSubject = jwtSubject(refreshed.idToken);
         if (refreshIdentityConflicts(refreshedSubject, storedSubject)) throw identitySwitchError();
         const expiresAt = jwtExpiresAt(refreshed.idToken);
         const subject = refreshedSubject ?? storedSubject;
-        storeAuth({ ...stored, accessToken: refreshed.idToken, firebaseRefreshToken: refreshed.refreshToken, expiresAt, subject });
+        storeAuth({
+          ...stored,
+          accessToken: refreshed.idToken,
+          firebaseRefreshToken: refreshed.refreshToken,
+          expiresAt,
+          subject,
+        });
         setMemCache(refreshed.idToken, expiresAt, apiUrl, subject);
         return refreshed.idToken;
       }
@@ -393,7 +409,9 @@ export async function getValidToken(
       try {
         refreshed = await refreshAccessToken(apiUrl, stored.refreshToken);
       } catch (err) {
-        process.stderr.write(`[MCP] Token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`);
+        process.stderr.write(
+          `[MCP] Token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`
+        );
       }
       if (refreshed) {
         const refreshedSubject = jwtSubject(refreshed.accessToken);
@@ -404,7 +422,13 @@ export async function getValidToken(
         if (refreshIdentityConflicts(refreshedSubject, storedSubject)) throw identitySwitchError();
         const expiresAt = jwtExpiresAt(refreshed.accessToken);
         const subject = refreshedSubject ?? storedSubject;
-        storeAuth({ ...stored, accessToken: refreshed.accessToken, refreshToken: refreshed.refreshToken, expiresAt, subject });
+        storeAuth({
+          ...stored,
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          expiresAt,
+          subject,
+        });
         setMemCache(refreshed.accessToken, expiresAt, apiUrl, subject);
         return refreshed.accessToken;
       }
@@ -420,12 +444,14 @@ export async function getValidToken(
   if (!pendingLogin) {
     const urlSink: { url: string | null } = { url: null };
     const controller = new AbortController();
-    const promise = runLoginFlow(serverUrl, apiUrl, apiType, urlSink, controller.signal).finally(() => {
-      // Identity-checked: only clear if WE are still the active flow. A flow that
-      // was abandoned (e.g. by reauthenticate starting a fresh one) must not null
-      // out the newer pendingLogin when it finally settles.
-      if (pendingLogin?.promise === promise) pendingLogin = null;
-    });
+    const promise = runLoginFlow(serverUrl, apiUrl, apiType, urlSink, controller.signal).finally(
+      () => {
+        // Identity-checked: only clear if WE are still the active flow. A flow that
+        // was abandoned (e.g. by reauthenticate starting a fresh one) must not null
+        // out the newer pendingLogin when it finally settles.
+        if (pendingLogin?.promise === promise) pendingLogin = null;
+      }
+    );
     pendingLogin = { promise, urlSink, abort: () => controller.abort() };
   }
 
@@ -511,8 +537,8 @@ async function runLoginFlow(
     return Promise.reject(
       new Error(
         'Browser device-login is unavailable (headless/CI/SSH environment detected). ' +
-        'Set HOPPSCOTCH_ACCESS_TOKEN to a Hoppscotch JWT for non-interactive auth, ' +
-        'or set HOPPSCOTCH_FORCE_BROWSER_LOGIN=true if a browser is actually available here.'
+          'Set HOPPSCOTCH_ACCESS_TOKEN to a Hoppscotch JWT for non-interactive auth, ' +
+          'or set HOPPSCOTCH_FORCE_BROWSER_LOGIN=true if a browser is actually available here.'
       )
     );
   }
@@ -535,7 +561,11 @@ async function runLoginFlow(
     const servers: http.Server[] = [];
     const closeAllServers = () => {
       for (const s of servers) {
-        try { s.close(); } catch { /* already closed */ }
+        try {
+          s.close();
+        } catch {
+          /* already closed */
+        }
       }
     };
 
@@ -649,37 +679,39 @@ async function runLoginFlow(
         (apiType === 'cloud'
           ? exchangeFirebaseCustomToken(accessToken)
           : Promise.resolve({ idToken: accessToken, refreshToken: refreshToken ?? null })
-        ).then(({ idToken, refreshToken: fbRefreshToken }) => {
-          // The callback already flipped `settled`, so an abort that lands while
-          // the (async) Cloud token exchange is in flight can't go through
-          // settleOnce, where it would be a silent no-op. Re-check the signal HERE so
-          // an explicit reauthenticate() during the exchange window can't persist
-          // or cache this now-stale token (the user asked to switch identities).
-          if (signal.aborted) {
-            reject(new Error('Login aborted: a new authentication was started.'));
-            return;
-          }
-          const expiresAt = jwtExpiresAt(idToken);
-          // An explicit browser sign-in (re)pins the active identity: the user
-          // actively chose this account, so it becomes the session identity even
-          // if a different one was pinned before (a passive disk switch would be
-          // refused instead, see getValidToken).
-          const subject = jwtSubject(idToken);
-          sessionSubject = subject;
-          storeAuth({
-            accessToken: idToken,
-            refreshToken: apiType === 'cloud' ? null : (refreshToken ?? null),
-            firebaseRefreshToken: apiType === 'cloud' ? (fbRefreshToken ?? undefined) : undefined,
-            apiUrl,
-            apiType,
-            expiresAt,
-            subject,
+        )
+          .then(({ idToken, refreshToken: fbRefreshToken }) => {
+            // The callback already flipped `settled`, so an abort that lands while
+            // the (async) Cloud token exchange is in flight can't go through
+            // settleOnce, where it would be a silent no-op. Re-check the signal HERE so
+            // an explicit reauthenticate() during the exchange window can't persist
+            // or cache this now-stale token (the user asked to switch identities).
+            if (signal.aborted) {
+              reject(new Error('Login aborted: a new authentication was started.'));
+              return;
+            }
+            const expiresAt = jwtExpiresAt(idToken);
+            // An explicit browser sign-in (re)pins the active identity: the user
+            // actively chose this account, so it becomes the session identity even
+            // if a different one was pinned before (a passive disk switch would be
+            // refused instead, see getValidToken).
+            const subject = jwtSubject(idToken);
+            sessionSubject = subject;
+            storeAuth({
+              accessToken: idToken,
+              refreshToken: apiType === 'cloud' ? null : (refreshToken ?? null),
+              firebaseRefreshToken: apiType === 'cloud' ? (fbRefreshToken ?? undefined) : undefined,
+              apiUrl,
+              apiType,
+              expiresAt,
+              subject,
+            });
+            setMemCache(idToken, expiresAt, apiUrl, subject);
+            resolve(idToken);
+          })
+          .catch((err: Error) => {
+            reject(new Error(`Login failed: could not exchange token: ${err.message}`));
           });
-          setMemCache(idToken, expiresAt, apiUrl, subject);
-          resolve(idToken);
-        }).catch((err: Error) => {
-          reject(new Error(`Login failed: could not exchange token: ${err.message}`));
-        });
       });
     };
 
@@ -766,12 +798,14 @@ async function runLoginFlow(
         settleOnce(() => {
           clearTimeout(callbackTimer);
           closeAllServers();
-          reject(new Error(
-            `Auth callback server could not bind to [::1]:${port} (${reason}). ` +
-            'Refusing to proceed because a callback from an IPv6-first browser ' +
-            'would not reach this process and may leak the access token to ' +
-            'another listener. Check for a conflicting process or retry.'
-          ));
+          reject(
+            new Error(
+              `Auth callback server could not bind to [::1]:${port} (${reason}). ` +
+                'Refusing to proceed because a callback from an IPv6-first browser ' +
+                'would not reach this process and may leak the access token to ' +
+                'another listener. Check for a conflicting process or retry.'
+            )
+          );
         });
       };
 
@@ -779,7 +813,9 @@ async function runLoginFlow(
         const code = (err as NodeJS.ErrnoException).code;
         // IPv6 loopback genuinely unavailable at kernel level → safe IPv4-only.
         if (code === 'EADDRNOTAVAIL' || code === 'EAFNOSUPPORT') {
-          process.stderr.write(`[MCP] IPv6 loopback unavailable (${code}); continuing with IPv4-only listener.\n`);
+          process.stderr.write(
+            `[MCP] IPv6 loopback unavailable (${code}); continuing with IPv4-only listener.\n`
+          );
           proceed(false);
           return;
         }
@@ -816,7 +852,9 @@ async function runLoginFlow(
       // Publish the URL so a caller whose prompt timeout fires can surface it in
       // the tool result, and push it as a live progress notification (QoL).
       urlSink.url = loginUrl;
-      reportAuthProgress(`Hoppscotch sign-in required — open this URL in a browser:\n  ${loginUrl}`);
+      reportAuthProgress(
+        `Hoppscotch sign-in required — open this URL in a browser:\n  ${loginUrl}`
+      );
 
       process.stderr.write('\n┌─────────────────────────────────────────┐\n');
       process.stderr.write('│  Hoppscotch MCP: Authentication required │\n');
@@ -961,7 +999,11 @@ function storeAuth(auth: StoredAuth): void {
     // under a looser umask; failures (Windows, system-owned paths) are
     // non-fatal so the write itself still proceeds.
     mkdirSync(AUTH_DIR, { recursive: true, mode: 0o700 });
-    try { chmodSync(AUTH_DIR, 0o700); } catch { /* non-POSIX or EPERM */ }
+    try {
+      chmodSync(AUTH_DIR, 0o700);
+    } catch {
+      /* non-POSIX or EPERM */
+    }
     writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2), {
       mode: 0o600,
       flag: 'w',
@@ -969,7 +1011,11 @@ function storeAuth(auth: StoredAuth): void {
     // writeFileSync's `mode` only applies when the file is CREATED; a
     // pre-existing auth.json under a looser mode would keep it. Re-apply so an
     // older/loose file is tightened to owner-only on every write.
-    try { chmodSync(AUTH_FILE, 0o600); } catch { /* non-POSIX or EPERM */ }
+    try {
+      chmodSync(AUTH_FILE, 0o600);
+    } catch {
+      /* non-POSIX or EPERM */
+    }
   } catch (err) {
     // Non-fatal: the token won't persist across sessions but login still works.
     process.stderr.write(`Warning: could not persist auth token: ${err}\n`);

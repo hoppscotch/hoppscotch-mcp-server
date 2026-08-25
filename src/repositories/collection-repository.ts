@@ -239,9 +239,7 @@ export class CollectionRepository {
       ? queries.EXPORT_USER_COLLECTION_JSON
       : queries.EXPORT_USER_COLLECTIONS_JSON;
 
-    const variables = collectionId
-      ? { collectionID: collectionId }
-      : { collectionType: type };
+    const variables = collectionId ? { collectionID: collectionId } : { collectionType: type };
 
     const result = await this.client.graphql<{
       exportUserCollectionsToJSON?: { exportedCollection: string; collectionType: string };
@@ -486,5 +484,4 @@ export class CollectionRepository {
 
     return this.normalizeTeamCollection(result.moveCollection);
   }
-
 }

@@ -81,10 +81,12 @@ function log(label: string, text: string) {
 
 // List team collection IDs (for cleanup-by-diff after import/duplicate operations).
 async function teamCollectionIds(): Promise<string[]> {
-  const text = textOf(await client.callTool({
-    name: 'list_team_collections',
-    arguments: { teamId: TEAM_ID },
-  }));
+  const text = textOf(
+    await client.callTool({
+      name: 'list_team_collections',
+      arguments: { teamId: TEAM_ID },
+    })
+  );
   try {
     return jsonOf<Array<{ id: string }>>(text).map((c) => c.id);
   } catch {
@@ -95,10 +97,12 @@ async function teamCollectionIds(): Promise<string[]> {
 // List user collection IDs (not supported on Cloud as of now; returns [] there).
 async function userCollectionIds(): Promise<string[]> {
   if (IS_CLOUD) return [];
-  const text = textOf(await client.callTool({
-    name: 'list_user_collections',
-    arguments: {},
-  }));
+  const text = textOf(
+    await client.callTool({
+      name: 'list_user_collections',
+      arguments: {},
+    })
+  );
   try {
     return jsonOf<Array<{ id: string }>>(text).map((c) => c.id);
   } catch {
@@ -111,8 +115,11 @@ async function cleanupOrphanTeamCollections(before: string[], after: string[]) {
   const beforeSet = new Set(before);
   for (const id of after) {
     if (!beforeSet.has(id)) {
-      try { await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: id } }); }
-      catch (e) { console.error('[e2e] cleanup failed:', e); }
+      try {
+        await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: id } });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
     }
   }
 }
@@ -121,8 +128,14 @@ async function cleanupOrphanUserCollections(before: string[], after: string[]) {
   const beforeSet = new Set(before);
   for (const id of after) {
     if (!beforeSet.has(id)) {
-      try { await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: id, type: 'REST' } }); }
-      catch (e) { console.error('[e2e] cleanup failed:', e); }
+      try {
+        await client.callTool({
+          name: 'delete_user_collection',
+          arguments: { collectionId: id, type: 'REST' },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
     }
   }
 }
@@ -131,7 +144,10 @@ async function cleanupOrphanUserCollections(before: string[], after: string[]) {
 // Pass `'any'` to accept any type without checking the value itself.
 function assertShape(
   obj: Record<string, unknown>,
-  shape: Record<string, 'string' | 'number' | 'boolean' | 'object' | 'any' | 'string|null' | 'object|null'>
+  shape: Record<
+    string,
+    'string' | 'number' | 'boolean' | 'object' | 'any' | 'string|null' | 'object|null'
+  >
 ) {
   for (const [key, expected] of Object.entries(shape)) {
     expect(obj, `expected key "${key}" to exist`).toHaveProperty(key);
@@ -176,22 +192,26 @@ beforeAll(async () => {
 
   // Self-provision resources
   if (TEAM_ID) {
-    const colText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-fixture-collection' },
-    }));
+    const colText = textOf(
+      await client.callTool({
+        name: 'create_team_collection',
+        arguments: { teamId: TEAM_ID, title: 'e2e-fixture-collection' },
+      })
+    );
     const col = jsonOf<{ id: string }>(colText);
     TEAM_COLLECTION_ID = col.id;
     provisioned.teamCollectionId = col.id;
 
-    const envText = textOf(await client.callTool({
-      name: 'create_team_environment',
-      arguments: {
-        teamId: TEAM_ID,
-        name: 'e2e-fixture-env',
-        variables: [{ key: 'BASE_URL', value: 'https://example.com' }],
-      },
-    }));
+    const envText = textOf(
+      await client.callTool({
+        name: 'create_team_environment',
+        arguments: {
+          teamId: TEAM_ID,
+          name: 'e2e-fixture-env',
+          variables: [{ key: 'BASE_URL', value: 'https://example.com' }],
+        },
+      })
+    );
     const env = jsonOf<{ id: string }>(envText);
     TEAM_ENVIRONMENT_ID = env.id;
     provisioned.teamEnvironmentId = env.id;
@@ -200,18 +220,22 @@ beforeAll(async () => {
   // Personal collections (not supported on Cloud as of now)
   if (!IS_CLOUD) {
     try {
-      const restText = textOf(await client.callTool({
-        name: 'create_user_collection',
-        arguments: { title: 'e2e-fixture-rest', type: 'REST' },
-      }));
+      const restText = textOf(
+        await client.callTool({
+          name: 'create_user_collection',
+          arguments: { title: 'e2e-fixture-rest', type: 'REST' },
+        })
+      );
       const restCol = jsonOf<{ id: string }>(restText);
       PERSONAL_REST_COLLECTION_ID = restCol.id;
       provisioned.personalRestCollectionId = restCol.id;
 
-      const gqlText = textOf(await client.callTool({
-        name: 'create_user_collection',
-        arguments: { title: 'e2e-fixture-gql', type: 'GQL' },
-      }));
+      const gqlText = textOf(
+        await client.callTool({
+          name: 'create_user_collection',
+          arguments: { title: 'e2e-fixture-gql', type: 'GQL' },
+        })
+      );
       const gqlCol = jsonOf<{ id: string }>(gqlText);
       PERSONAL_GQL_COLLECTION_ID = gqlCol.id;
       provisioned.personalGqlCollectionId = gqlCol.id;
@@ -220,7 +244,9 @@ beforeAll(async () => {
     }
   }
 
-  console.log(`[e2e] Connected. TEAM_ID=${TEAM_ID} COL=${TEAM_COLLECTION_ID} ENV=${TEAM_ENVIRONMENT_ID} REST=${PERSONAL_REST_COLLECTION_ID} GQL=${PERSONAL_GQL_COLLECTION_ID}`);
+  console.log(
+    `[e2e] Connected. TEAM_ID=${TEAM_ID} COL=${TEAM_COLLECTION_ID} ENV=${TEAM_ENVIRONMENT_ID} REST=${PERSONAL_REST_COLLECTION_ID} GQL=${PERSONAL_GQL_COLLECTION_ID}`
+  );
 }, 120_000);
 
 afterAll(async () => {
@@ -228,14 +254,24 @@ afterAll(async () => {
 
   // Guaranteed cleanup: delete provisioned resources in reverse order
   const cleanup = async (name: string, args: Record<string, unknown>) => {
-    try { await client.callTool({ name, arguments: args }); } catch { /* best-effort */ }
+    try {
+      await client.callTool({ name, arguments: args });
+    } catch {
+      /* best-effort */
+    }
   };
 
   if (provisioned.personalGqlCollectionId) {
-    await cleanup('delete_user_collection', { collectionId: provisioned.personalGqlCollectionId, type: 'GQL' });
+    await cleanup('delete_user_collection', {
+      collectionId: provisioned.personalGqlCollectionId,
+      type: 'GQL',
+    });
   }
   if (provisioned.personalRestCollectionId) {
-    await cleanup('delete_user_collection', { collectionId: provisioned.personalRestCollectionId, type: 'REST' });
+    await cleanup('delete_user_collection', {
+      collectionId: provisioned.personalRestCollectionId,
+      type: 'REST',
+    });
   }
   if (provisioned.teamEnvironmentId) {
     await cleanup('delete_team_environment', { environmentId: provisioned.teamEnvironmentId });
@@ -252,13 +288,17 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 
 function e2e(name: string, fn: () => Promise<void>, timeout = 30_000) {
-  it(name, async () => {
-    if (!ENABLED) {
-      console.log(`[e2e] Skipped (set HOPPSCOTCH_E2E=1 to run): ${name}`);
-      return;
-    }
-    await fn();
-  }, timeout);
+  it(
+    name,
+    async () => {
+      if (!ENABLED) {
+        console.log(`[e2e] Skipped (set HOPPSCOTCH_E2E=1 to run): ${name}`);
+        return;
+      }
+      await fn();
+    },
+    timeout
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -361,8 +401,13 @@ describe('teams', () => {
   });
 
   e2e('get_team_info — returns single team with member details', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
-    const text = textOf(await client.callTool({ name: 'get_team_info', arguments: { teamId: TEAM_ID } }));
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({ name: 'get_team_info', arguments: { teamId: TEAM_ID } })
+    );
     log('get_team_info', text);
 
     expect(text).not.toMatch(/auth\/fail/i);
@@ -387,10 +432,12 @@ describe('teams', () => {
 describe('team management', () => {
   e2e('create_team, rename_team, delete_team — full lifecycle', async () => {
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_team',
-      arguments: { name: 'e2e-test-team' },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_team',
+        arguments: { name: 'e2e-test-team' },
+      })
+    );
     log('create_team', createText);
     expect(createText).toMatch(/Successfully created/);
     const team = jsonOf<{ id: string; name: string; myRole: string }>(createText);
@@ -399,10 +446,12 @@ describe('team management', () => {
 
     try {
       // Rename
-      const renameText = textOf(await client.callTool({
-        name: 'rename_team',
-        arguments: { teamId: team.id, newName: 'e2e-test-team-renamed' },
-      }));
+      const renameText = textOf(
+        await client.callTool({
+          name: 'rename_team',
+          arguments: { teamId: team.id, newName: 'e2e-test-team-renamed' },
+        })
+      );
       log('rename_team', renameText);
       expect(renameText).toMatch(/Successfully renamed/);
       const renamed = jsonOf<{ name: string }>(renameText);
@@ -410,13 +459,17 @@ describe('team management', () => {
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_team',
-          arguments: { teamId: team.id },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_team',
+            arguments: { teamId: team.id },
+          })
+        );
         log('delete_team', deleteText);
         expect(deleteText).toMatch(/Successfully deleted/);
-      } catch (e) { console.error('[e2e] cleanup delete_team failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_team failed:', e);
+      }
     }
   });
 
@@ -432,8 +485,13 @@ describe('team management', () => {
 
 describe('team collections – read', () => {
   e2e('list_team_collections — returns array with collection shape', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
-    const text = textOf(await client.callTool({ name: 'list_team_collections', arguments: { teamId: TEAM_ID } }));
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({ name: 'list_team_collections', arguments: { teamId: TEAM_ID } })
+    );
     log('list_team_collections', text);
 
     expect(text).not.toMatch(/auth\/fail/i);
@@ -453,8 +511,16 @@ describe('team collections – read', () => {
   });
 
   e2e('get_team_collection — returns single collection with matching ID', async () => {
-    if (!TEAM_COLLECTION_ID) { console.log('[e2e] skip: no TEAM_COLLECTION_ID'); return; }
-    const text = textOf(await client.callTool({ name: 'get_team_collection', arguments: { collectionId: TEAM_COLLECTION_ID } }));
+    if (!TEAM_COLLECTION_ID) {
+      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({
+        name: 'get_team_collection',
+        arguments: { collectionId: TEAM_COLLECTION_ID },
+      })
+    );
     log('get_team_collection', text);
 
     expect(text).not.toMatch(/auth\/fail/i);
@@ -471,11 +537,16 @@ describe('team collections – read', () => {
   });
 
   e2e('export_team_collection — returns valid Hoppscotch collection JSON', async () => {
-    if (!TEAM_ID || !TEAM_COLLECTION_ID) { console.log('[e2e] skip: no TEAM_ID/TEAM_COLLECTION_ID'); return; }
-    const text = textOf(await client.callTool({
-      name: 'export_team_collection',
-      arguments: { teamId: TEAM_ID, collectionId: TEAM_COLLECTION_ID },
-    }));
+    if (!TEAM_ID || !TEAM_COLLECTION_ID) {
+      console.log('[e2e] skip: no TEAM_ID/TEAM_COLLECTION_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({
+        name: 'export_team_collection',
+        arguments: { teamId: TEAM_ID, collectionId: TEAM_COLLECTION_ID },
+      })
+    );
     log('export_team_collection', text);
 
     expect(text).not.toMatch(/auth\/fail/i);
@@ -493,11 +564,16 @@ describe('team collections – read', () => {
   });
 
   e2e('search_team_requests — Cloud returns known API limitation error', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
-    const text = textOf(await client.callTool({
-      name: 'search_team_requests',
-      arguments: { query: 'test', teamId: TEAM_ID },
-    }));
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({
+        name: 'search_team_requests',
+        arguments: { query: 'test', teamId: TEAM_ID },
+      })
+    );
     log('search_team_requests', text);
 
     // Cloud returns bug/team/no_require_team_role, a confirmed Cloud API limitation
@@ -515,18 +591,25 @@ describe('team collections – read', () => {
 
 describe('team collections – write', () => {
   e2e('create, update, delete team collection — full lifecycle', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
 
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-test-collection' },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_team_collection',
+        arguments: { teamId: TEAM_ID, title: 'e2e-test-collection' },
+      })
+    );
     log('create_team_collection', createText);
 
     expect(createText).not.toMatch(/auth\/fail/i);
     expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created team collection "e2e-test-collection" \(ID: \S+\)/m);
+    expect(createText).toMatch(
+      /^Successfully created team collection "e2e-test-collection" \(ID: \S+\)/m
+    );
 
     const col = jsonOf<Record<string, unknown>>(createText);
     assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
@@ -535,10 +618,12 @@ describe('team collections – write', () => {
 
     try {
       // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_team_collection',
-        arguments: { collectionId, title: 'e2e-test-collection-updated' },
-      }));
+      const updateText = textOf(
+        await client.callTool({
+          name: 'update_team_collection',
+          arguments: { collectionId, title: 'e2e-test-collection-updated' },
+        })
+      );
       log('update_team_collection', updateText);
       expect(updateText).toMatch(/Successfully updated/);
       const updated = jsonOf<Record<string, unknown>>(updateText);
@@ -547,33 +632,47 @@ describe('team collections – write', () => {
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_team_collection',
-          arguments: { collectionId },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_team_collection',
+            arguments: { collectionId },
+          })
+        );
         log('delete_team_collection', deleteText);
         expect(deleteText).toMatch(/^Successfully deleted team collection \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_team_collection failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_team_collection failed:', e);
+      }
     }
   });
 
   e2e('duplicate_team_collection — returns success message', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
 
     const before = await teamCollectionIds();
 
-    const createText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-dup-source' },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_team_collection',
+        arguments: { teamId: TEAM_ID, title: 'e2e-dup-source' },
+      })
+    );
     const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
-    if (!srcId) { console.log('[e2e] skip dup: create source failed'); return; }
+    if (!srcId) {
+      console.log('[e2e] skip dup: create source failed');
+      return;
+    }
 
     try {
-      const dupText = textOf(await client.callTool({
-        name: 'duplicate_team_collection',
-        arguments: { collectionId: srcId },
-      }));
+      const dupText = textOf(
+        await client.callTool({
+          name: 'duplicate_team_collection',
+          arguments: { collectionId: srcId },
+        })
+      );
       log('duplicate_team_collection', dupText);
       expect(dupText).not.toMatch(/auth\/fail/i);
       expect(dupText).not.toMatch(/^Error:/);
@@ -588,17 +687,22 @@ describe('team collections – write', () => {
   });
 
   e2e('import_team_collection — returns success message', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
 
     const before = await teamCollectionIds();
 
-    const importText = textOf(await client.callTool({
-      name: 'import_team_collection',
-      arguments: {
-        teamId: TEAM_ID,
-        jsonString: JSON.stringify({ name: 'e2e-imported', folders: [], requests: [] }),
-      },
-    }));
+    const importText = textOf(
+      await client.callTool({
+        name: 'import_team_collection',
+        arguments: {
+          teamId: TEAM_ID,
+          jsonString: JSON.stringify({ name: 'e2e-imported', folders: [], requests: [] }),
+        },
+      })
+    );
     log('import_team_collection', importText);
     expect(importText).not.toMatch(/auth\/fail/i);
     expect(importText).toMatchInlineSnapshot(`"Successfully imported team collection(s)"`);
@@ -609,34 +713,57 @@ describe('team collections – write', () => {
   });
 
   e2e('move_team_collection — creates parent + child, moves child to root, cleans up', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
 
     // Create parent
-    const parentText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-move-parent' },
-    }));
+    const parentText = textOf(
+      await client.callTool({
+        name: 'create_team_collection',
+        arguments: { teamId: TEAM_ID, title: 'e2e-move-parent' },
+      })
+    );
     const parentId = jsonOf<{ id: string }>(parentText).id;
 
     // Create child under parent
-    const childText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-move-child', parentCollectionId: parentId },
-    }));
+    const childText = textOf(
+      await client.callTool({
+        name: 'create_team_collection',
+        arguments: { teamId: TEAM_ID, title: 'e2e-move-child', parentCollectionId: parentId },
+      })
+    );
     const childId = jsonOf<{ id: string }>(childText).id;
 
     try {
       // Move child to root
-      const moveText = textOf(await client.callTool({
-        name: 'move_team_collection',
-        arguments: { collectionId: childId },
-      }));
+      const moveText = textOf(
+        await client.callTool({
+          name: 'move_team_collection',
+          arguments: { collectionId: childId },
+        })
+      );
       log('move_team_collection', moveText);
       expect(moveText).toMatch(/Successfully moved/);
     } finally {
       // Cleanup
-      try { await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: childId } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-      try { await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: parentId } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
+      try {
+        await client.callTool({
+          name: 'delete_team_collection',
+          arguments: { collectionId: childId },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
+      try {
+        await client.callTool({
+          name: 'delete_team_collection',
+          arguments: { collectionId: parentId },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
     }
   });
 });
@@ -647,8 +774,13 @@ describe('team collections – write', () => {
 
 describe('team environments', () => {
   e2e('list_team_environments — returns array with env shape', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
-    const text = textOf(await client.callTool({ name: 'list_team_environments', arguments: { teamId: TEAM_ID } }));
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({ name: 'list_team_environments', arguments: { teamId: TEAM_ID } })
+    );
     log('list_team_environments', text);
 
     expect(text).not.toMatch(/auth\/fail/i);
@@ -672,57 +804,76 @@ describe('team environments', () => {
   });
 
   e2e('create, update, delete team environment — full lifecycle', async () => {
-    if (!TEAM_ID) { console.log('[e2e] skip: no TEAM_ID'); return; }
+    if (!TEAM_ID) {
+      console.log('[e2e] skip: no TEAM_ID');
+      return;
+    }
 
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_team_environment',
-      arguments: {
-        teamId: TEAM_ID,
-        name: 'e2e-test-env',
-        variables: [{ key: 'BASE_URL', value: 'https://example.com' }],
-      },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_team_environment',
+        arguments: {
+          teamId: TEAM_ID,
+          name: 'e2e-test-env',
+          variables: [{ key: 'BASE_URL', value: 'https://example.com' }],
+        },
+      })
+    );
     log('create_team_environment', createText);
     expect(createText).not.toMatch(/auth\/fail/i);
-    expect(createText).toMatch(/^Successfully created team environment "e2e-test-env" \(ID: \S+\)/m);
+    expect(createText).toMatch(
+      /^Successfully created team environment "e2e-test-env" \(ID: \S+\)/m
+    );
 
     const created = jsonOf<Record<string, unknown>>(createText);
     assertShape(created, { id: 'string', teamID: 'string', name: 'string', variables: 'string' });
     expect(created.name).toBe('e2e-test-env');
     expect(created.teamID).toBe(TEAM_ID);
-    const createdVars = JSON.parse(created.variables as string) as Array<{ key: string; value: string }>;
+    const createdVars = JSON.parse(created.variables as string) as Array<{
+      key: string;
+      value: string;
+    }>;
     expect(createdVars).toEqual([{ key: 'BASE_URL', value: 'https://example.com' }]);
 
     const envId = created.id as string;
 
     try {
       // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_team_environment',
-        arguments: {
-          environmentId: envId,
-          name: 'e2e-test-env-updated',
-          variables: [{ key: 'BASE_URL', value: 'https://updated.example.com' }],
-        },
-      }));
+      const updateText = textOf(
+        await client.callTool({
+          name: 'update_team_environment',
+          arguments: {
+            environmentId: envId,
+            name: 'e2e-test-env-updated',
+            variables: [{ key: 'BASE_URL', value: 'https://updated.example.com' }],
+          },
+        })
+      );
       log('update_team_environment', updateText);
       expect(updateText).not.toMatch(/auth\/fail/i);
       const updated = jsonOf<Record<string, unknown>>(updateText);
       expect(updated.id).toBe(envId);
       expect(updated.name).toBe('e2e-test-env-updated');
-      const updatedVars = JSON.parse(updated.variables as string) as Array<{ key: string; value: string }>;
+      const updatedVars = JSON.parse(updated.variables as string) as Array<{
+        key: string;
+        value: string;
+      }>;
       expect(updatedVars).toEqual([{ key: 'BASE_URL', value: 'https://updated.example.com' }]);
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_team_environment',
-          arguments: { environmentId: envId },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_team_environment',
+            arguments: { environmentId: envId },
+          })
+        );
         log('delete_team_environment', deleteText);
         expect(deleteText).toMatch(/^Successfully deleted team environment \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_team_environment failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_team_environment failed:', e);
+      }
     }
   });
 });
@@ -735,239 +886,305 @@ describe('team environments', () => {
 // ---------------------------------------------------------------------------
 
 describe('user collections', () => {
-  e2e('list_user_collections (REST) — SH: returns array with collection shape; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({ name: 'list_user_collections', arguments: { type: 'REST' } }));
-    log('list_user_collections (REST)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
+  e2e(
+    'list_user_collections (REST) — SH: returns array with collection shape; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({ name: 'list_user_collections', arguments: { type: 'REST' } })
+      );
+      log('list_user_collections (REST)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    const isShResult = text.startsWith('[');
-    expect(isCloudError || isShResult).toBe(true);
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      const isShResult = text.startsWith('[');
+      expect(isCloudError || isShResult).toBe(true);
 
-    if (isCloudError) {
-      // Cloud: clear, actionable error message
-      expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      // SH: array of user collections, validate the shape of each item
-      const collections = jsonOf<Record<string, unknown>[]>(text);
-      expect(Array.isArray(collections)).toBe(true);
-      for (const col of collections) {
+      if (isCloudError) {
+        // Cloud: clear, actionable error message
+        expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        // SH: array of user collections, validate the shape of each item
+        const collections = jsonOf<Record<string, unknown>[]>(text);
+        expect(Array.isArray(collections)).toBe(true);
+        for (const col of collections) {
+          assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+        }
+      }
+    }
+  );
+
+  e2e(
+    'list_user_collections (GQL) — SH: returns array with collection shape; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({ name: 'list_user_collections', arguments: { type: 'GQL' } })
+      );
+      log('list_user_collections (GQL)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
+
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      const isShResult = text.startsWith('[');
+      expect(isCloudError || isShResult).toBe(true);
+
+      if (isCloudError) {
+        expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        const collections = jsonOf<Record<string, unknown>[]>(text);
+        expect(Array.isArray(collections)).toBe(true);
+        for (const col of collections) {
+          assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+        }
+      }
+    }
+  );
+
+  e2e(
+    'get_user_collection (REST) — SH: fetches by PERSONAL_REST_COLLECTION_ID; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({
+          name: 'get_user_collection',
+          arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
+        })
+      );
+      log('get_user_collection (REST)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
+
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      if (isCloudError) {
+        expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        // SH: collection object with matching ID
+        if (!PERSONAL_REST_COLLECTION_ID) {
+          console.log('[e2e] skip get_user_collection shape check: no PERSONAL_REST_COLLECTION_ID');
+          return;
+        }
+        expect(text).not.toMatch(/^Error:/);
+        const col = jsonOf<Record<string, unknown>>(text);
         assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+        expect(col.id).toBe(PERSONAL_REST_COLLECTION_ID);
       }
     }
-  });
+  );
 
-  e2e('list_user_collections (GQL) — SH: returns array with collection shape; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({ name: 'list_user_collections', arguments: { type: 'GQL' } }));
-    log('list_user_collections (GQL)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
+  e2e(
+    'get_user_collection (GQL) — SH: fetches by PERSONAL_GQL_COLLECTION_ID; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({
+          name: 'get_user_collection',
+          arguments: { collectionId: PERSONAL_GQL_COLLECTION_ID || 'placeholder' },
+        })
+      );
+      log('get_user_collection (GQL)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    const isShResult = text.startsWith('[');
-    expect(isCloudError || isShResult).toBe(true);
-
-    if (isCloudError) {
-      expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      const collections = jsonOf<Record<string, unknown>[]>(text);
-      expect(Array.isArray(collections)).toBe(true);
-      for (const col of collections) {
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      if (isCloudError) {
+        expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        if (!PERSONAL_GQL_COLLECTION_ID) {
+          console.log(
+            '[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'
+          );
+          return;
+        }
+        expect(text).not.toMatch(/^Error:/);
+        const col = jsonOf<Record<string, unknown>>(text);
         assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+        expect(col.id).toBe(PERSONAL_GQL_COLLECTION_ID);
       }
     }
-  });
+  );
 
-  e2e('get_user_collection (REST) — SH: fetches by PERSONAL_REST_COLLECTION_ID; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({
-      name: 'get_user_collection',
-      arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
-    }));
-    log('get_user_collection (REST)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
+  e2e(
+    'create_user_collection and delete_user_collection (REST) — full lifecycle with update',
+    async () => {
+      const createText = textOf(
+        await client.callTool({
+          name: 'create_user_collection',
+          arguments: { title: 'e2e-user-coll', type: 'REST' },
+        })
+      );
+      log('create_user_collection (REST)', createText);
+      expect(createText).not.toMatch(/auth\/fail/i);
+      expect(createText).not.toMatch(/^Error:/);
+      expect(createText).toMatch(
+        /^Successfully created user collection "e2e-user-coll" \(ID: \S+\)/m
+      );
 
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    if (isCloudError) {
-      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      // SH: collection object with matching ID
-      if (!PERSONAL_REST_COLLECTION_ID) { console.log('[e2e] skip get_user_collection shape check: no PERSONAL_REST_COLLECTION_ID'); return; }
-      expect(text).not.toMatch(/^Error:/);
-      const col = jsonOf<Record<string, unknown>>(text);
-      assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-      expect(col.id).toBe(PERSONAL_REST_COLLECTION_ID);
-    }
-  });
+      const created = jsonOf<Record<string, unknown>>(createText);
+      assertShape(created, { id: 'string', title: 'string' });
+      expect(created.title).toBe('e2e-user-coll');
+      const collId = created.id as string;
 
-  e2e('get_user_collection (GQL) — SH: fetches by PERSONAL_GQL_COLLECTION_ID; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({
-      name: 'get_user_collection',
-      arguments: { collectionId: PERSONAL_GQL_COLLECTION_ID || 'placeholder' },
-    }));
-    log('get_user_collection (GQL)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
-
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    if (isCloudError) {
-      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      if (!PERSONAL_GQL_COLLECTION_ID) { console.log('[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'); return; }
-      expect(text).not.toMatch(/^Error:/);
-      const col = jsonOf<Record<string, unknown>>(text);
-      assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-      expect(col.id).toBe(PERSONAL_GQL_COLLECTION_ID);
-    }
-  });
-
-  e2e('create_user_collection and delete_user_collection (REST) — full lifecycle with update', async () => {
-    const createText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-user-coll', type: 'REST' },
-    }));
-    log('create_user_collection (REST)', createText);
-    expect(createText).not.toMatch(/auth\/fail/i);
-    expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created user collection "e2e-user-coll" \(ID: \S+\)/m);
-
-    const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', title: 'string' });
-    expect(created.title).toBe('e2e-user-coll');
-    const collId = created.id as string;
-
-    try {
-      // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_user_collection',
-        arguments: { collectionId: collId, type: 'REST', title: 'e2e-user-coll-updated' },
-      }));
-      log('update_user_collection', updateText);
-      expect(updateText).not.toMatch(/auth\/fail/i);
-      expect(updateText).not.toMatch(/^Error:/);
-      const updated = jsonOf<Record<string, unknown>>(updateText);
-      expect(updated.id).toBe(collId);
-      expect(updated.title).toBe('e2e-user-coll-updated');
-    } finally {
-      // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_user_collection',
-          arguments: { collectionId: collId, type: 'REST' },
-        }));
-        log('delete_user_collection', deleteText);
-        expect(deleteText).toMatch(/^Successfully deleted user collection \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_user_collection failed:', e); }
+        // Update
+        const updateText = textOf(
+          await client.callTool({
+            name: 'update_user_collection',
+            arguments: { collectionId: collId, type: 'REST', title: 'e2e-user-coll-updated' },
+          })
+        );
+        log('update_user_collection', updateText);
+        expect(updateText).not.toMatch(/auth\/fail/i);
+        expect(updateText).not.toMatch(/^Error:/);
+        const updated = jsonOf<Record<string, unknown>>(updateText);
+        expect(updated.id).toBe(collId);
+        expect(updated.title).toBe('e2e-user-coll-updated');
+      } finally {
+        // Delete (best-effort, don't mask the original test failure)
+        try {
+          const deleteText = textOf(
+            await client.callTool({
+              name: 'delete_user_collection',
+              arguments: { collectionId: collId, type: 'REST' },
+            })
+          );
+          log('delete_user_collection', deleteText);
+          expect(deleteText).toMatch(/^Successfully deleted user collection \(ID: \S+\)$/);
+        } catch (e) {
+          console.error('[e2e] cleanup delete_user_collection failed:', e);
+        }
+      }
     }
-  });
+  );
 
-  e2e('create_user_collection and delete_user_collection (GQL) — full lifecycle with update', async () => {
-    const createText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-user-gql-coll', type: 'GQL' },
-    }));
-    log('create_user_collection (GQL)', createText);
-    expect(createText).not.toMatch(/auth\/fail/i);
-    expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created user collection "e2e-user-gql-coll" \(ID: \S+\)/m);
+  e2e(
+    'create_user_collection and delete_user_collection (GQL) — full lifecycle with update',
+    async () => {
+      const createText = textOf(
+        await client.callTool({
+          name: 'create_user_collection',
+          arguments: { title: 'e2e-user-gql-coll', type: 'GQL' },
+        })
+      );
+      log('create_user_collection (GQL)', createText);
+      expect(createText).not.toMatch(/auth\/fail/i);
+      expect(createText).not.toMatch(/^Error:/);
+      expect(createText).toMatch(
+        /^Successfully created user collection "e2e-user-gql-coll" \(ID: \S+\)/m
+      );
 
-    const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', title: 'string' });
-    expect(created.title).toBe('e2e-user-gql-coll');
-    const collId = created.id as string;
+      const created = jsonOf<Record<string, unknown>>(createText);
+      assertShape(created, { id: 'string', title: 'string' });
+      expect(created.title).toBe('e2e-user-gql-coll');
+      const collId = created.id as string;
 
-    try {
-      // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_user_collection',
-        arguments: { collectionId: collId, type: 'GQL', title: 'e2e-user-gql-coll-updated' },
-      }));
-      log('update_user_collection (GQL)', updateText);
-      expect(updateText).not.toMatch(/auth\/fail/i);
-      expect(updateText).not.toMatch(/^Error:/);
-      const updated = jsonOf<Record<string, unknown>>(updateText);
-      expect(updated.id).toBe(collId);
-      expect(updated.title).toBe('e2e-user-gql-coll-updated');
-    } finally {
-      // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_user_collection',
-          arguments: { collectionId: collId, type: 'GQL' },
-        }));
-        log('delete_user_collection (GQL)', deleteText);
-        expect(deleteText).toMatch(/^Successfully deleted user collection \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_user_collection (GQL) failed:', e); }
-    }
-  });
-
-  e2e('export_user_collection (REST) — SH: returns valid collection JSON; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({
-      name: 'export_user_collection',
-      arguments: { type: 'REST' },
-    }));
-    log('export_user_collection (REST)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
-
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    const isShResult = text.startsWith('Exported');
-    expect(isCloudError || isShResult).toBe(true);
-
-    if (isCloudError) {
-      expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      // SH: prose label + JSON array of exported collections
-      expect(text).toMatch(/^Exported all REST user collections/m);
-      const exported = jsonOf<unknown[]>(text);
-      expect(Array.isArray(exported)).toBe(true);
-      // Each exported collection has name, folders, requests
-      for (const col of exported as Array<Record<string, unknown>>) {
-        expect(typeof col.name).toBe('string');
-        expect(Array.isArray(col.folders)).toBe(true);
-        expect(Array.isArray(col.requests)).toBe(true);
+        // Update
+        const updateText = textOf(
+          await client.callTool({
+            name: 'update_user_collection',
+            arguments: { collectionId: collId, type: 'GQL', title: 'e2e-user-gql-coll-updated' },
+          })
+        );
+        log('update_user_collection (GQL)', updateText);
+        expect(updateText).not.toMatch(/auth\/fail/i);
+        expect(updateText).not.toMatch(/^Error:/);
+        const updated = jsonOf<Record<string, unknown>>(updateText);
+        expect(updated.id).toBe(collId);
+        expect(updated.title).toBe('e2e-user-gql-coll-updated');
+      } finally {
+        // Delete (best-effort, don't mask the original test failure)
+        try {
+          const deleteText = textOf(
+            await client.callTool({
+              name: 'delete_user_collection',
+              arguments: { collectionId: collId, type: 'GQL' },
+            })
+          );
+          log('delete_user_collection (GQL)', deleteText);
+          expect(deleteText).toMatch(/^Successfully deleted user collection \(ID: \S+\)$/);
+        } catch (e) {
+          console.error('[e2e] cleanup delete_user_collection (GQL) failed:', e);
+        }
       }
     }
-  });
+  );
 
-  e2e('export_user_collection (GQL) — SH: returns valid collection JSON; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({
-      name: 'export_user_collection',
-      arguments: { type: 'GQL' },
-    }));
-    log('export_user_collection (GQL)', text);
-    expect(text).not.toMatch(/auth\/fail/i);
+  e2e(
+    'export_user_collection (REST) — SH: returns valid collection JSON; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({
+          name: 'export_user_collection',
+          arguments: { type: 'REST' },
+        })
+      );
+      log('export_user_collection (REST)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-    const isShResult = text.startsWith('Exported');
-    expect(isCloudError || isShResult).toBe(true);
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      const isShResult = text.startsWith('Exported');
+      expect(isCloudError || isShResult).toBe(true);
 
-    if (isCloudError) {
-      expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
-    } else {
-      expect(text).toMatch(/^Exported all GQL user collections/m);
-      const exported = jsonOf<unknown[]>(text);
-      expect(Array.isArray(exported)).toBe(true);
-      for (const col of exported as Array<Record<string, unknown>>) {
-        expect(typeof col.name).toBe('string');
-        expect(Array.isArray(col.folders)).toBe(true);
-        expect(Array.isArray(col.requests)).toBe(true);
+      if (isCloudError) {
+        expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        // SH: prose label + JSON array of exported collections
+        expect(text).toMatch(/^Exported all REST user collections/m);
+        const exported = jsonOf<unknown[]>(text);
+        expect(Array.isArray(exported)).toBe(true);
+        // Each exported collection has name, folders, requests
+        for (const col of exported as Array<Record<string, unknown>>) {
+          expect(typeof col.name).toBe('string');
+          expect(Array.isArray(col.folders)).toBe(true);
+          expect(Array.isArray(col.requests)).toBe(true);
+        }
       }
     }
-  });
+  );
+
+  e2e(
+    'export_user_collection (GQL) — SH: returns valid collection JSON; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({
+          name: 'export_user_collection',
+          arguments: { type: 'GQL' },
+        })
+      );
+      log('export_user_collection (GQL)', text);
+      expect(text).not.toMatch(/auth\/fail/i);
+
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      const isShResult = text.startsWith('Exported');
+      expect(isCloudError || isShResult).toBe(true);
+
+      if (isCloudError) {
+        expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team collections instead');
+      } else {
+        expect(text).toMatch(/^Exported all GQL user collections/m);
+        const exported = jsonOf<unknown[]>(text);
+        expect(Array.isArray(exported)).toBe(true);
+        for (const col of exported as Array<Record<string, unknown>>) {
+          expect(typeof col.name).toBe('string');
+          expect(Array.isArray(col.folders)).toBe(true);
+          expect(Array.isArray(col.requests)).toBe(true);
+        }
+      }
+    }
+  );
 
   e2e('import_user_collection — success on both Cloud and SH; cleanup on SH', async () => {
     const before = await userCollectionIds();
 
-    const text = textOf(await client.callTool({
-      name: 'import_user_collection',
-      arguments: {
-        jsonString: JSON.stringify({ name: 'e2e-imported-user', folders: [], requests: [] }),
-        type: 'REST',
-      },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'import_user_collection',
+        arguments: {
+          jsonString: JSON.stringify({ name: 'e2e-imported-user', folders: [], requests: [] }),
+          type: 'REST',
+        },
+      })
+    );
     log('import_user_collection', text);
     expect(text).not.toMatch(/auth\/fail/i);
     expect(text).not.toMatch(/^Error:/);
@@ -979,57 +1196,86 @@ describe('user collections', () => {
     await cleanupOrphanUserCollections(before, after);
   });
 
-  e2e('duplicate_user_collection — creates temp collection, duplicates, deletes source', async () => {
-    const before = await userCollectionIds();
+  e2e(
+    'duplicate_user_collection — creates temp collection, duplicates, deletes source',
+    async () => {
+      const before = await userCollectionIds();
 
-    const createText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-dup-source', type: 'REST' },
-    }));
-    const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
-    if (!srcId) { console.log('[e2e] skip duplicate: create failed'); return; }
+      const createText = textOf(
+        await client.callTool({
+          name: 'create_user_collection',
+          arguments: { title: 'e2e-dup-source', type: 'REST' },
+        })
+      );
+      const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
+      if (!srcId) {
+        console.log('[e2e] skip duplicate: create failed');
+        return;
+      }
 
-    try {
-      const dupText = textOf(await client.callTool({
-        name: 'duplicate_user_collection',
-        arguments: { collectionId: srcId, type: 'REST' },
-      }));
-      log('duplicate_user_collection', dupText);
-      expect(dupText).not.toMatch(/auth\/fail/i);
-      expect(dupText).not.toMatch(/^Error:/);
-      expect(dupText).toMatch(/^Successfully duplicated user collection \(ID: \S+\)$/);
-    } finally {
-      // Cleanup source + orphaned duplicate (API returns no ID for the duplicate)
-      try { await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: srcId, type: 'REST' } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-      const after = await userCollectionIds();
-      await cleanupOrphanUserCollections(before, after);
+      try {
+        const dupText = textOf(
+          await client.callTool({
+            name: 'duplicate_user_collection',
+            arguments: { collectionId: srcId, type: 'REST' },
+          })
+        );
+        log('duplicate_user_collection', dupText);
+        expect(dupText).not.toMatch(/auth\/fail/i);
+        expect(dupText).not.toMatch(/^Error:/);
+        expect(dupText).toMatch(/^Successfully duplicated user collection \(ID: \S+\)$/);
+      } finally {
+        // Cleanup source + orphaned duplicate (API returns no ID for the duplicate)
+        try {
+          await client.callTool({
+            name: 'delete_user_collection',
+            arguments: { collectionId: srcId, type: 'REST' },
+          });
+        } catch (e) {
+          console.error('[e2e] cleanup failed:', e);
+        }
+        const after = await userCollectionIds();
+        await cleanupOrphanUserCollections(before, after);
+      }
     }
-  });
+  );
 
   e2e('move_user_collection — creates parent + child, moves child to root', async () => {
-    const parentText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-parent', type: 'REST' },
-    }));
+    const parentText = textOf(
+      await client.callTool({
+        name: 'create_user_collection',
+        arguments: { title: 'e2e-parent', type: 'REST' },
+      })
+    );
     const parentId = jsonOf<Record<string, unknown>>(parentText).id as string;
-    if (!parentId) { console.log('[e2e] skip move: create parent failed'); return; }
+    if (!parentId) {
+      console.log('[e2e] skip move: create parent failed');
+      return;
+    }
 
-    const childText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-child', type: 'REST', parentCollectionId: parentId },
-    }));
+    const childText = textOf(
+      await client.callTool({
+        name: 'create_user_collection',
+        arguments: { title: 'e2e-child', type: 'REST', parentCollectionId: parentId },
+      })
+    );
     const childId = jsonOf<Record<string, unknown>>(childText).id as string;
     if (!childId) {
-      await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: parentId, type: 'REST' } });
+      await client.callTool({
+        name: 'delete_user_collection',
+        arguments: { collectionId: parentId, type: 'REST' },
+      });
       console.log('[e2e] skip move: create child failed');
       return;
     }
 
     try {
-      const moveText = textOf(await client.callTool({
-        name: 'move_user_collection',
-        arguments: { collectionId: childId },
-      }));
+      const moveText = textOf(
+        await client.callTool({
+          name: 'move_user_collection',
+          arguments: { collectionId: childId },
+        })
+      );
       log('move_user_collection', moveText);
       expect(moveText).not.toMatch(/auth\/fail/i);
       expect(moveText).not.toMatch(/^Error:/);
@@ -1042,8 +1288,22 @@ describe('user collections', () => {
       expect(moved.title).toBe('e2e-child');
     } finally {
       // Cleanup
-      try { await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: childId, type: 'REST' } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-      try { await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: parentId, type: 'REST' } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
+      try {
+        await client.callTool({
+          name: 'delete_user_collection',
+          arguments: { collectionId: childId, type: 'REST' },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
+      try {
+        await client.callTool({
+          name: 'delete_user_collection',
+          arguments: { collectionId: parentId, type: 'REST' },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
     }
   });
 });
@@ -1054,11 +1314,16 @@ describe('user collections', () => {
 
 describe('team requests', () => {
   e2e('list_team_requests — returns array (may be empty) with request shape', async () => {
-    if (!TEAM_COLLECTION_ID) { console.log('[e2e] skip: no TEAM_COLLECTION_ID'); return; }
-    const text = textOf(await client.callTool({
-      name: 'list_team_requests',
-      arguments: { collectionId: TEAM_COLLECTION_ID },
-    }));
+    if (!TEAM_COLLECTION_ID) {
+      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
+      return;
+    }
+    const text = textOf(
+      await client.callTool({
+        name: 'list_team_requests',
+        arguments: { collectionId: TEAM_COLLECTION_ID },
+      })
+    );
     log('list_team_requests', text);
     expect(text).not.toMatch(/auth\/fail/i);
     expect(text).not.toMatch(/^Error:/);
@@ -1066,120 +1331,206 @@ describe('team requests', () => {
     const requests = jsonOf<Record<string, unknown>[]>(text);
     expect(Array.isArray(requests)).toBe(true);
     for (const req of requests) {
-      assertShape(req, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+      assertShape(req, {
+        id: 'string',
+        title: 'string',
+        request: 'string',
+        collectionID: 'string',
+      });
     }
   });
 
   e2e('create, get, update, delete team request — full lifecycle', async () => {
-    if (!TEAM_COLLECTION_ID) { console.log('[e2e] skip: no TEAM_COLLECTION_ID'); return; }
+    if (!TEAM_COLLECTION_ID) {
+      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
+      return;
+    }
 
-    const requestData = JSON.stringify({ v: '10', method: 'GET', endpoint: 'https://httpbin.org/get', headers: [], params: [], body: { contentType: null, body: null }, auth: { authType: 'none', authActive: false } });
+    const requestData = JSON.stringify({
+      v: '10',
+      method: 'GET',
+      endpoint: 'https://httpbin.org/get',
+      headers: [],
+      params: [],
+      body: { contentType: null, body: null },
+      auth: { authType: 'none', authActive: false },
+    });
 
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_team_request',
-      arguments: {
-        collectionId: TEAM_COLLECTION_ID,
-        teamId: TEAM_ID,
-        title: 'e2e-team-request',
-        request: requestData,
-      },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_team_request',
+        arguments: {
+          collectionId: TEAM_COLLECTION_ID,
+          teamId: TEAM_ID,
+          title: 'e2e-team-request',
+          request: requestData,
+        },
+      })
+    );
     log('create_team_request', createText);
     expect(createText).not.toMatch(/auth\/fail/i);
     expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created team request "e2e-team-request" \(ID: \S+\)/m);
+    expect(createText).toMatch(
+      /^Successfully created team request "e2e-team-request" \(ID: \S+\)/m
+    );
 
     const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+    assertShape(created, {
+      id: 'string',
+      title: 'string',
+      request: 'string',
+      collectionID: 'string',
+    });
     expect(created.title).toBe('e2e-team-request');
     expect(created.collectionID).toBe(TEAM_COLLECTION_ID);
     const requestId = created.id as string;
 
     try {
       // Get
-      const getText = textOf(await client.callTool({
-        name: 'get_team_request',
-        arguments: { requestId },
-      }));
+      const getText = textOf(
+        await client.callTool({
+          name: 'get_team_request',
+          arguments: { requestId },
+        })
+      );
       log('get_team_request', getText);
       expect(getText).not.toMatch(/auth\/fail/i);
       expect(getText).not.toMatch(/^Error:/);
       const fetched = jsonOf<Record<string, unknown>>(getText);
-      assertShape(fetched, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+      assertShape(fetched, {
+        id: 'string',
+        title: 'string',
+        request: 'string',
+        collectionID: 'string',
+      });
       expect(fetched.id).toBe(requestId);
       expect(fetched.title).toBe('e2e-team-request');
 
       // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_team_request',
-        arguments: { requestId, title: 'e2e-team-request-updated', request: requestData },
-      }));
+      const updateText = textOf(
+        await client.callTool({
+          name: 'update_team_request',
+          arguments: { requestId, title: 'e2e-team-request-updated', request: requestData },
+        })
+      );
       log('update_team_request', updateText);
       expect(updateText).not.toMatch(/auth\/fail/i);
       expect(updateText).not.toMatch(/^Error:/);
-      expect(updateText).toMatch(/^Successfully updated team request "e2e-team-request-updated" \(ID: \S+\)/m);
+      expect(updateText).toMatch(
+        /^Successfully updated team request "e2e-team-request-updated" \(ID: \S+\)/m
+      );
       const updated = jsonOf<Record<string, unknown>>(updateText);
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-team-request-updated');
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_team_request',
-          arguments: { requestId },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_team_request',
+            arguments: { requestId },
+          })
+        );
         log('delete_team_request', deleteText);
         expect(deleteText).toMatch(/^Successfully deleted team request \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_team_request failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_team_request failed:', e);
+      }
     }
   });
 
-  e2e('move_team_request — creates request in coll-A, creates coll-B, moves, cleans up', async () => {
-    if (!TEAM_COLLECTION_ID || !TEAM_ID) { console.log('[e2e] skip move_team_request: no TEAM_COLLECTION_ID or TEAM_ID'); return; }
+  e2e(
+    'move_team_request — creates request in coll-A, creates coll-B, moves, cleans up',
+    async () => {
+      if (!TEAM_COLLECTION_ID || !TEAM_ID) {
+        console.log('[e2e] skip move_team_request: no TEAM_COLLECTION_ID or TEAM_ID');
+        return;
+      }
 
-    const requestData = JSON.stringify({ v: '10', method: 'GET', endpoint: 'https://httpbin.org/get', headers: [], params: [], body: { contentType: null, body: null }, auth: { authType: 'none', authActive: false } });
+      const requestData = JSON.stringify({
+        v: '10',
+        method: 'GET',
+        endpoint: 'https://httpbin.org/get',
+        headers: [],
+        params: [],
+        body: { contentType: null, body: null },
+        auth: { authType: 'none', authActive: false },
+      });
 
-    // Create a request in TEAM_COLLECTION_ID
-    const createText = textOf(await client.callTool({
-      name: 'create_team_request',
-      arguments: { collectionId: TEAM_COLLECTION_ID, teamId: TEAM_ID, title: 'e2e-move-request', request: requestData },
-    }));
-    expect(createText).not.toMatch(/^Error:/);
-    const requestId = jsonOf<Record<string, unknown>>(createText).id as string;
-    if (!requestId) { console.log('[e2e] skip: create failed'); return; }
+      // Create a request in TEAM_COLLECTION_ID
+      const createText = textOf(
+        await client.callTool({
+          name: 'create_team_request',
+          arguments: {
+            collectionId: TEAM_COLLECTION_ID,
+            teamId: TEAM_ID,
+            title: 'e2e-move-request',
+            request: requestData,
+          },
+        })
+      );
+      expect(createText).not.toMatch(/^Error:/);
+      const requestId = jsonOf<Record<string, unknown>>(createText).id as string;
+      if (!requestId) {
+        console.log('[e2e] skip: create failed');
+        return;
+      }
 
-    // Create a destination collection
-    const destText = textOf(await client.callTool({
-      name: 'create_team_collection',
-      arguments: { teamId: TEAM_ID, title: 'e2e-move-dest' },
-    }));
-    const destId = jsonOf<Record<string, unknown>>(destText).id as string;
-    if (!destId) {
-      await client.callTool({ name: 'delete_team_request', arguments: { requestId } });
-      console.log('[e2e] skip: create dest collection failed');
-      return;
+      // Create a destination collection
+      const destText = textOf(
+        await client.callTool({
+          name: 'create_team_collection',
+          arguments: { teamId: TEAM_ID, title: 'e2e-move-dest' },
+        })
+      );
+      const destId = jsonOf<Record<string, unknown>>(destText).id as string;
+      if (!destId) {
+        await client.callTool({ name: 'delete_team_request', arguments: { requestId } });
+        console.log('[e2e] skip: create dest collection failed');
+        return;
+      }
+
+      try {
+        // Move
+        const moveText = textOf(
+          await client.callTool({
+            name: 'move_team_request',
+            arguments: { requestId, destCollectionId: destId },
+          })
+        );
+        log('move_team_request', moveText);
+        expect(moveText).not.toMatch(/auth\/fail/i);
+        expect(moveText).not.toMatch(/^Error:/);
+        expect(moveText).toMatch(
+          /^Successfully moved team request "e2e-move-request" to collection \(ID: \S+\)/m
+        );
+        const moved = jsonOf<Record<string, unknown>>(moveText);
+        assertShape(moved, {
+          id: 'string',
+          title: 'string',
+          request: 'string',
+          collectionID: 'string',
+        });
+        expect(moved.id).toBe(requestId);
+      } finally {
+        // Cleanup: delete request then dest collection
+        try {
+          await client.callTool({ name: 'delete_team_request', arguments: { requestId } });
+        } catch (e) {
+          console.error('[e2e] cleanup failed:', e);
+        }
+        try {
+          await client.callTool({
+            name: 'delete_team_collection',
+            arguments: { collectionId: destId },
+          });
+        } catch (e) {
+          console.error('[e2e] cleanup failed:', e);
+        }
+      }
     }
-
-    try {
-      // Move
-      const moveText = textOf(await client.callTool({
-        name: 'move_team_request',
-        arguments: { requestId, destCollectionId: destId },
-      }));
-      log('move_team_request', moveText);
-      expect(moveText).not.toMatch(/auth\/fail/i);
-      expect(moveText).not.toMatch(/^Error:/);
-      expect(moveText).toMatch(/^Successfully moved team request "e2e-move-request" to collection \(ID: \S+\)/m);
-      const moved = jsonOf<Record<string, unknown>>(moveText);
-      assertShape(moved, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
-      expect(moved.id).toBe(requestId);
-    } finally {
-      // Cleanup: delete request then dest collection
-      try { await client.callTool({ name: 'delete_team_request', arguments: { requestId } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-      try { await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: destId } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-    }
-  });
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -1190,151 +1541,251 @@ describe('team requests', () => {
 // ---------------------------------------------------------------------------
 
 describe('user requests', () => {
-  e2e('list_user_requests — SH: returns array with request shape; Cloud: not available', async () => {
-    const text = textOf(await client.callTool({
-      name: 'list_user_requests',
-      arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
-    }));
-    log('list_user_requests', text);
-    expect(text).not.toMatch(/auth\/fail/i);
+  e2e(
+    'list_user_requests — SH: returns array with request shape; Cloud: not available',
+    async () => {
+      const text = textOf(
+        await client.callTool({
+          name: 'list_user_requests',
+          arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
+        })
+      );
+      log('list_user_requests', text);
+      expect(text).not.toMatch(/auth\/fail/i);
 
-    const isCloudError = text.includes('not supported on Hoppscotch Cloud');
+      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
 
-    if (isCloudError) {
-      expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team requests instead');
-    } else {
-      // SH: array of user requests
-      if (!PERSONAL_REST_COLLECTION_ID) { console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID'); return; }
-      expect(text).not.toMatch(/^Error:/);
-      const requests = jsonOf<Record<string, unknown>[]>(text);
-      expect(Array.isArray(requests)).toBe(true);
-      for (const req of requests) {
-        assertShape(req, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+      if (isCloudError) {
+        expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
+        expect(text).toContain('Use team requests instead');
+      } else {
+        // SH: array of user requests
+        if (!PERSONAL_REST_COLLECTION_ID) {
+          console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID');
+          return;
+        }
+        expect(text).not.toMatch(/^Error:/);
+        const requests = jsonOf<Record<string, unknown>[]>(text);
+        expect(Array.isArray(requests)).toBe(true);
+        for (const req of requests) {
+          assertShape(req, {
+            id: 'string',
+            title: 'string',
+            request: 'string',
+            collectionID: 'string',
+          });
+        }
       }
     }
-  });
+  );
 
   e2e('create, update, delete user REST request — full lifecycle (both Cloud and SH)', async () => {
-    if (!PERSONAL_REST_COLLECTION_ID) { console.log('[e2e] skip: no PERSONAL_REST_COLLECTION_ID'); return; }
+    if (!PERSONAL_REST_COLLECTION_ID) {
+      console.log('[e2e] skip: no PERSONAL_REST_COLLECTION_ID');
+      return;
+    }
 
-    const requestData = JSON.stringify({ v: '10', method: 'GET', endpoint: 'https://httpbin.org/get', headers: [], params: [], body: { contentType: null, body: null }, auth: { authType: 'none', authActive: false } });
+    const requestData = JSON.stringify({
+      v: '10',
+      method: 'GET',
+      endpoint: 'https://httpbin.org/get',
+      headers: [],
+      params: [],
+      body: { contentType: null, body: null },
+      auth: { authType: 'none', authActive: false },
+    });
 
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_user_request',
-      arguments: {
-        collectionId: PERSONAL_REST_COLLECTION_ID,
-        type: 'REST',
-        title: 'e2e-user-request',
-        request: requestData,
-      },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_user_request',
+        arguments: {
+          collectionId: PERSONAL_REST_COLLECTION_ID,
+          type: 'REST',
+          title: 'e2e-user-request',
+          request: requestData,
+        },
+      })
+    );
     log('create_user_request', createText);
     expect(createText).not.toMatch(/auth\/fail/i);
     expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created user request "e2e-user-request" \(ID: \S+\)/m);
+    expect(createText).toMatch(
+      /^Successfully created user request "e2e-user-request" \(ID: \S+\)/m
+    );
 
     const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+    assertShape(created, {
+      id: 'string',
+      title: 'string',
+      request: 'string',
+      collectionID: 'string',
+    });
     expect(created.title).toBe('e2e-user-request');
     const requestId = created.id as string;
 
     try {
       // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_user_request',
-        arguments: { requestId, type: 'REST', title: 'e2e-user-request-updated', request: requestData },
-      }));
+      const updateText = textOf(
+        await client.callTool({
+          name: 'update_user_request',
+          arguments: {
+            requestId,
+            type: 'REST',
+            title: 'e2e-user-request-updated',
+            request: requestData,
+          },
+        })
+      );
       log('update_user_request', updateText);
       expect(updateText).not.toMatch(/auth\/fail/i);
       expect(updateText).not.toMatch(/^Error:/);
-      expect(updateText).toMatch(/^Successfully updated user request "e2e-user-request-updated" \(ID: \S+\)/m);
+      expect(updateText).toMatch(
+        /^Successfully updated user request "e2e-user-request-updated" \(ID: \S+\)/m
+      );
       const updated = jsonOf<Record<string, unknown>>(updateText);
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-user-request-updated');
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_user_request',
-          arguments: { requestId },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_user_request',
+            arguments: { requestId },
+          })
+        );
         log('delete_user_request', deleteText);
         expect(deleteText).toMatch(/^Successfully deleted user request \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_user_request failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_user_request failed:', e);
+      }
     }
   });
 
   e2e('create, update, delete user GQL request — full lifecycle (self-hosted)', async () => {
-    if (!PERSONAL_GQL_COLLECTION_ID) { console.log('[e2e] skip: no PERSONAL_GQL_COLLECTION_ID'); return; }
+    if (!PERSONAL_GQL_COLLECTION_ID) {
+      console.log('[e2e] skip: no PERSONAL_GQL_COLLECTION_ID');
+      return;
+    }
 
-    const requestData = JSON.stringify({ v: '4', url: 'https://httpbin.org/post', query: '{ hello }', variables: '{}', headers: [] });
+    const requestData = JSON.stringify({
+      v: '4',
+      url: 'https://httpbin.org/post',
+      query: '{ hello }',
+      variables: '{}',
+      headers: [],
+    });
 
     // Create
-    const createText = textOf(await client.callTool({
-      name: 'create_user_request',
-      arguments: {
-        collectionId: PERSONAL_GQL_COLLECTION_ID,
-        type: 'GQL',
-        title: 'e2e-user-gql-request',
-        request: requestData,
-      },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_user_request',
+        arguments: {
+          collectionId: PERSONAL_GQL_COLLECTION_ID,
+          type: 'GQL',
+          title: 'e2e-user-gql-request',
+          request: requestData,
+        },
+      })
+    );
     log('create_user_request (GQL)', createText);
     expect(createText).not.toMatch(/auth\/fail/i);
     expect(createText).not.toMatch(/^Error:/);
-    expect(createText).toMatch(/^Successfully created user request "e2e-user-gql-request" \(ID: \S+\)/m);
+    expect(createText).toMatch(
+      /^Successfully created user request "e2e-user-gql-request" \(ID: \S+\)/m
+    );
 
     const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+    assertShape(created, {
+      id: 'string',
+      title: 'string',
+      request: 'string',
+      collectionID: 'string',
+    });
     expect(created.title).toBe('e2e-user-gql-request');
     const requestId = created.id as string;
 
     try {
       // Update
-      const updateText = textOf(await client.callTool({
-        name: 'update_user_request',
-        arguments: { requestId, type: 'GQL', title: 'e2e-user-gql-request-updated', request: requestData },
-      }));
+      const updateText = textOf(
+        await client.callTool({
+          name: 'update_user_request',
+          arguments: {
+            requestId,
+            type: 'GQL',
+            title: 'e2e-user-gql-request-updated',
+            request: requestData,
+          },
+        })
+      );
       log('update_user_request (GQL)', updateText);
       expect(updateText).not.toMatch(/auth\/fail/i);
       expect(updateText).not.toMatch(/^Error:/);
-      expect(updateText).toMatch(/^Successfully updated user request "e2e-user-gql-request-updated" \(ID: \S+\)/m);
+      expect(updateText).toMatch(
+        /^Successfully updated user request "e2e-user-gql-request-updated" \(ID: \S+\)/m
+      );
       const updated = jsonOf<Record<string, unknown>>(updateText);
       expect(updated.id).toBe(requestId);
       expect(updated.title).toBe('e2e-user-gql-request-updated');
     } finally {
       // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_user_request',
-          arguments: { requestId },
-        }));
+        const deleteText = textOf(
+          await client.callTool({
+            name: 'delete_user_request',
+            arguments: { requestId },
+          })
+        );
         log('delete_user_request (GQL)', deleteText);
         expect(deleteText).toMatch(/^Successfully deleted user request \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_user_request (GQL) failed:', e); }
+      } catch (e) {
+        console.error('[e2e] cleanup delete_user_request (GQL) failed:', e);
+      }
     }
   });
 
   e2e('move_user_request — creates request + dest collection, moves, cleans up', async () => {
-    if (!PERSONAL_REST_COLLECTION_ID) { console.log('[e2e] skip move_user_request: no PERSONAL_REST_COLLECTION_ID'); return; }
+    if (!PERSONAL_REST_COLLECTION_ID) {
+      console.log('[e2e] skip move_user_request: no PERSONAL_REST_COLLECTION_ID');
+      return;
+    }
 
-    const requestData = JSON.stringify({ v: '10', method: 'GET', endpoint: 'https://httpbin.org/get', headers: [], params: [], body: { contentType: null, body: null }, auth: { authType: 'none', authActive: false } });
+    const requestData = JSON.stringify({
+      v: '10',
+      method: 'GET',
+      endpoint: 'https://httpbin.org/get',
+      headers: [],
+      params: [],
+      body: { contentType: null, body: null },
+      auth: { authType: 'none', authActive: false },
+    });
 
     // Create a request in PERSONAL_REST_COLLECTION_ID
-    const createText = textOf(await client.callTool({
-      name: 'create_user_request',
-      arguments: { collectionId: PERSONAL_REST_COLLECTION_ID, type: 'REST', title: 'e2e-move-user-request', request: requestData },
-    }));
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_user_request',
+        arguments: {
+          collectionId: PERSONAL_REST_COLLECTION_ID,
+          type: 'REST',
+          title: 'e2e-move-user-request',
+          request: requestData,
+        },
+      })
+    );
     const requestId = jsonOf<Record<string, unknown>>(createText).id as string;
-    if (!requestId) { console.log('[e2e] skip: create user request failed'); return; }
+    if (!requestId) {
+      console.log('[e2e] skip: create user request failed');
+      return;
+    }
 
     // Create a destination user collection
-    const destText = textOf(await client.callTool({
-      name: 'create_user_collection',
-      arguments: { title: 'e2e-user-move-dest', type: 'REST' },
-    }));
+    const destText = textOf(
+      await client.callTool({
+        name: 'create_user_collection',
+        arguments: { title: 'e2e-user-move-dest', type: 'REST' },
+      })
+    );
     const destId = jsonOf<Record<string, unknown>>(destText).id as string;
     if (!destId) {
       await client.callTool({ name: 'delete_user_request', arguments: { requestId } });
@@ -1344,21 +1795,45 @@ describe('user requests', () => {
 
     try {
       // Move
-      const moveText = textOf(await client.callTool({
-        name: 'move_user_request',
-        arguments: { requestId, sourceCollectionId: PERSONAL_REST_COLLECTION_ID, destCollectionId: destId },
-      }));
+      const moveText = textOf(
+        await client.callTool({
+          name: 'move_user_request',
+          arguments: {
+            requestId,
+            sourceCollectionId: PERSONAL_REST_COLLECTION_ID,
+            destCollectionId: destId,
+          },
+        })
+      );
       log('move_user_request', moveText);
       expect(moveText).not.toMatch(/auth\/fail/i);
       expect(moveText).not.toMatch(/^Error:/);
-      expect(moveText).toMatch(/^Successfully moved user request "e2e-move-user-request" to collection \(ID: \S+\)/m);
+      expect(moveText).toMatch(
+        /^Successfully moved user request "e2e-move-user-request" to collection \(ID: \S+\)/m
+      );
       const moved = jsonOf<Record<string, unknown>>(moveText);
-      assertShape(moved, { id: 'string', title: 'string', request: 'string', collectionID: 'string' });
+      assertShape(moved, {
+        id: 'string',
+        title: 'string',
+        request: 'string',
+        collectionID: 'string',
+      });
       expect(moved.id).toBe(requestId);
     } finally {
       // Cleanup
-      try { await client.callTool({ name: 'delete_user_request', arguments: { requestId } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
-      try { await client.callTool({ name: 'delete_user_collection', arguments: { collectionId: destId, type: 'REST' } }); } catch (e) { console.error('[e2e] cleanup failed:', e); }
+      try {
+        await client.callTool({ name: 'delete_user_request', arguments: { requestId } });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
+      try {
+        await client.callTool({
+          name: 'delete_user_collection',
+          arguments: { collectionId: destId, type: 'REST' },
+        });
+      } catch (e) {
+        console.error('[e2e] cleanup failed:', e);
+      }
     }
   });
 });
@@ -1381,51 +1856,66 @@ describe('user environments', () => {
     }
   });
 
-  e2e('create/update/delete user environment — Cloud: not supported; SH: full lifecycle', async () => {
-    const createText = textOf(await client.callTool({
-      name: 'create_user_environment',
-      arguments: { name: 'e2e-user-env', variables: [{ key: 'FOO', value: 'bar' }] },
-    }));
-    log('create_user_environment', createText);
-    expect(createText).not.toMatch(/auth\/fail/i);
+  e2e(
+    'create/update/delete user environment — Cloud: not supported; SH: full lifecycle',
+    async () => {
+      const createText = textOf(
+        await client.callTool({
+          name: 'create_user_environment',
+          arguments: { name: 'e2e-user-env', variables: [{ key: 'FOO', value: 'bar' }] },
+        })
+      );
+      log('create_user_environment', createText);
+      expect(createText).not.toMatch(/auth\/fail/i);
 
-    // Cloud path: explicit "not supported" message
-    if (createText.includes('not supported')) {
-      expect(createText).toContain('User environments are not supported on Hoppscotch Cloud');
-      expect(createText).toContain('Use team environments instead');
-      return;
-    }
+      // Cloud path: explicit "not supported" message
+      if (createText.includes('not supported')) {
+        expect(createText).toContain('User environments are not supported on Hoppscotch Cloud');
+        expect(createText).toContain('Use team environments instead');
+        return;
+      }
 
-    // SH path: verify create shape
-    expect(createText).not.toMatch(/^Error:/);
-    const created = jsonOf<Record<string, unknown>>(createText);
-    assertShape(created, { id: 'string', name: 'string' });
-    expect(created.name).toBe('e2e-user-env');
-    const envId = created.id as string;
+      // SH path: verify create shape
+      expect(createText).not.toMatch(/^Error:/);
+      const created = jsonOf<Record<string, unknown>>(createText);
+      assertShape(created, { id: 'string', name: 'string' });
+      expect(created.name).toBe('e2e-user-env');
+      const envId = created.id as string;
 
-    try {
-      const updateText = textOf(await client.callTool({
-        name: 'update_user_environment',
-        arguments: { environmentId: envId, name: 'e2e-user-env-updated', variables: [{ key: 'FOO', value: 'baz' }] },
-      }));
-      log('update_user_environment', updateText);
-      expect(updateText).not.toMatch(/auth\/fail/i);
-      expect(updateText).not.toMatch(/^Error:/);
-      const updatedEnv = jsonOf<Record<string, unknown>>(updateText);
-      expect(updatedEnv.id).toBe(envId);
-      expect(updatedEnv.name).toBe('e2e-user-env-updated');
-    } finally {
-      // Delete (best-effort, don't mask the original test failure)
       try {
-        const deleteText = textOf(await client.callTool({
-          name: 'delete_user_environment',
-          arguments: { environmentId: envId },
-        }));
-        log('delete_user_environment', deleteText);
-        expect(deleteText).toMatch(/^Successfully deleted user environment \(ID: \S+\)$/);
-      } catch (e) { console.error('[e2e] cleanup delete_user_environment failed:', e); }
+        const updateText = textOf(
+          await client.callTool({
+            name: 'update_user_environment',
+            arguments: {
+              environmentId: envId,
+              name: 'e2e-user-env-updated',
+              variables: [{ key: 'FOO', value: 'baz' }],
+            },
+          })
+        );
+        log('update_user_environment', updateText);
+        expect(updateText).not.toMatch(/auth\/fail/i);
+        expect(updateText).not.toMatch(/^Error:/);
+        const updatedEnv = jsonOf<Record<string, unknown>>(updateText);
+        expect(updatedEnv.id).toBe(envId);
+        expect(updatedEnv.name).toBe('e2e-user-env-updated');
+      } finally {
+        // Delete (best-effort, don't mask the original test failure)
+        try {
+          const deleteText = textOf(
+            await client.callTool({
+              name: 'delete_user_environment',
+              arguments: { environmentId: envId },
+            })
+          );
+          log('delete_user_environment', deleteText);
+          expect(deleteText).toMatch(/^Successfully deleted user environment \(ID: \S+\)$/);
+        } catch (e) {
+          console.error('[e2e] cleanup delete_user_environment failed:', e);
+        }
+      }
     }
-  });
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -1434,10 +1924,12 @@ describe('user environments', () => {
 
 describe('request execution', () => {
   e2e('execute_request — GET httpbin returns 200 with JSON body', async () => {
-    const text = textOf(await client.callTool({
-      name: 'execute_request',
-      arguments: { method: 'GET', url: 'https://httpbin.org/get', headers: { 'X-Test': 'e2e' } },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'execute_request',
+        arguments: { method: 'GET', url: 'https://httpbin.org/get', headers: { 'X-Test': 'e2e' } },
+      })
+    );
     log('execute_request', text);
     expect(text).not.toMatch(/^Error:/);
     // Status line
@@ -1447,10 +1939,16 @@ describe('request execution', () => {
   });
 
   e2e('validate_response — 200 criteria passes, returns PASS status', async () => {
-    const text = textOf(await client.callTool({
-      name: 'validate_response',
-      arguments: { method: 'GET', url: 'https://httpbin.org/status/200', criteria: { expectedStatus: 200 } },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'validate_response',
+        arguments: {
+          method: 'GET',
+          url: 'https://httpbin.org/status/200',
+          criteria: { expectedStatus: 200 },
+        },
+      })
+    );
     log('validate_response', text);
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatch(/Status:\s*✅ PASS/);
@@ -1467,10 +1965,12 @@ describe('request execution', () => {
 
 describe('code generation', () => {
   e2e('generate_code (curl) — deterministic output matches snapshot', async () => {
-    const text = textOf(await client.callTool({
-      name: 'generate_code',
-      arguments: { method: 'POST', url: 'https://api.example.com/data', language: 'curl' },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'generate_code',
+        arguments: { method: 'POST', url: 'https://api.example.com/data', language: 'curl' },
+      })
+    );
     log('generate_code (curl)', text);
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatchInlineSnapshot(`
@@ -1483,10 +1983,12 @@ describe('code generation', () => {
   });
 
   e2e('generate_code (javascript) — deterministic output matches snapshot', async () => {
-    const text = textOf(await client.callTool({
-      name: 'generate_code',
-      arguments: { method: 'GET', url: 'https://api.example.com/items', language: 'javascript' },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'generate_code',
+        arguments: { method: 'GET', url: 'https://api.example.com/items', language: 'javascript' },
+      })
+    );
     log('generate_code (js)', text);
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatchInlineSnapshot(`
@@ -1505,15 +2007,17 @@ describe('code generation', () => {
   });
 
   e2e('generate_documentation — contains method, URL, and example sections', async () => {
-    const text = textOf(await client.callTool({
-      name: 'generate_documentation',
-      arguments: {
-        method: 'POST',
-        url: 'https://api.example.com/users',
-        title: 'Create User',
-        includeExamples: true,
-      },
-    }));
+    const text = textOf(
+      await client.callTool({
+        name: 'generate_documentation',
+        arguments: {
+          method: 'POST',
+          url: 'https://api.example.com/users',
+          title: 'Create User',
+          includeExamples: true,
+        },
+      })
+    );
     log('generate_documentation', text);
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatch(/Create User/);

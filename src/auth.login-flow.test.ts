@@ -194,7 +194,11 @@ describe('device-login callback — survives deployed frontends', () => {
   it('prompt timeout surfaces the login URL but keeps the callback server alive for a late sign-in', async () => {
     process.env.HOPPSCOTCH_AUTH_TIMEOUT_MS = '50';
     try {
-      const p1 = getValidToken('https://sh5.example.com', 'https://sh5.example.com/backend', 'selfhost');
+      const p1 = getValidToken(
+        'https://sh5.example.com',
+        'https://sh5.example.com/backend',
+        'selfhost'
+      );
       const redirectUri = redirectUriFrom(await waitForLoginUrl());
 
       // The call gives up after the short prompt timeout and the rejection
@@ -213,7 +217,11 @@ describe('device-login callback — survives deployed frontends', () => {
   });
 
   it('reauthenticate starts a fresh login flow and resolves on callback', async () => {
-    const p = reauthenticate('https://sh6.example.com', 'https://sh6.example.com/backend', 'selfhost');
+    const p = reauthenticate(
+      'https://sh6.example.com',
+      'https://sh6.example.com/backend',
+      'selfhost'
+    );
     const redirectUri = redirectUriFrom(await waitForLoginUrl());
     const res = await fetch(`${redirectUri}?access_token=reauth-token`);
     expect(res.status).toBe(200);
@@ -222,7 +230,11 @@ describe('device-login callback — survives deployed frontends', () => {
 
   it('reauthenticate aborts an in-flight login: old callback dies, fresh flow starts', async () => {
     // F1 is in flight and a caller is blocked awaiting it.
-    const p1 = getValidToken('https://sh7.example.com', 'https://sh7.example.com/backend', 'selfhost');
+    const p1 = getValidToken(
+      'https://sh7.example.com',
+      'https://sh7.example.com/backend',
+      'selfhost'
+    );
     const oldRedirect = redirectUriFrom(await waitForLoginUrl());
     // Attach the rejection assertion now so the abort rejection is always handled.
     const p1Rejected = expect(p1).rejects.toThrow(/aborted/i);
@@ -231,7 +243,11 @@ describe('device-login callback — survives deployed frontends', () => {
     openCalls.length = 0;
 
     // Re-auth aborts F1 and immediately opens a fresh flow F2.
-    const p2 = reauthenticate('https://sh7.example.com', 'https://sh7.example.com/backend', 'selfhost');
+    const p2 = reauthenticate(
+      'https://sh7.example.com',
+      'https://sh7.example.com/backend',
+      'selfhost'
+    );
     const newRedirect = redirectUriFrom(await waitForLoginUrl());
 
     // The blocked F1 caller is rejected (explicit re-auth abandons the old flow).
@@ -240,7 +256,9 @@ describe('device-login callback — survives deployed frontends', () => {
     // F1's old callback can no longer complete a login: its listeners were torn
     // down by the abort (socket closed → fetch throws; or, if the ephemeral port
     // was reused by F2, the stale nonce yields a non-200). Either way: not a 200.
-    const stale = await fetch(`${oldRedirect}?access_token=stale-should-be-ignored`).catch(() => null);
+    const stale = await fetch(`${oldRedirect}?access_token=stale-should-be-ignored`).catch(
+      () => null
+    );
     expect(stale === null || stale.status !== 200).toBe(true);
 
     // F2 completes normally with the fresh token.

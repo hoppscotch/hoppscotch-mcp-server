@@ -42,10 +42,10 @@ describe('RequestRepository', () => {
 
       const result = await repository.getTeamRequests('col1');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { collectionID: 'col1', cursor: undefined }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        collectionID: 'col1',
+        cursor: undefined,
+      });
       expect(result).toEqual([teamRequest]);
     });
 
@@ -56,10 +56,10 @@ describe('RequestRepository', () => {
 
       await repository.getTeamRequests('col1', 'cursor123');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { collectionID: 'col1', cursor: 'cursor123' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        collectionID: 'col1',
+        cursor: 'cursor123',
+      });
     });
 
     it('should return empty array when requestsInCollection is null', async () => {
@@ -78,10 +78,7 @@ describe('RequestRepository', () => {
 
       const result = await repository.getTeamRequest('tr1');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { requestID: 'tr1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), { requestID: 'tr1' });
       expect(result).toEqual(teamRequest);
     });
   });
@@ -97,15 +94,12 @@ describe('RequestRepository', () => {
         request: '{"method":"GET","endpoint":"https://api.example.com/users"}',
       });
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        {
-          collectionID: 'col1',
-          teamID: 'team1',
-          title: 'Get Users',
-          request: '{"method":"GET","endpoint":"https://api.example.com/users"}',
-        }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        collectionID: 'col1',
+        teamID: 'team1',
+        title: 'Get Users',
+        request: '{"method":"GET","endpoint":"https://api.example.com/users"}',
+      });
       expect(result).toEqual(teamRequest);
     });
   });
@@ -122,10 +116,11 @@ describe('RequestRepository', () => {
       });
 
       expect(mockClient.graphql).toHaveBeenCalledTimes(2);
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2,
-        expect.anything(),
-        { requestID: 'tr1', title: 'Get Users', request: '{"method":"GET"}' }
-      );
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
+        requestID: 'tr1',
+        title: 'Get Users',
+        request: '{"method":"GET"}',
+      });
       expect(result).toEqual(teamRequest);
     });
 
@@ -136,10 +131,11 @@ describe('RequestRepository', () => {
 
       await repository.updateTeamRequest('tr1', { request: '{"method":"GET"}' });
 
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2,
-        expect.anything(),
-        { requestID: 'tr1', title: 'Get Users', request: '{"method":"GET"}' }
-      );
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
+        requestID: 'tr1',
+        title: 'Get Users',
+        request: '{"method":"GET"}',
+      });
     });
 
     it('should preserve current request when only title is provided', async () => {
@@ -149,10 +145,11 @@ describe('RequestRepository', () => {
 
       await repository.updateTeamRequest('tr1', { title: 'Updated' });
 
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2,
-        expect.anything(),
-        { requestID: 'tr1', title: 'Updated', request: teamRequest.request }
-      );
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
+        requestID: 'tr1',
+        title: 'Updated',
+        request: teamRequest.request,
+      });
     });
   });
 
@@ -162,10 +159,7 @@ describe('RequestRepository', () => {
 
       const result = await repository.deleteTeamRequest('tr1');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { requestID: 'tr1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), { requestID: 'tr1' });
       expect(result).toBe(true);
     });
   });
@@ -178,10 +172,10 @@ describe('RequestRepository', () => {
 
       const result = await repository.moveTeamRequest('tr1', 'col2');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { requestID: 'tr1', destCollID: 'col2' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        requestID: 'tr1',
+        destCollID: 'col2',
+      });
       expect(result.collectionID).toBe('col2');
     });
   });
@@ -196,10 +190,9 @@ describe('RequestRepository', () => {
 
       const result = await repository.getUserRequests('ucol1');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { userCollectionID: 'ucol1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        userCollectionID: 'ucol1',
+      });
       expect(result).toEqual([userRequest]);
     });
 
@@ -242,10 +235,11 @@ describe('RequestRepository', () => {
         request: '{"method":"POST"}',
       });
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { collectionID: 'ucol1', title: 'Post Item', request: '{"method":"POST"}' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        collectionID: 'ucol1',
+        title: 'Post Item',
+        request: '{"method":"POST"}',
+      });
       expect(result).toEqual(userRequest);
     });
 
@@ -285,10 +279,11 @@ describe('RequestRepository', () => {
         title: 'Updated',
       });
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { id: 'ur1', title: 'Updated', request: undefined }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        id: 'ur1',
+        title: 'Updated',
+        request: undefined,
+      });
       expect(result).toEqual(userRequest);
     });
 
@@ -320,10 +315,7 @@ describe('RequestRepository', () => {
 
       const result = await repository.deleteUserRequest('ur1');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        { id: 'ur1' }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), { id: 'ur1' });
       expect(result).toBe(true);
     });
   });
@@ -336,14 +328,11 @@ describe('RequestRepository', () => {
 
       const result = await repository.moveUserRequest('ur1', 'ucol1', 'ucol2');
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(
-        expect.anything(),
-        {
-          requestID: 'ur1',
-          sourceCollectionID: 'ucol1',
-          destinationCollectionID: 'ucol2',
-        }
-      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
+        requestID: 'ur1',
+        sourceCollectionID: 'ucol1',
+        destinationCollectionID: 'ucol2',
+      });
       expect(result.collectionID).toBe('ucol2');
     });
   });

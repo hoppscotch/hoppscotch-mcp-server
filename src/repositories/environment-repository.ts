@@ -74,10 +74,20 @@ export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
   try {
     vars = JSON.parse(env.variables) as Array<Record<string, unknown>>;
   } catch {
-    return { ...env, variables: JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]) };
+    return {
+      ...env,
+      variables: JSON.stringify([
+        { key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true },
+      ]),
+    };
   }
   if (!Array.isArray(vars)) {
-    return { ...env, variables: JSON.stringify([{ key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true }]) };
+    return {
+      ...env,
+      variables: JSON.stringify([
+        { key: '<unavailable>', value: SECRET_PLACEHOLDER, secret: true },
+      ]),
+    };
   }
   if (!vars.some((v) => v && v.secret === true)) {
     return env;
@@ -335,7 +345,7 @@ export class EnvironmentRepository {
       if (!teamId) {
         throw new Error(
           'updateTeamEnvironment requires both name and variables when HOPPSCOTCH_DEFAULT_TEAM_ID is not configured. ' +
-          'Either pass both fields, or set HOPPSCOTCH_DEFAULT_TEAM_ID so the server can look up the current values.'
+            'Either pass both fields, or set HOPPSCOTCH_DEFAULT_TEAM_ID so the server can look up the current values.'
         );
       }
       const all = await this.getTeamEnvironments(teamId);
