@@ -1,0 +1,25 @@
+name: Feature request
+description: A tool, an option, or a behaviour you would like the server to have.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The workflow you want, and where the server currently stops you.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+      description: A new tool, an argument on an existing one, a configuration option, or something else.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried
+      description: Existing tools or workarounds you used, and why they fell short.
