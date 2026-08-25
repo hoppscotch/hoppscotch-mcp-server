@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Workflow actions are pinned to commit SHAs, so nothing moves them on its own.
+  # Dependabot is the only mechanism that will, which is why this block exists
+  # even though the npm one below is deliberately quiet.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "00:00"
+
+  # Follows the convention in hoppscotch/hoppscotch. A limit of 0 turns off
+  # routine version-bump PRs while leaving security-update PRs unaffected.
+  # Routine bumps are done by hand so they clear the .npmrc cooldown
+  # (minimum-release-age), which Dependabot does not honour.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "00:00"
+    open-pull-requests-limit: 0
