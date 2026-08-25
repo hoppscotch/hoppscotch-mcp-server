@@ -199,7 +199,7 @@ exception: on Cloud it returns an empty list.
 
 | Tool | Description |
 |------|-------------|
-| `list_teams` | List all teams you are a member of |
+| `list_teams` | List all teams you are a member of, with each team's members |
 | `get_team_info` | Get team details including members and roles |
 | `create_team` | Create a new team |
 | `rename_team` | Rename a team |
@@ -209,6 +209,11 @@ exception: on Cloud it returns an empty list.
 | `revoke_team_invitation` | Revoke a pending team invitation |
 | `remove_team_member` | Remove a member from a team |
 | `update_team_member_role` | Update a team member's role (OWNER/EDITOR/VIEWER) |
+
+> `list_teams` and `get_team_info` return each member's user ID, display name,
+> and **email address** alongside their role. Both are read-only and both ship in
+> the default `core` profile, so asking an agent to list your teams puts your
+> colleagues' email addresses into the model's context.
 
 ### Team Collections
 
@@ -462,6 +467,8 @@ Complete the browser login within 5 minutes, or retry the tool call.
 ### Session expired (Cloud)
 
 Cloud sessions are Firebase-backed and expire after ~1 hour. The server attempts to refresh automatically using the stored Firebase refresh token. If refresh fails, the next tool call opens a new browser login.
+
+This applies to sessions created by device login. A token supplied through `HOPPSCOTCH_ACCESS_TOKEN` is used exactly as given and is never refreshed, so keeping it valid is up to you.
 
 ### GraphQL Unauthorized error
 
