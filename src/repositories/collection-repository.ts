@@ -11,7 +11,7 @@ import { ApiType, DEFAULT_MAX_RESULTS } from '../config.js';
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
-/** Raw GQL TeamCollection shape — parent is a nested object, not a scalar parentID. */
+/** Raw GQL TeamCollection shape: parent is a nested object, not a scalar parentID. */
 interface RawTeamCollection {
   id: string;
   title: string;
@@ -22,7 +22,7 @@ interface RawTeamCollection {
   children?: Array<{ id: string; title: string }>;
 }
 
-/** Raw GQL UserCollection shape — SH returns parent { id }, not a parentID scalar. */
+/** Raw GQL UserCollection shape: SH returns parent { id }, not a parentID scalar. */
 interface RawUserCollection {
   id: string;
   title: string;
@@ -34,7 +34,7 @@ interface RawUserCollection {
  * Repository for managing collections (user and team).
  *
  * User collection READS (list, get, export) are not supported on Cloud as of
- * now — the MCP gates them client-side. Calling these methods against Cloud
+ * now; the MCP gates them client-side. Calling these methods against Cloud
  * throws a clear error rather than hitting the backend.
  *
  * ALL team collection operations work on both Cloud and Self-Hosted. User
@@ -91,7 +91,7 @@ export class CollectionRepository {
 
   /**
    * List root user collections (REST or GQL type).
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async getUserCollections(
     type: CollectionType,
@@ -124,7 +124,7 @@ export class CollectionRepository {
 
   /**
    * Get a specific user collection by ID.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async getUserCollection(collectionId: string): Promise<UserCollection> {
     this.assertNotCloud('get_user_collection');
@@ -230,7 +230,7 @@ export class CollectionRepository {
 
   /**
    * Export user collections to JSON.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async exportUserCollection(type: CollectionType, collectionId?: string): Promise<string> {
     this.assertNotCloud('export_user_collection');
@@ -276,7 +276,7 @@ export class CollectionRepository {
         normalizedJson = JSON.stringify([parsed]);
       }
     } catch {
-      // Pass as-is — server will return invalid_json error
+      // Pass as-is; the server will return an invalid_json error
     }
 
     await this.client.graphql(mutations.IMPORT_USER_COLLECTIONS_JSON, {
@@ -446,7 +446,7 @@ export class CollectionRepository {
         normalizedJson = JSON.stringify([parsed]);
       }
     } catch {
-      // Pass as-is — server will return invalid_json error
+      // Pass as-is; the server will return an invalid_json error
     }
 
     await this.client.graphql(mutations.IMPORT_TEAM_COLLECTIONS_JSON, {

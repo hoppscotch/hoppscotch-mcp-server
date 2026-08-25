@@ -5,7 +5,7 @@ import { HoppscotchMCPServer } from './server';
 import { ApiType, type Config } from './config';
 import { VERSION } from './version';
 
-// The public library entry (`createServer` / package `main`) was cut for v1 —
+// The public library entry (`createServer` / package `main`) was cut for v1, so
 // the package ships bin-only. These tests still guard the *internal* seams that
 // made that cut safe and keep it cheap to reverse: the server class must stay
 // lifecycle-free (no signal hijack), `run()` must accept an injected transport,

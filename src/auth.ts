@@ -9,7 +9,7 @@ import type { ApiType } from './config.js';
 const AUTH_DIR = join(homedir(), '.config', 'hoppscotch-mcp');
 const AUTH_FILE = join(AUTH_DIR, 'auth.json');
 
-/** Token lifetime buffer — treat token as expired 60s before actual expiry */
+/** Token lifetime buffer: treat a token as expired 60s before its real expiry. */
 const EXPIRY_BUFFER_MS = 60_000;
 /**
  * How long a single tool call BLOCKS waiting for the user to finish browser
@@ -44,7 +44,7 @@ const FALLBACK_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 declare const __FIREBASE_WEB_API_KEY__: string | undefined;
 
 /**
- * Firebase Web API key for hoppscotch.io (Cloud) — used to exchange Firebase
+ * Firebase Web API key for hoppscotch.io (Cloud), used to exchange Firebase
  * custom tokens → ID tokens and to refresh ID tokens. Cloud-only: self-hosted
  * instances never reach these paths.
  *
@@ -82,7 +82,7 @@ function jwtExpiresAt(token: string): number {
     };
     if (decoded.exp) return decoded.exp * 1000; // exp is in seconds
   } catch {
-    // Ignore — non-JWT (e.g. PAT), use fallback
+    // Ignore: non-JWT (e.g. PAT), use fallback
   }
   return Date.now() + FALLBACK_TOKEN_TTL_MS;
 }
@@ -90,7 +90,7 @@ function jwtExpiresAt(token: string): number {
 /**
  * Extract a stable account identity from a JWT (the `sub` claim, falling back to
  * `user_id` then `email`). Returns null for a non-JWT / opaque token (e.g. a PAT)
- * or a token with no identity claim — callers treat null as "identity unknown"
+ * or a token with no identity claim. Callers treat null as "identity unknown"
  * and never hard-fail on it.
  */
 export function jwtSubject(token: string): string | null {
@@ -134,7 +134,7 @@ interface StoredAuth {
   /**
    * Stable account identity (JWT sub/user_id/email) this token belongs to. Used
    * to refuse a silent mid-session account switch when another process overwrites
-   * auth.json for the same apiUrl. Absent on legacy files / PATs — a missing
+   * auth.json for the same apiUrl. Absent on legacy files and PATs, where a missing
    * subject is re-derived from the token on read and never hard-fails.
    */
   subject?: string | null;
@@ -162,7 +162,7 @@ let memCache: InMemoryCache | null = null;
  * The account identity this process first authenticated as, pinned on the first
  * token accepted. A later disk token (written by another process that logged in
  * as a different account on the same apiUrl) carrying a DIFFERENT known subject
- * is refused rather than silently served — the caller must `reauth` to switch.
+ * is refused rather than silently served. The caller must `reauth` to switch.
  * null until pinned; only a both-known-and-different subject is a conflict, so
  * PAT/opaque tokens and legacy files never hard-fail.
  */
@@ -177,10 +177,10 @@ function pinSessionIdentity(subject: string | null): void {
 
 /**
  * A hard identity conflict. Once the session is pinned to a known identity, ANY
- * candidate that isn't exactly that identity — including an unidentifiable
- * (null-subject) token — is a conflict. Fails CLOSED: an opaque token cannot prove
+ * candidate that isn't exactly that identity, including an unidentifiable
+ * (null-subject) token, is a conflict. Fails CLOSED: an opaque token cannot prove
  * it belongs to the pinned account, so it is refused rather than silently served.
- * (An unpinned session, sessionSubject === null, still accepts anything — the
+ * (An unpinned session, sessionSubject === null, still accepts anything: the
  * first token is what pins the identity.)
  */
 function identityConflicts(subject: string | null): boolean {
@@ -189,8 +189,8 @@ function identityConflicts(subject: string | null): boolean {
 
 /**
  * A refreshed token must not change the effective account. It conflicts if it
- * disagrees with the pinned session identity OR — on an as-yet-unpinned fresh
- * start, where `identityConflicts` alone is vacuous — with the identity the
+ * disagrees with the pinned session identity, or, on an as-yet-unpinned fresh
+ * start where `identityConflicts` alone is vacuous, with the identity the
  * stored token itself proved. This closes the case where a fresh process reads
  * an expired account-A token from disk and its refresh returns account B: without
  * the stored-subject arm, nothing is pinned yet, so B would be persisted and
@@ -208,7 +208,7 @@ function refreshIdentityConflicts(refreshedSubject: string | null, storedSubject
  * A shared, in-flight browser-login flow. While one is active, all callers reuse
  * it (so only one browser window opens and the callback server binds once).
  * - `promise` resolves with the token on callback success; it rejects only on a
- *   hard error or when the callback server's TTL expires — NOT when an
+ *   hard error or when the callback server's TTL expires, NOT when an
  *   individual caller's prompt timeout fires.
  * - `urlSink.url` holds the login URL once the callback server has bound, so a
  *   caller whose prompt timeout fires can surface it.
@@ -237,7 +237,7 @@ let patWarningShown = false;
  * so a single global would let a second request overwrite the first's sink AND
  * let the first request's cleanup clear the second's. Each registrant removes
  * ONLY its own reporter (identity-checked) via the returned disposer, and
- * progress is broadcast to every current sink — correct for one user driving
+ * progress is broadcast to every current sink, which is right for one user driving
  * several agent surfaces. Best-effort and fully guarded: progress reporting must
  * never break or block the login itself.
  */
@@ -291,14 +291,14 @@ export function __resetSessionIdentityForTests(): void {
  * Return a valid access token.
  *
  * Priority:
- *  1. Explicit `accessToken` argument (from config.accessToken) — used as-is, no
+ *  1. Explicit `accessToken` argument (from config.accessToken): used as-is, no
  *     refresh. The CLI populates this from HOPPSCOTCH_ACCESS_TOKEN via loadConfig;
  *     this function never reads the env var itself (so an ambient host token can't
  *     cross into an embedder that omitted a token).
- *  2. In-process memory cache — avoids disk reads and duplicate login flows.
- *  3. Stored token from previous browser login — refreshed if close to expiry (both
- *     backends; refresh mechanism differs — see the Cloud/Self-Hosted notes below).
- *  4. Browser-based device-login flow — opens the Hoppscotch frontend login page.
+ *  2. In-process memory cache: avoids disk reads and duplicate login flows.
+ *  3. Stored token from a previous browser login: refreshed if close to expiry (both
+ *     backends; the refresh mechanism differs, see the Cloud/Self-Hosted notes below).
+ *  4. Browser-based device-login flow: opens the Hoppscotch frontend login page.
  *     If a login is already in progress, all callers await the same Promise.
  *
  * @param serverUrl  The Hoppscotch frontend URL (e.g. https://hoppscotch.io or https://your-sh.example.com).
@@ -319,12 +319,12 @@ export async function getValidToken(
   apiType: ApiType,
   accessToken?: string
 ): Promise<string> {
-  // 1. Static token — supplied explicitly by the caller (config.accessToken).
+  // 1. Static token, supplied explicitly by the caller (config.accessToken).
   // This function does NOT read HOPPSCOTCH_ACCESS_TOKEN itself: the env var is
   // read ONLY at the CLI boundary (loadConfig), which threads it in here as
   // `accessToken`. Reading the env here as a fallback would let a host process's
   // ambient token cross into an embedder that deliberately omitted a token
-  // (expecting device-login) — sending that token to the embedder's chosen API
+  // (expecting device-login), sending that token to the embedder's chosen API
   // URL. Caller's responsibility to keep an explicit token valid.
   const staticToken = accessToken;
   if (staticToken) {
@@ -341,7 +341,7 @@ export async function getValidToken(
     return token;
   }
 
-  // 2. In-process memory cache — fast path for sequential calls.
+  // 2. In-process memory cache: fast path for sequential calls.
   if (memCacheValid(apiUrl)) {
     return memCache!.token;
   }
@@ -354,7 +354,7 @@ export async function getValidToken(
     // another process logged in on the same apiUrl and overwrote auth.json), do
     // not serve it. The user must explicitly `reauth` to switch accounts.
     // Identity is derived from the TOKEN's own `sub` claim, never the co-located
-    // `subject` field — that field lives in the same attacker-writable file and
+    // `subject` field, which lives in the same attacker-writable file and
     // could be relabelled to impersonate the pinned account.
     const storedSubject = jwtSubject(stored.accessToken);
     if (identityConflicts(storedSubject)) {
@@ -365,7 +365,7 @@ export async function getValidToken(
       return stored.accessToken;
     }
 
-    // Token is expired or close to expiry — try to refresh. The refreshed token's
+    // Token is expired or close to expiry, so try to refresh. The refreshed token's
     // identity is re-checked OUTSIDE the try/catch: a refresh must never silently
     // change the effective account, and the catch (which falls back to browser
     // login) must not swallow that refusal.
@@ -398,7 +398,7 @@ export async function getValidToken(
       if (refreshed) {
         const refreshedSubject = jwtSubject(refreshed.accessToken);
         // Identity-check BEFORE persisting: a refresh that returns a DIFFERENT
-        // account must never be written to disk — an unpinned later start would
+        // account must never be written to disk: an unpinned later start would
         // otherwise silently adopt it. The stored-subject arm also catches the
         // fresh-start case where nothing is pinned yet. (Mirrors the Cloud branch.)
         if (refreshIdentityConflicts(refreshedSubject, storedSubject)) throw identitySwitchError();
@@ -435,7 +435,7 @@ export async function getValidToken(
 /**
  * Wait for the shared login flow, but only up to the per-call prompt timeout.
  * On timeout we reject with an actionable, URL-bearing message WITHOUT
- * cancelling the underlying flow — it keeps running (and caching the token on
+ * cancelling the underlying flow. It keeps running (and caching the token on
  * success) so the caller's next attempt resolves from cache.
  */
 function awaitLoginWithPromptTimeout(current: PendingLogin): Promise<string> {
@@ -479,7 +479,7 @@ function awaitLoginWithPromptTimeout(current: PendingLogin): Promise<string> {
  * spin up a temporary local HTTP server to capture the callback, and return
  * the access token.
  *
- * The login page must be served by the frontend app — the API backend does not
+ * The login page must be served by the frontend app; the API backend does not
  * render the consent UI.
  */
 /**
@@ -527,7 +527,7 @@ async function runLoginFlow(
   const expectedStateBuf = Buffer.from(stateNonce, 'utf8');
 
   return new Promise((resolve, reject) => {
-    // We bind TWO servers — one on 127.0.0.1 and one on ::1 — to the same
+    // We bind TWO servers, one on 127.0.0.1 and one on ::1, to the same
     // random port so the callback reaches us regardless of which loopback
     // family the browser resolves `localhost` to. Both servers share this
     // one request handler. Closing either is routed through closeAllServers
@@ -564,14 +564,14 @@ async function runLoginFlow(
       }
       const url = new URL(req.url ?? '/', 'http://localhost');
 
-      // Response varies by Origin regardless of whether we grant CORS — set
+      // Response varies by Origin regardless of whether we grant CORS, so set
       // unconditionally so any intermediary cache keys on it.
       res.setHeader('Vary', 'Origin');
 
       // Origin enforcement happens HERE, server-side, BEFORE any callback
       // parsing or side effects. The earlier "withhold Allow-Origin for
       // foreign origins" approach only gated whether the browser would let
-      // the foreign page READ our response — it did NOT prevent the request
+      // the foreign page READ our response; it did NOT prevent the request
       // from reaching this handler and triggering settleOnce/storeAuth.
       //
       // - No Origin header: same-origin or non-browser caller (curl, axios
@@ -611,8 +611,8 @@ async function runLoginFlow(
       const refreshToken = url.searchParams.get('refresh_token');
       // The state nonce travels in the URL PATH (/callback/<nonce>), never
       // the query string. Both deployed Hoppscotch frontends deliver tokens
-      // by string concatenation — axios.get(`${redirect_uri}?access_token=…`)
-      // — so a redirect_uri that already carries a query gains a second '?'
+      // by string concatenation, axios.get(`${redirect_uri}?access_token=…`),
+      // so a redirect_uri that already carries a query gains a second '?'
       // and the state param swallows the token params (broken login that
       // surfaces as a silent 5-minute timeout).
       const callbackState = url.pathname.slice('/callback/'.length);
@@ -626,7 +626,7 @@ async function runLoginFlow(
       if (!stateValid) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', reason: 'invalid_state' }));
-        // Don't close the server — a legitimate callback may still arrive.
+        // Don't close the server: a legitimate callback may still arrive.
         return;
       }
 
@@ -652,7 +652,7 @@ async function runLoginFlow(
         ).then(({ idToken, refreshToken: fbRefreshToken }) => {
           // The callback already flipped `settled`, so an abort that lands while
           // the (async) Cloud token exchange is in flight can't go through
-          // settleOnce — it would be a silent no-op. Re-check the signal HERE so
+          // settleOnce, where it would be a silent no-op. Re-check the signal HERE so
           // an explicit reauthenticate() during the exchange window can't persist
           // or cache this now-stale token (the user asked to switch identities).
           if (signal.aborted) {
@@ -663,7 +663,7 @@ async function runLoginFlow(
           // An explicit browser sign-in (re)pins the active identity: the user
           // actively chose this account, so it becomes the session identity even
           // if a different one was pinned before (a passive disk switch would be
-          // refused instead — see getValidToken).
+          // refused instead, see getValidToken).
           const subject = jwtSubject(idToken);
           sessionSubject = subject;
           storeAuth({
@@ -695,7 +695,7 @@ async function runLoginFlow(
         );
       });
     }, CALLBACK_TTL_MS);
-    // Don't let the TTL timer keep the host process alive on its own — a pending
+    // Don't let the TTL timer keep the host process alive on its own: a pending
     // login must never block shutdown. The stdio transport (or an embedder's
     // transport) keeps the loop alive during a real login, so the timer still
     // fires normally; unref only matters once nothing else is running.
@@ -744,7 +744,7 @@ async function runLoginFlow(
       // resolves to ::1 on IPv6-first systems (Node 20+ verbatim DNS order,
       // macOS IPv6 /etc/hosts entries, etc.). We wait for its bind to
       // settle (ready OR known-unavailable) before emitting the callback
-      // URL — otherwise an IPv6-first browser could resolve ::1 and hit a
+      // URL, otherwise an IPv6-first browser could resolve ::1 and hit a
       // socket that's still binding, with no IPv4 fallback for it.
       const ipv6Server = http.createServer(requestHandler);
       ipv6Server.unref();
@@ -760,7 +760,7 @@ async function runLoginFlow(
       // unavailability is fail-closed: we cannot tell whether an IPv6-first
       // browser callback would reach us, another process, or nothing. Only
       // EADDRNOTAVAIL / EAFNOSUPPORT are treated as "IPv6 genuinely
-      // unavailable here, IPv4-only is safe" — on those hosts no browser can
+      // unavailable here, IPv4-only is safe": on those hosts no browser can
       // resolve `localhost` to ::1 in the first place.
       const failClosed = (reason: string) => {
         settleOnce(() => {
@@ -783,7 +783,7 @@ async function runLoginFlow(
           proceed(false);
           return;
         }
-        // EADDRINUSE, EACCES, or anything else — fail closed.
+        // EADDRINUSE, EACCES, or anything else: fail closed.
         failClosed(code ?? err.message);
       });
 
@@ -792,7 +792,7 @@ async function runLoginFlow(
       try {
         ipv6Server.listen(port, '::1');
       } catch (err) {
-        // Synchronous throw (rare — most listen errors are async 'error').
+        // Synchronous throw (rare; most listen errors are async 'error').
         // Treat conservatively as fail-closed.
         failClosed(`synchronous: ${String(err)}`);
       }
@@ -838,7 +838,7 @@ async function runLoginFlow(
  * This must be exchanged via Firebase's signInWithCustomToken REST API to get a proper
  * ID Token that the Cloud GQL API's GqlAuthGuard (which verifies Firebase ID tokens) accepts.
  *
- * The Firebase Web API key is the public client key embedded in hoppscotch.io — it is
+ * The Firebase Web API key is the public client key embedded in hoppscotch.io. It is
  * intentionally public and not a secret.
  */
 async function exchangeFirebaseCustomToken(
@@ -874,7 +874,7 @@ async function exchangeFirebaseCustomToken(
 
 /**
  * Refresh a Firebase ID Token using a Firebase refresh token.
- * Works for Cloud (hoppscotch.io) only — SH uses its own /auth/refresh endpoint.
+ * Works for Cloud (hoppscotch.io) only; SH uses its own /auth/refresh endpoint.
  */
 async function refreshFirebaseToken(
   firebaseRefreshToken: string
@@ -908,7 +908,7 @@ async function refreshFirebaseToken(
 /**
  * Exchange a refresh token for a new access token via the self-hosted `/auth/refresh`
  * endpoint (self-hosted only; Cloud uses Firebase). Returns the new tokens WITHOUT
- * persisting them — the caller re-checks the refreshed token's identity first and
+ * persisting them. The caller re-checks the refreshed token's identity first and
  * persists only after that check passes, so a refresh that returns a DIFFERENT
  * account is never written to disk (which a later unpinned start would adopt).
  */
@@ -971,13 +971,13 @@ function storeAuth(auth: StoredAuth): void {
     // older/loose file is tightened to owner-only on every write.
     try { chmodSync(AUTH_FILE, 0o600); } catch { /* non-POSIX or EPERM */ }
   } catch (err) {
-    // Non-fatal — token won't persist across sessions but login still works.
+    // Non-fatal: the token won't persist across sessions but login still works.
     process.stderr.write(`Warning: could not persist auth token: ${err}\n`);
   }
 }
 
 /**
- * Clear stored auth — called when the server returns auth/fail (expired/revoked token).
+ * Clear stored auth, called when the server returns auth/fail (expired/revoked token).
  * Clears both disk and in-process memory cache.
  */
 export function clearStoredAuth(): void {
@@ -986,7 +986,7 @@ export function clearStoredAuth(): void {
   // auth/fail (expired/revoked token) followed by an immediate retry; unpinning
   // would let an attacker who rewrites auth.json during that window get a
   // different account adopted. Only explicit reauthenticate() unpins identity.
-  // Do NOT reset pendingLogin here — if a login window is already open,
+  // Do NOT reset pendingLogin here: if a login window is already open,
   // subsequent calls should await it rather than opening another. (reauthenticate
   // is the explicit path that abandons an in-flight flow to start fresh.)
   try {
@@ -998,10 +998,10 @@ export function clearStoredAuth(): void {
 
 /**
  * Force a fresh login on demand: drop the in-memory + disk caches AND abandon
- * any in-flight shared login flow, then resolve a token — which starts a
- * brand-new browser flow (unless an explicit `accessToken` was configured — the
- * CLI populates it from HOPPSCOTCH_ACCESS_TOKEN via loadConfig, an embedder sets
- * it directly — in which case that token is returned as-is). Lets an agent
+ * any in-flight shared login flow, then resolve a token, which starts a
+ * brand-new browser flow. The exception is an explicit `accessToken`: the
+ * CLI populates it from HOPPSCOTCH_ACCESS_TOKEN via loadConfig and an embedder
+ * sets it directly, and that token is then returned as-is. Lets an agent
  * re-trigger sign-in without waiting for a natural cache miss. The previously-open callback server (if any)
  * is torn down immediately via its abort handle, so the stale browser tab can't
  * store a token after the user explicitly asked to re-authenticate.

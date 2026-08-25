@@ -25,7 +25,7 @@ export class ToolHandlers {
   /**
    * Force a fresh device-login (QoL). Clears caches + abandons any in-flight
    * flow, then re-authenticates. The "login still pending" case rejects with an
-   * actionable, URL-bearing message — surfaced as normal content (not isError)
+   * actionable, URL-bearing message, surfaced as normal content (not isError)
    * so the agent shows the URL and retries. The token itself is never echoed.
    */
   async reauth(args: unknown) {
@@ -792,7 +792,7 @@ export class ToolHandlers {
 
   /**
    * Resolve variables for a personal environment. If an environmentId is given it
-   * MUST exist — a missing/unknown one is a hard error, not a silent no-op that
+   * MUST exist: a missing or unknown one is a hard error, not a silent no-op that
    * would send unresolved `{{placeholder}}`s. Team environments and Cloud user
    * environments are not available here.
    */

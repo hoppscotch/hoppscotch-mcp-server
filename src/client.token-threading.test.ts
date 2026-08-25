@@ -23,7 +23,7 @@ vi.mock('./auth.js', async (importOriginal) => {
 // under test) without an HTTP call.
 vi.mock('graphql-request', async (importOriginal) => {
   const actual = await importOriginal<typeof import('graphql-request')>();
-  // A constructable no-op client — `new GraphQLClient(...)` needs a class/function,
+  // A constructable no-op client: `new GraphQLClient(...)` needs a class or function,
   // not an arrow (arrows can't be constructors). request() resolves empty so the
   // graphql() path reaches resolveToken() without an HTTP call.
   class MockGraphQLClient {

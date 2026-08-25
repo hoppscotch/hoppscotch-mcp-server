@@ -161,7 +161,7 @@ export const MoveUserCollectionSchema = z
     newParentId: z.string().optional(),
   })
   // Reject unknown keys: a mistyped target field (e.g. `parentId`) would
-  // otherwise be silently dropped and the collection moved to root — silent
+  // otherwise be silently dropped and the collection moved to root: silent
   // data movement. Strict surfaces the typo as an error instead.
   .strict()
   .refine(

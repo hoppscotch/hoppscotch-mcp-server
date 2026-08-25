@@ -230,7 +230,7 @@ describe('request-executor', () => {
         success: false,
         error: 'Blocked request to a private/internal address',
       };
-      // Empty / permissive criteria would previously PASS — a request that never
+      // Empty or permissive criteria would previously PASS: a request that never
       // completed must not be reported valid.
       expect(validateResponse(blocked, {}).valid).toBe(false);
       expect(validateResponse(blocked, { maxResponseTime: 100000 }).valid).toBe(false);
@@ -408,7 +408,7 @@ describe('substituteRequestVariables — secret-egress policy', () => {
 
   it('returns ONLY actually-substituted secret values, not every env secret (no response over-redaction)', () => {
     // The request references {{USED}} only. An unreferenced secret whose value is a
-    // common substring ('a') must NOT be threaded into response scrubbing — otherwise
+    // common substring ('a') must NOT be threaded into response scrubbing, otherwise
     // it corrupts ordinary response text (the over-redaction regression).
     const out = substituteRequestVariables(
       base({ headers: { Authorization: 'Bearer {{USED}}' } }),
@@ -431,7 +431,7 @@ describe('substituteRequestVariables — secret-egress policy', () => {
   it('captures a secret referenced only transitively through another secret', () => {
     // A={{B}}, B=real: request {{A}} sends B's real value. B's token appears only after
     // A expands, so B is substituted and its value MUST be in the scrub set (a by-key
-    // set computed before secret substitution would miss it — the round-1 leak).
+    // set computed before secret substitution would miss it: the round-1 leak).
     const out = substituteRequestVariables(
       base({ headers: { Authorization: 'Bearer {{A}}' } }),
       [secret('A', '{{B}}'), secret('B', 'chained-actual-secret')],
@@ -443,7 +443,7 @@ describe('substituteRequestVariables — secret-egress policy', () => {
 
   it('captures only the applied value for duplicate secret keys (shadowed duplicate not over-redacted)', () => {
     // The first entry wins the substitution; the shadowed 'x' is never sent, so it must
-    // NOT reach scrubbing — else a short/common duplicate corrupts ordinary response text.
+    // NOT reach scrubbing, else a short or common duplicate corrupts ordinary response text.
     const out = substituteRequestVariables(
       base({ headers: { Authorization: 'Bearer {{DUP}}' } }),
       [secret('DUP', 'applied-secret'), secret('DUP', 'x')],
@@ -544,7 +544,7 @@ describe('redactSecrets', () => {
 
   it('masks the shortened wire form of a secret the URL parser stripped', () => {
     // Tab, LF and CR are removed by the parser rather than encoded, so a secret
-    // pasted with a trailing newline travels WITHOUT it — and that shortened
+    // pasted with a trailing newline travels WITHOUT it, and that shortened
     // string, not the raw value, is what a target can echo back. Ask the parser
     // for it rather than stripping by hand, so the expectation cannot drift from
     // what actually goes on the wire.
@@ -615,8 +615,8 @@ describe('redactSecretsClamped — bounded, leak-free redaction', () => {
   it('does not drop a shorter secret occurring BEFORE a longer secret (cross-variant order, round-10 regression)', () => {
     // Variants are scanned longest-first, so the LONGER secret's interval is pushed
     // first. The SHORTER secret occurs EARLIER in the text. The old on-the-fly merge
-    // compared each new match against intervals[last] across ALL variants — a monotonic
-    // assumption that only holds within one variant's walk — so the shorter match at an
+    // compared each new match against intervals[last] across ALL variants, a monotonic
+    // assumption that only holds within one variant's walk, so the shorter match at an
     // earlier position was silently discarded (p <= last[1] but end <= last[1]) and leaked.
     const short = 'short-value'; // 11 chars
     const long = 'LONGER-SECRET-VALUE'; // 19 chars
@@ -803,7 +803,7 @@ describe('executeRequest — secret scrubbing on the response', () => {
       ['X']
     );
     // The raw body fit the cap (not truncated), but redaction expanded it past the
-    // cap and the clamp cut it — so `truncated` must still be honest.
+    // cap and the clamp cut it, so `truncated` must still be honest.
     expect(result.truncated).toBe(true);
     expect(result.body.length).toBeLessThanOrEqual(8);
     expect(result.body).not.toContain('X'); // the secret is gone

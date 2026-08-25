@@ -9,8 +9,8 @@ export type CodeLanguage = 'curl' | 'javascript' | 'python' | 'go' | 'rust';
 // --- Escaping helpers -------------------------------------------------------
 // Every value interpolated into a generated snippet (URL, header key/value,
 // inline credentials, body) must be escaped for its target's quoting context,
-// otherwise a quote or metacharacter in the request data breaks — or injects
-// into — the emitted code. The body was already escaped per-language; these
+// otherwise a quote or metacharacter in the request data breaks the emitted
+// code, or injects into it. The body was already escaped per-language; these
 // extend the same treatment to the values that were previously interpolated
 // raw.
 
@@ -231,7 +231,7 @@ function generateGo(request: RequestDefinition): string {
   lines.push('func main() {');
 
   if (request.body) {
-    // Interpreted ("...") string literal — a raw (`...`) literal can't carry an
+    // Interpreted ("...") string literal: a raw (`...`) literal can't carry an
     // embedded backtick, and dq() escapes quotes/backslashes/newlines safely.
     lines.push(`\tpayload := []byte("${dq(request.body)}")`);
   } else {
@@ -352,7 +352,7 @@ export function generateCode(
     /**
      * Mask credential values (structured bearer/basic/api-key auth, sensitive
      * raw headers, secret URL query params, and secret body fields) in the
-     * emitted snippet. Default false — generate_code returns a copy-paste-runnable
+     * emitted snippet. Default false, so generate_code returns a copy-paste-runnable
      * snippet with live values, matching the tool's original behaviour. Pass true
      * to mask credentials when the snippet will be shared.
      */
@@ -380,7 +380,7 @@ export function generateCode(
 /**
  * Return a copy of the request with credential values replaced by placeholders.
  * Used for documentation examples, which are share-oriented (wikis, READMEs,
- * chat) — reproducing a live bearer/basic/api-key value verbatim would leak it.
+ * chat), where reproducing a live bearer/basic/api-key value verbatim would leak it.
  * The username (basic) and header/key name (api-key) are kept as they are not
  * secrets; only the secret half is masked.
  */
@@ -408,7 +408,7 @@ const SENSITIVE_HEADER_NAMES = new Set([
 ]);
 
 /**
- * True if a header name carries a credential — the base set plus high-signal
+ * True if a header name carries a credential: the base set plus high-signal
  * substrings, so compound names like `X-Auth-Token` / `X-Refresh-Token` are
  * caught too. Bare `key` is intentionally NOT matched (would mask
  * `Idempotency-Key` etc.).
@@ -466,7 +466,7 @@ function redactUrlQuery(url: string): string {
     const u = new URL(url);
     let changed = false;
     // Basic-auth credentials embedded in the URL authority (`user:pass@host`) are
-    // a structured credential location — strip them like the structured auth
+    // a structured credential location, so strip them like the structured auth
     // object. URL.origin excludes userinfo, so leaving it would leak a live
     // password into the generated snippet (curl turns it into `Authorization:
     // Basic …`).
@@ -483,7 +483,7 @@ function redactUrlQuery(url: string): string {
     }
     return changed ? u.toString() : url;
   } catch {
-    return url; // not a parseable absolute URL — leave untouched
+    return url; // not a parseable absolute URL, leave untouched
   }
 }
 
@@ -503,23 +503,23 @@ function redactJsonValue(value: unknown): unknown {
 /**
  * Best-effort masking of credential values inside a request body. Targets the
  * two body shapes that commonly carry secrets and whose fields are reliably
- * keyed — JSON objects and `application/x-www-form-urlencoded` (e.g. OAuth token
+ * keyed: JSON objects and `application/x-www-form-urlencoded` (e.g. OAuth token
  * requests: `grant_type=…&client_secret=…`). Anything else (XML, plain text,
  * multipart, binary) is left untouched: there's no reliable way to target a
  * secret in it without risking mangling the body, and over-masking arbitrary
  * text would corrupt the doc.
  */
 function redactRequestBody(body: string): string {
-  // JSON object/array — recursively mask sensitive keys at any depth.
+  // JSON object/array: recursively mask sensitive keys at any depth.
   try {
     const parsed = JSON.parse(body) as unknown;
     if (parsed !== null && typeof parsed === 'object') {
       return JSON.stringify(redactJsonValue(parsed));
     }
   } catch {
-    /* not JSON — fall through to the form-data check */
+    /* not JSON, fall through to the form-data check */
   }
-  // Form-urlencoded — only when it cleanly matches `k=v(&k=v)*` AND carries at
+  // Form-urlencoded, only when it cleanly matches `k=v(&k=v)*` AND carries at
   // least one sensitive param, so we never mangle arbitrary text that happens to
   // contain an '='.
   if (/^[^=&\s]+=[^&]*(?:&[^=&\s]+=[^&]*)*$/.test(body.trim())) {
@@ -584,8 +584,8 @@ export function generateDocumentation(
 
   // Credentials default to masked in documentation (the markdown is a
   // share-oriented artifact). This covers the structured auth object AND
-  // credential-bearing raw headers / query params; the whole doc — request
-  // line, headers table, and examples — is generated from the redacted view.
+  // credential-bearing raw headers and query params; the whole doc, meaning the
+  // request line, headers table, and examples, is generated from the redacted view.
   // Opt out with redactCredentials:false for runnable snippets with live values.
   const docRequest =
     options.redactCredentials === false ? request : redactRequestForDocs(request);
@@ -643,7 +643,7 @@ export function generateDocumentation(
     lines.push('');
   }
 
-  // Examples — generated from the same redacted view as the rest of the doc.
+  // Examples, generated from the same redacted view as the rest of the doc.
   if (options.includeExamples) {
     lines.push('## Examples');
     lines.push('');

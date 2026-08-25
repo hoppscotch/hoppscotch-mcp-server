@@ -2,12 +2,12 @@ import dotenv from 'dotenv';
 import { loadConfig, TRUST_SENSITIVE_ENV_KEYS, sanitizeTrustSensitiveEnv } from './config.js';
 import { HoppscotchMCPServer } from './server.js';
 
-// CLI entry point. This file owns the process lifecycle — env loading, signal
-// handling, and exit codes — so the server class (src/server.ts) stays free of
+// CLI entry point. This file owns the process lifecycle (env loading, signal
+// handling, and exit codes) so the server class (src/server.ts) stays free of
 // process-lifecycle side effects (no argv, signals, or exit) and remains
 // unit-testable in-process.
 
-// quiet:true suppresses dotenv's startup banner — on a stdio MCP server any
+// quiet:true suppresses dotenv's startup banner: on a stdio MCP server any
 // stray stdout write corrupts the JSON-RPC frame. (dotenv >= 16.6 is quiet by
 // default; the option keeps older 16.5.x resolutions safe too.)
 //
@@ -50,7 +50,7 @@ async function main() {
     const server = new HoppscotchMCPServer(loadConfig());
 
     // Graceful shutdown on SIGINT (Ctrl-C) and SIGTERM (process managers,
-    // containers, npx-parent kill) — close the transport cleanly, then exit.
+    // containers, npx-parent kill): close the transport cleanly, then exit.
     const shutdown = async () => {
       try {
         await server.close();

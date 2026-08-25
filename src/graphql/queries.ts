@@ -2,12 +2,12 @@
  * GraphQL queries for Hoppscotch API
  *
  * Field-name reference (verified against live schemas):
- *   Cloud  — https://api.hoppscotch.io/graphql
- *   SH OSS — packages/hoppscotch-backend/src/user-collection/user-collection.resolver.ts
+ *   Cloud:  https://api.hoppscotch.io/graphql
+ *   SH OSS: packages/hoppscotch-backend/src/user-collection/user-collection.resolver.ts
  *
  * The personal (user) workspace fields below now exist on live Cloud (they were
  * absent on the older Firestore backend, hence the historical "SH only" notes).
- * The MCP still gates them client-side as "not supported on Cloud as of now" —
+ * The MCP still gates them client-side as "not supported on Cloud as of now";
  * see the assertNotCloud guards. Team queries work on both backends.
  */
 
@@ -135,7 +135,7 @@ export const GET_TEAM_COLLECTIONS = `
  * Get a specific team collection by ID.
  * Both: collection(collectionID: ID!)
  *
- * TeamCollection has no parentID scalar — parent is a nested object.
+ * TeamCollection has no parentID scalar; parent is a nested object.
  */
 export const GET_TEAM_COLLECTION = `
   query GetTeamCollection($collectionID: ID!) {
@@ -234,7 +234,7 @@ export const GET_TEAM_REQUEST = `
 /**
  * List requests in a user collection.
  * Field: userCollection(userCollectionID: ID!) { requests { ... } }
- * Note: arg is userCollectionID (not collectionID) — same as GET_USER_COLLECTION.
+ * Note: arg is userCollectionID (not collectionID), same as GET_USER_COLLECTION.
  * Cloud: gated client-side as of now.
  */
 export const GET_USER_REQUESTS = `
@@ -256,7 +256,7 @@ export const GET_USER_REQUESTS = `
 /**
  * List all environments for a team.
  * Both: team(teamID) { teamEnvironments { ... } }
- * (No standalone teamEnvironment(id) query exists — use this and filter by ID.)
+ * (No standalone teamEnvironment(id) query exists, so use this and filter by ID.)
  */
 export const GET_TEAM_ENVIRONMENTS = `
   query GetTeamEnvironments($teamID: ID!) {

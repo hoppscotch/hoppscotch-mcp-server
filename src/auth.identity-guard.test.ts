@@ -65,7 +65,7 @@ describe('identity-switch guard (getValidToken disk-read refusal)', () => {
     vi.mocked(readFileSync).mockReturnValue(cloudStore({ accessToken: jwtFor('account-A') }));
     await getValidToken(...CLOUD); // pin A
     __dropMemCacheForTests();
-    // An opaque token (no `sub`) cannot prove it belongs to A — refuse, don't serve.
+    // An opaque token (no `sub`) cannot prove it belongs to A, so refuse rather than serve.
     vi.mocked(readFileSync).mockReturnValue(cloudStore({ accessToken: 'opaque-no-sub-token' }));
     await expect(getValidToken(...CLOUD)).rejects.toThrow(/Signed-in account changed/);
   });
@@ -100,7 +100,7 @@ describe('identity-switch guard (getValidToken disk-read refusal)', () => {
     vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
     await expect(getValidToken(...SH)).rejects.toThrow(/Signed-in account changed/);
 
-    // The rejected refresh must NOT have persisted account B to disk — an unpinned
+    // The rejected refresh must NOT have persisted account B to disk: an unpinned
     // later start would otherwise silently adopt it. (Round-4 fix: the SH refresh
     // now persists only AFTER the identity check, mirroring the Cloud path.)
     const bToken = jwtFor('account-B');

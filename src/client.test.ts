@@ -7,7 +7,7 @@ import { HoppscotchError } from './types';
 // A realistic secret value that would ride inside an environment-mutation's
 // GraphQL variables. If sanitizeGraphQLError ever regresses to echoing
 // ClientError.message, this sentinel leaks into the returned message and the
-// tests below fail — that is the whole point of them.
+// tests below fail, which is the whole point of them.
 const SECRET = 'sk-SENTINEL-do-not-leak-9Z';
 
 /** Build a graphql-request ClientError shaped exactly as a real failed
@@ -154,7 +154,7 @@ describe('HoppscotchClient', () => {
     });
   });
 
-  // Integration tests — only run when HOPPSCOTCH_INTEGRATION=1 is explicitly set
+  // Integration tests, only run when HOPPSCOTCH_INTEGRATION=1 is explicitly set
   // (avoids failures from expired tokens in .env during regular unit test runs)
   describe.skipIf(!process.env.HOPPSCOTCH_INTEGRATION)('GraphQL integration', () => {
     it('should execute GraphQL query against real API', async () => {

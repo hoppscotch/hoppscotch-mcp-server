@@ -1255,7 +1255,7 @@ const REQUEST_CRUD_TOOLS = {
 } as const;
 
 // Combine all tools
-// Auth utility — available in EVERY profile (folded into minimal), since
+// Auth utility, available in EVERY profile (folded into minimal), since
 // re-authenticating is fundamental regardless of which tool surface is exposed.
 const AUTH_TOOLS = {
   reauth: {
@@ -1295,7 +1295,7 @@ const RAW_ALL_FULL_TOOLS = {
 
 // MCP tool annotations (spec 2025-11-25). Hints for hosts when deciding whether
 // to surface confirmation UI before invoking a tool. Derived from tool-name
-// prefix — every tool here falls cleanly into one of six operation classes.
+// prefix; every tool here falls cleanly into one of six operation classes.
 type ToolAnnotations = {
   readOnlyHint?: boolean;
   destructiveHint?: boolean;
@@ -1362,13 +1362,13 @@ const ALL_STANDARD_TOOL_NAMES = new Set(
   Object.values(ALL_STANDARD_TOOLS).map((t) => t.name)
 );
 
-// `core` (the DEFAULT surface): the API-testing essentials — collection + env
+// `core` (the DEFAULT surface): the API-testing essentials, meaning collection and env
 // CRUD, request CRUD, request execution, and code generation, plus read-only
 // team discovery (list_teams / get_team_info). Deliberately EXCLUDES the
 // destructive team-admin writes (create/rename/delete/leave/invite/revoke/
 // remove/role) and the advanced collection ops (duplicate/move/search/import),
 // keeping the default lean and free of footguns. NOTE: `core` is NOT a superset
-// of `standard` — it trades team-admin for execute/codegen. Both are subsets of
+// of `standard`; it trades team-admin for execute/codegen. Both are subsets of
 // `full`. Opt to `standard`/`full` via HOPPSCOTCH_TOOL_PROFILE.
 const ALL_CORE_TOOL_NAMES = new Set<string>([
   ...Object.values(ALL_MINIMAL_TOOLS).map((t) => t.name),
@@ -1391,13 +1391,13 @@ function pickByNames(names: Set<string>): Record<string, AnnotatedTool> {
 /**
  * Select the annotated tool map for a given profile.
  *
- * Profile gates BOTH `tools/list` and `tools/call` — a tool absent from the
+ * Profile gates BOTH `tools/list` and `tools/call`: a tool absent from the
  * selected profile is invisible to discovery AND rejected at call-time. This
  * matters because a model that has seen tool names from prior sessions (or a
  * prompt that names them directly) must not be able to invoke "hidden" tools.
  *
  * Unknown profile values fall back to the DEFAULT (`core`) with a stderr
- * warning — a typo then yields the same surface as not setting the var at all,
+ * warning, so a typo yields the same surface as not setting the var at all,
  * rather than silently EXPANDING to `full` (which would hand a one-character
  * typo the entire destructive team-admin surface).
  */

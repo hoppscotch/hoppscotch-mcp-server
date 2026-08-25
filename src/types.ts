@@ -49,7 +49,7 @@ export interface TeamRequest {
 }
 
 /**
- * Shape returned by searchForRequest GQL — request id+title plus parent collection
+ * Shape returned by searchForRequest GQL: request id+title plus parent collection
  * id+title. Distinct from TeamRequest because the search field does not return the
  * opaque `request` body.
  */
@@ -63,7 +63,7 @@ export interface TeamRequestSearchResult {
 }
 
 /**
- * User (personal) request within a collection (GQL shape — reads gated on Cloud as of now)
+ * User (personal) request within a collection (GQL shape; reads gated on Cloud as of now)
  */
 export interface UserRequest {
   id: string;
@@ -159,7 +159,7 @@ export interface PaginationOptions {
 }
 
 /**
- * Team member role — matches GQL enum TeamMemberRole.
+ * Team member role, matching GQL enum TeamMemberRole.
  */
 export type TeamMemberRole = 'OWNER' | 'EDITOR' | 'VIEWER';
 

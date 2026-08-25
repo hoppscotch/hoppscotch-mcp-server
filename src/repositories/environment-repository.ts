@@ -15,7 +15,7 @@ import * as mutations from '../graphql/mutations.js';
 /** Placeholder substituted for a secret variable's value on the OUTBOUND read path. */
 export const SECRET_PLACEHOLDER = '<secret hidden>';
 
-/** Plaintext `secret: true` values in a serialized blob — used to scrub a backend error that echoes a submitted secret. */
+/** Plaintext `secret: true` values in a serialized blob, used to scrub a backend error that echoes a submitted secret. */
 function submittedSecretValues(variablesStr: string | undefined): string[] {
   if (!variablesStr) return [];
   let parsed: unknown;
@@ -100,7 +100,7 @@ export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
  * User environments
  * ─────────────────
  * • Self-Hosted: available via me { environments { ... } } resolver field.
- * • Cloud: not supported as of now — the MCP gates them client-side.
+ * • Cloud: not supported as of now; the MCP gates them client-side.
  *   Listing user environments on Cloud returns an empty array.
  *
  * Team environments
@@ -119,7 +119,7 @@ export class EnvironmentRepository {
   // ─── Variable serialization ────────────────────────────────────────────────
 
   private serializeVariables(variables: EnvironmentVariable[]): string {
-    // Block the redaction placeholder from being persisted — see
+    // Block the redaction placeholder from being persisted, see
     // assertNoRedactionPlaceholder. All create/update paths funnel caller-
     // supplied variables through here, so this is the single chokepoint.
     assertNoRedactionPlaceholder(variables);
@@ -160,7 +160,7 @@ export class EnvironmentRepository {
   /**
    * List personal environments for the authenticated user.
    * Self-Hosted: me { environments } resolver field.
-   * Cloud: not supported as of now — returns empty array.
+   * Cloud: not supported as of now; returns an empty array.
    */
   async getUserEnvironments(): Promise<UserEnvironment[]> {
     if (this.isCloud()) {
@@ -176,7 +176,7 @@ export class EnvironmentRepository {
 
   /**
    * Create a personal environment.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async createUserEnvironment(data: CreateEnvironmentInput): Promise<UserEnvironment> {
     if (this.isCloud()) {
@@ -201,7 +201,7 @@ export class EnvironmentRepository {
 
   /**
    * Update a personal environment.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async updateUserEnvironment(
     environmentId: string,
@@ -214,7 +214,7 @@ export class EnvironmentRepository {
     }
 
     // name and variables are String! (NON_NULL) on the SH mutation. If the
-    // caller omits one we must read the current value and pass it through —
+    // caller omits one we must read the current value and pass it through;
     // sending '' / '[]' as a default would silently wipe data the user did
     // not ask to change.
     let name = data.name;
@@ -245,7 +245,7 @@ export class EnvironmentRepository {
 
   /**
    * Delete a personal environment.
-   * Not supported on Cloud as of now — gated client-side.
+   * Not supported on Cloud as of now; gated client-side.
    */
   async deleteUserEnvironment(environmentId: string): Promise<boolean> {
     if (this.isCloud()) {
@@ -277,7 +277,7 @@ export class EnvironmentRepository {
 
   /**
    * Get a specific team environment by ID.
-   * No single-by-ID GQL query exists — lists all environments for the team and filters.
+   * No single-by-ID GQL query exists, so this lists all environments for the team and filters.
    * Requires teamId; throws if not found.
    */
   async getTeamEnvironment(environmentId: string, teamId: string): Promise<TeamEnvironment> {
@@ -315,14 +315,14 @@ export class EnvironmentRepository {
   /**
    * Update a team environment.
    * Both: updateTeamEnvironment(id, name!, variables!)
-   * name and variables are required — fetch current values if not provided.
+   * name and variables are required, so fetch current values if not provided.
    */
   async updateTeamEnvironment(
     environmentId: string,
     data: UpdateEnvironmentInput
   ): Promise<TeamEnvironment> {
     // name and variables are NON_NULL on the GQL mutation. If the caller
-    // omits one, fetch the current value and pass it through — sending '' /
+    // omits one, fetch the current value and pass it through; sending '' or
     // '[]' as a default would silently wipe data the user did not ask to
     // change. Requires defaultTeamId to be configured because there's no
     // single-by-ID team-env query; we list and filter.

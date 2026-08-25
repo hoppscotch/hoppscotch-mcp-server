@@ -23,7 +23,7 @@ function maxResponseBytes(): number {
  *  - `truncated`: the body exceeded `max`, so the returned/clamped view is partial
  *    (drives the caller's user-facing truncation flag).
  *  - `hitLimit`: the read stopped AT the `max + margin` hard limit, so a secret
- *    may be cut at the read edge — the redactor must not emit that edge as text.
+ *    may be cut at the read edge, so the redactor must not emit that edge as text.
  */
 async function readBodyCapped(
   response: Response,
@@ -92,7 +92,7 @@ export function substituteVariables(
   let result = text;
 
   for (const variable of variables) {
-    // Literal split/join — never build a RegExp from a user-controlled key
+    // Literal split/join: never build a RegExp from a user-controlled key
     // (a metacharacter in the key would throw or mis-match).
     result = result.split(`{{${variable.key}}}`).join(variable.value);
   }
@@ -103,8 +103,8 @@ export function substituteVariables(
 /**
  * A string undergoing secret substitution, carrying a parallel per-code-unit flag
  * marking which characters originate from a substituted secret value. Lets us recover
- * the EXACT secret-derived spans of the final request — the precise bytes response
- * scrubbing must cover — instead of guessing from raw secret values. This stays correct
+ * the EXACT secret-derived spans of the final request, the precise bytes response
+ * scrubbing must cover, instead of guessing from raw secret values. This stays correct
  * when a secret's value embeds another secret's placeholder, when a placeholder forms
  * across a value/text boundary, and when a value collapses to empty.
  */
@@ -125,13 +125,13 @@ function untaintedText(text: string): TaintedText {
  * Byte-for-byte identical to `text.split(token).join(value)` (non-overlapping,
  * left-to-right), so the wire request is unchanged while provenance is tracked.
  *
- * Uses native `indexOf` to jump between matches and slices whole runs at a time —
+ * Uses native `indexOf` to jump between matches and slices whole runs at a time,
  * keeping it O(text length) per call rather than the Θ(n²) a per-position `startsWith`
  * scan would cost on a pathological (long-key) token.
  */
 function replaceTainted(t: TaintedText, token: string, value: string): void {
   let match = t.text.indexOf(token);
-  if (match === -1) return; // token absent — text and mask unchanged
+  if (match === -1) return; // token absent, text and mask unchanged
   const valueMask = new Array(value.length).fill(true);
   const textParts: string[] = [];
   const maskParts: boolean[][] = [];
@@ -156,7 +156,7 @@ function replaceTainted(t: TaintedText, token: string, value: string): void {
   t.secretMask = maskParts.flat();
 }
 
-/** The maximal contiguous runs of secret-derived characters — the exact secret
+/** The maximal contiguous runs of secret-derived characters: the exact secret
  *  byte-spans that reach the wire, which response scrubbing must cover. Empty runs
  *  are naturally excluded (an empty secret contributes no characters). */
 function secretSpans(t: TaintedText): string[] {
@@ -205,7 +205,7 @@ function originOf(url: string): string | null {
  * HOPPSCOTCH_SECRET_ALLOWED_ORIGINS (comma-separated absolute origins, e.g.
  * "https://api.example.com,https://api2.example.com").
  *
- * Returns null when the var is UNSET — meaning no restriction, so secret values
+ * Returns null when the var is UNSET, meaning no restriction, so secret values
  * substitute freely (the pre-hardening default). Setting the var opts IN to the
  * allowlist: only the listed origins may then receive secrets (set it to an empty
  * value to deny all). Read at call time.
@@ -237,8 +237,8 @@ function secretRedactionVariants(secretValues: string[]): string[] {
     const jsonEscaped = JSON.stringify(value).slice(1, -1); // inner (escaped) form, no quotes
     if (jsonEscaped !== value) variants.add(jsonEscaped);
     // A URL-substituted secret echoes back encoded, not raw. Add the exact wire
-    // forms the real serializers produce — encodeURIComponent, the URLSearchParams
-    // (form-urlencoded) form, and the WHATWG query form — rather than approximating.
+    // forms the real serializers produce: encodeURIComponent, the URLSearchParams
+    // (form-urlencoded) form, and the WHATWG query form, rather than approximating.
     try {
       const enc = encodeURIComponent(value);
       if (enc !== value) variants.add(enc);
@@ -251,13 +251,13 @@ function secretRedactionVariants(secretValues: string[]): string[] {
         if (queryForm && queryForm !== value) variants.add(queryForm);
       }
     } catch {
-      // lone surrogate / unencodable — skip the encoded variants
+      // lone surrogate or unencodable, so skip the encoded variants
     }
   }
   return [...variants].sort((a, b) => b.length - a.length);
 }
 
-/** Max BYTE length across all redaction variants — the read margin needed so a
+/** Max BYTE length across all redaction variants: the read margin needed so a
  *  secret straddling a byte cap is fully buffered (char length under-counts a
  *  multibyte or `\uXXXX`-escaped secret, which would let a prefix leak). */
 function longestVariantBytes(secretValues: string[]): number {
@@ -268,7 +268,7 @@ function longestVariantBytes(secretValues: string[]): number {
 
 /**
  * Replace every occurrence of each secret value (and its JSON-escaped form) with
- * <redacted>. Unbounded — use only on small strings (headers, statusText); for a
+ * <redacted>. Unbounded, so use only on small strings (headers, statusText); for a
  * response body use {@link redactSecretsClamped}, which bounds output.
  */
 export function redactSecrets(text: string, secretValues: string[] = []): string {
@@ -286,7 +286,7 @@ export function redactSecrets(text: string, secretValues: string[] = []): string
 const REDACTION_WORK_CAP = 50_000_000;
 
 /** Pathological-input fallback: emit only a placeholder (never body content), still
- *  bounded to maxOut. Leak-safe by construction — no scanned text is returned. */
+ *  bounded to maxOut. Leak-safe by construction: no scanned text is returned. */
 function failSafeRedaction(maxOut: number): { text: string; clamped: boolean } {
   return { text: maxOut < REDACTED.length ? REDACTED.slice(0, maxOut) : REDACTED, clamped: true };
 }
@@ -297,7 +297,7 @@ function failSafeRedaction(maxOut: number): { text: string; clamped: boolean } {
  * Find-all → merge → emit: every variant is scanned ONCE for all its occurrences
  * with native `indexOf` (cost O(variants · n), never O(n²)), the occurrence
  * intervals are merged, then non-secret gaps and one `<redacted>` per merged
- * interval are emitted up to `maxOut`. Merging is essential — a secret whose
+ * interval are emitted up to `maxOut`. Merging is essential: a secret whose
  * occurrence begins INSIDE another secret's match would otherwise be skipped and
  * its tail leaked. Stopping at `maxOut` bounds expansion (a short secret across a
  * huge body never allocates the fully-expanded string). A cumulative work cap
@@ -340,7 +340,7 @@ export function redactSecretsClamped(
     // hits fold into `last` in O(1) memory (a dense 1-char secret over a huge body stays
     // a single interval). It is reset per variant on purpose: a LATER (shorter) variant
     // may match at an EARLIER position than an already-pushed interval, which is NOT
-    // monotonic across variants — merging against the global last there silently dropped
+    // monotonic across variants, and merging against the global last there silently dropped
     // the earlier match (round-10 leak). Cross-variant overlaps are left as separate
     // intervals and reconciled by the sort+merge below.
     let last: [number, number] | null = null;
@@ -460,8 +460,8 @@ export function substituteRequestVariables(
   };
   const referencedSecrets = secret.filter((s) => references(s.key));
 
-  // 3. Substitute secret values on taint-tracked copies, then record — as the
-  //    response-scrub set — the EXACT secret-derived spans of the final request. This
+  // 3. Substitute secret values on taint-tracked copies, then record, as the
+  //    response-scrub set, the EXACT secret-derived spans of the final request. This
   //    covers precisely the secret bytes that can echo back, so it (a) drops
   //    unreferenced and shadowed-duplicate secrets, fixing the over-redaction of
   //    ordinary response text, and (b) still captures every secret byte actually sent,
@@ -520,7 +520,7 @@ export function substituteRequestVariables(
     }
   }
 
-  // 4. When substitution was requested, no placeholder may be left unresolved —
+  // 4. When substitution was requested, no placeholder may be left unresolved:
   //    never send a literal {{...}} or a partially-substituted request.
   if (options.requireResolved) {
     const unresolved = new Set<string>();
@@ -541,7 +541,7 @@ export function substituteRequestVariables(
   }
 
   // substitutedSecretValues holds the exact secret-derived spans of the request built
-  // above — the only bytes that can echo back — so they, and only they, drive response
+  // above, the only bytes that can echo back, so they, and only they, drive response
   // scrubbing. Passing every env secret (incl. unreferenced or short/common values)
   // would over-redact and corrupt ordinary response text; a raw-value set would miss a
   // secret's composed wire form. See SECURITY.md ("secret values it substituted").
@@ -597,7 +597,7 @@ export async function executeRequest(
     if (!privateHostsAllowed()) {
       await assertUrlAllowed(targetUrl);
       // Pin the validated address at connect time so the request can't be
-      // re-resolved to a different (private) IP after the pre-flight check —
+      // re-resolved to a different (private) IP after the pre-flight check. This
       // closes the DNS-rebinding TOCTOU. The dispatcher's lookup re-validates.
       dispatcher = getPinnedDispatcher();
     }
@@ -607,7 +607,7 @@ export async function executeRequest(
       headers,
       signal: AbortSignal.timeout(timeout),
       // Do NOT auto-follow redirects: a permitted host could 30x cross-origin and
-      // leak custom auth headers (e.g. X-API-Key) — and a redirect could point at
+      // leak custom auth headers (e.g. X-API-Key), and a redirect could point at
       // a private/metadata IP, bypassing the pre-flight guard. Surface the 3xx.
       redirect: 'manual',
     };
@@ -624,7 +624,7 @@ export async function executeRequest(
 
     // Parse response. An allowlisted API can echo a substituted secret in a 4xx
     // body/header (fetch does not throw on 4xx/5xx), so scrub secret values from
-    // BOTH — they must never reach model context.
+    // BOTH: they must never reach model context.
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       responseHeaders[key] = redactSecrets(value, secretValues);
@@ -698,7 +698,7 @@ export interface ValidationCriteria {
   expectedBodyContains?: string[];
   /** Assert the body parses as a JSON object/array (NOT full JSON Schema validation). */
   jsonObject?: boolean;
-  /** @deprecated alias of jsonObject — triggers the same is-a-JSON-object check; does not validate against the schema. */
+  /** @deprecated alias of jsonObject; triggers the same is-a-JSON-object check and does not validate against the schema. */
   jsonSchema?: object;
   maxResponseTime?: number;
 }
@@ -771,13 +771,13 @@ export function validateResponse(
   }
 
   // Assert the body is structured JSON (object/array). This is NOT JSON Schema
-  // validation — it only checks that the body parses to an object/array. Both
+  // validation: it only checks that the body parses to an object/array. Both
   // `jsonObject` and the deprecated `jsonSchema` alias trigger this same check.
   if (criteria.jsonObject || criteria.jsonSchema !== undefined) {
     try {
       const parsed: unknown = JSON.parse(result.body);
       // Preserve the existing `typeof === 'object'` semantics exactly (objects,
-      // arrays, and the JS quirk `null` all pass) — this is a rename/redocument,
+      // arrays, and the JS quirk `null` all pass). This is a rename and redocument,
       // not a behavior change.
       if (typeof parsed !== 'object') {
         errors.push('Response body is not a JSON object/array');
