@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Full CI gate before any publish — mirrors the checks ci.yml runs on
+      # Full CI gate before any publish, mirroring the checks ci.yml runs on
       # main so a tag push cannot ship code that wouldn't have passed CI.
       - name: Typecheck
         run: pnpm run typecheck
