@@ -8,14 +8,14 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that en
 ## Features
 
 - **53 MCP tools** for comprehensive API workflow management
-- **Collection management**: create, update, delete, import/export, duplicate, move, and search collections
+- **Collection management**: create, update, delete, import/export, duplicate, and move collections. The one search tool, `search_team_requests`, searches a team's **requests** by title, not collections
 - **Environment management**: manage environment variables across deployment stages
 - **Team collaboration**: full team workspace support including member management
 - **Request execution**: execute HTTP requests with authentication and environment variable substitution
 - **Response validation**: validate API responses against expected criteria (status, headers, body, response time)
 - **Code generation**: generate code snippets in curl, JavaScript, Python, Go, and Rust
 - **Documentation generation**: auto-generate API documentation in Markdown
-- **REST and GraphQL collections**: both collection types supported
+- **REST and GraphQL collections**: personal collections and requests carry a REST/GraphQL type; team collections are untyped
 - **Cloud and self-hosted**: works with Hoppscotch Cloud (`hoppscotch.io`) and any self-hosted instance
 - **Browser-based login**: no token setup required for interactive use. Sign in through Hoppscotch's device-login page and the session is cached
 
@@ -169,6 +169,7 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 - **Response bodies are capped** at `HOPPSCOTCH_MAX_RESPONSE_BYTES` (default 5 MB); larger responses are truncated.
 - **`validate_response` makes its own HTTP call.** It executes the request you pass rather than inspecting an earlier result, so validating a request you already ran sends it again (a non-idempotent request runs a second time).
 - Request execution and validation take a raw `method`/`url`; they do **not** execute a request already stored in a collection by ID.
+- **`validate_response` does not check a JSON Schema.** `jsonSchema` is a deprecated alias of `jsonObject`: both assert only that the body parses as a JSON object or array. A schema document passed there is ignored, and nothing reports that it was. Use `jsonObject: true` for the check that actually runs.
 - The default `core` profile already keeps the surface lean (CRUD + request execution + codegen + read-only team discovery). Set `HOPPSCOTCH_TOOL_PROFILE=minimal` for an even smaller surface, or `standard`/`full` to add team administration and advanced collection ops.
 - **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account. Use the `reauth` tool to switch or refresh the active identity.
 - **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments; a team-environment ID is rejected, and on Hoppscotch Cloud (where personal environments aren't supported as of now) any `environmentId` is rejected as not found. These tools also do **not** inherit authentication from a parent collection; they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally. Substitution covers the URL, header values and body only; the `auth` block is not substituted, so a `{{var}}` written there is treated as the credential text itself; pass auth credentials directly.
@@ -440,9 +441,15 @@ hoppscotch-mcp-server/
 │   │   ├── request-repository.ts     # Request CRUD operations
 │   │   └── team-repository.ts        # Team management operations
 │   ├── tools/
-│   │   ├── definitions.ts            # MCP tool definitions and descriptions
+│   │   ├── definitions.ts            # MCP tool definitions, annotations, profiles
 │   │   ├── schemas.ts                # Zod input validation schemas
 │   │   └── handlers.ts               # Tool execution handlers
+│   ├── utils/
+│   │   ├── request-executor.ts       # HTTP execution, variable substitution, scrubbing
+│   │   ├── code-generator.ts         # Snippet and Markdown generation, redaction
+│   │   ├── ssrf-guard.ts             # Address denylist and connect-time pinning
+│   │   └── retry.ts                  # Backoff for retryable GraphQL reads
+│   ├── version.ts                    # Version string reported over MCP
 │   └── e2e/
 │       ├── e2e.test.ts               # E2E integration test suite
 │       └── login.ts                  # Login helper for e2e setup
@@ -484,7 +491,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### User collections unavailable
 
-`list_user_collections`, `get_user_collection`, and `export_user_collection` are gated client-side and not supported on Hoppscotch Cloud as of now; the personal-collection write tools are not gated and do run against Cloud. The full personal (user) workspace is available on self-hosted instances. Use team collections instead, or switch to a self-hosted instance.
+`list_user_collections`, `get_user_collection`, `export_user_collection`, and `list_user_requests` are gated client-side and not supported on Hoppscotch Cloud as of now; the personal-collection write tools are not gated and do run against Cloud. The full personal (user) workspace is available on self-hosted instances. Use team collections instead, or switch to a self-hosted instance.
 
 ## Security
 
@@ -500,7 +507,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 3. Commit using [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `docs:`, `test:`, etc.
 4. Open a Pull Request
 
-Please run `pnpm test` and `pnpm run typecheck` before submitting.
+Please run `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before submitting. CI enforces the same.
 
 ## License
 

@@ -20,7 +20,7 @@ surface, the auth flow, or the minimum supported Node version.
 Deprecations are announced in the release notes for the preceding minor
 release and removed no sooner than the next major.
 
-## [1.0.0] - 2026-08-14
+## [1.0.0] - 2026-08-25
 
 Initial public release.
 
@@ -85,7 +85,7 @@ selects how many are exposed: `minimal`, `core` (the default), `standard`, or `f
 - The Firebase Web API key used for Cloud sign-in is injected at build time rather
   than committed to this repository.
 
-Destructive tools (`delete_*`, team member changes) execute on the first call; the
-server implements no confirmation step. Hosts may prompt based on each tool's MCP
-annotations (`destructiveHint`, `readOnlyHint`, `idempotentHint`, `openWorldHint`),
-which every tool carries.
+Tools marked destructive (`delete_*`, `update_*`, `rename_*`, `move_*`, and team
+member changes) execute on the first call; the server implements no confirmation
+step. Hosts may prompt based on each tool's MCP annotations (`destructiveHint`,
+`readOnlyHint`, `idempotentHint`, `openWorldHint`), which every tool carries.
