@@ -44,8 +44,11 @@ export class CollectionRepository {
   private assertNotCloud(operation: string): void {
     if (this.isCloud()) {
       throw new Error(
-        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
-          'Use team collections instead, or switch to a self-hosted instance.'
+        `"${operation}" does not work on Hoppscotch Cloud as of now: the backend ` +
+          "fails to serialize the collection's `data` field, which errors the whole " +
+          'query. This is server-side, so the tool is expected to start working ' +
+          'without an update here. Use "list_user_collections" meanwhile, which ' +
+          'returns the same collections on Cloud.'
       );
     }
   }

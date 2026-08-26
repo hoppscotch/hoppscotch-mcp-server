@@ -166,7 +166,7 @@ describe('CollectionRepository', () => {
       vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: ApiType.CLOUD });
 
       await expect(repository.getUserCollection('c1')).rejects.toThrow(
-        'not supported on Hoppscotch Cloud'
+        'does not work on Hoppscotch Cloud'
       );
       expect(mockClient.graphql).not.toHaveBeenCalled();
     });
