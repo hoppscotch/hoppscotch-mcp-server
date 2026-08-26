@@ -5,12 +5,12 @@
  *   Cloud:  live schema introspection (api.hoppscotch.io/graphql)
  *   SH OSS: packages/hoppscotch-backend/src/user-collection/input-type.args.ts
  *
- * IMPORTANT: TeamCollection and UserCollection schema facts (verified live):
- *   • Cloud TeamCollection fields: id, title, data, parent { id }, team { ... }, children
+ * Schema facts these selections depend on (verified live):
+ *   • Cloud TeamCollection: id, title, data, parent { id }, team { ... }, children.
  *     No parentID scalar; parent is a nested object.
- *   • Cloud UserCollection fields: id, title, data
- *     No parentID scalar and no parent field at all.
- *   • Repositories normalize parent?.id → parentID after every GQL response.
+ *   • Cloud UserCollection: id, title, data. No parentID scalar, no parent field.
+ *   • Where a response selects parent, repositories map parent?.id → parentID.
+ *     Where it does not, they omit parentID rather than defaulting it to null.
  */
 
 // ─── User Collections (Cloud + SH) ──────────────────────────────────────────
@@ -244,11 +244,8 @@ export const DUPLICATE_TEAM_COLLECTION = `
   }
 `;
 
-// ─── User Environments (Cloud + SH) ─────────────────────────────────────────
+// ─── User Environments (self-hosted only; gated on Cloud) ───────────────────
 
-/**
- * Both: createUserEnvironment(name, variables)
- */
 export const CREATE_USER_ENVIRONMENT = `
   mutation CreateUserEnvironment($name: String!, $variables: String!) {
     createUserEnvironment(name: $name, variables: $variables) {
@@ -260,9 +257,6 @@ export const CREATE_USER_ENVIRONMENT = `
   }
 `;
 
-/**
- * Both: updateUserEnvironment(id, name, variables)
- */
 export const UPDATE_USER_ENVIRONMENT = `
   mutation UpdateUserEnvironment($id: ID!, $name: String!, $variables: String!) {
     updateUserEnvironment(id: $id, name: $name, variables: $variables) {
@@ -274,9 +268,6 @@ export const UPDATE_USER_ENVIRONMENT = `
   }
 `;
 
-/**
- * Both: deleteUserEnvironment(id)
- */
 export const DELETE_USER_ENVIRONMENT = `
   mutation DeleteUserEnvironment($id: ID!) {
     deleteUserEnvironment(id: $id)
@@ -387,7 +378,7 @@ export const MOVE_TEAM_REQUEST = `
   }
 `;
 
-// ─── User Requests (personal workspace, not supported on Cloud as of now) ──
+// ─── User Requests (personal workspace) ─────────────────────────────────────
 
 /**
  * Create a REST user request.

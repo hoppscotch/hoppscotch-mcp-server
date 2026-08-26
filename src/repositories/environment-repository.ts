@@ -172,7 +172,7 @@ export class EnvironmentRepository {
    * Self-Hosted: me { environments } resolver field.
    * Cloud: not supported as of now; gated client-side. Throws like its
    * create/update/delete siblings, since [] would be indistinguishable from
-   * an account that simply has no environments.
+   * an account that has no environments.
    */
   async getUserEnvironments(): Promise<UserEnvironment[]> {
     if (this.isCloud()) {

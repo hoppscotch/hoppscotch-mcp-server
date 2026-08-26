@@ -196,12 +196,13 @@ describe('RequestRepository', () => {
       expect(result).toEqual([userRequest]);
     });
 
-    it('should throw on Cloud', async () => {
+    it('should throw on Cloud (selects nested requests, unevidenced there)', async () => {
       vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: ApiType.CLOUD });
 
       await expect(repository.getUserRequests('ucol1')).rejects.toThrow(
         'not supported on Hoppscotch Cloud'
       );
+      expect(mockClient.graphql).not.toHaveBeenCalled();
     });
 
     it('should return empty array when requests is null but collection exists', async () => {

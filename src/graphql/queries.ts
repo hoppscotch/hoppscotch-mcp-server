@@ -5,27 +5,25 @@
  *   Cloud:  https://api.hoppscotch.io/graphql
  *   SH OSS: packages/hoppscotch-backend/src/user-collection/user-collection.resolver.ts
  *
- * The personal (user) workspace fields below now exist on live Cloud (they were
+ * The personal (user) workspace fields below exist on live Cloud (they were
  * absent on the older Firestore backend, hence the historical "SH only" notes).
- * The MCP still gates them client-side as "not supported on Cloud as of now";
- * see the assertNotCloud guards. Team queries work on both backends.
+ * Team queries work on both backends.
  */
 
-// ─── User Collections (gated on Cloud as of now) ────────────────────────────
+// ─── User Collections ───────────────────────────────────────────────────────
 
 /**
  * Get root REST user collections.
  * SH field: rootRESTUserCollections(cursor, take)
- * Cloud:    present on the live schema post-migration, but gated client-side as of now.
+ * Cloud:    present on the live schema post-migration.
+ * Selects no `parent`: these rows are roots on either backend, and Cloud's
+ * UserCollection has no parent field (see mutations.ts header).
  */
 export const GET_USER_REST_COLLECTIONS = `
   query GetUserRESTCollections($cursor: ID, $take: Int) {
     rootRESTUserCollections(cursor: $cursor, take: $take) {
       id
       title
-      parent {
-        id
-      }
       data
     }
   }
@@ -34,16 +32,13 @@ export const GET_USER_REST_COLLECTIONS = `
 /**
  * Get root GraphQL user collections.
  * SH field: rootGQLUserCollections(cursor, take)
- * Cloud:    present on the live schema; gated client-side as of now.
+ * Cloud:    present on the live schema. Selects no `parent`, as above.
  */
 export const GET_USER_GQL_COLLECTIONS = `
   query GetUserGQLCollections($cursor: ID, $take: Int) {
     rootGQLUserCollections(cursor: $cursor, take: $take) {
       id
       title
-      parent {
-        id
-      }
       data
     }
   }
@@ -52,7 +47,8 @@ export const GET_USER_GQL_COLLECTIONS = `
 /**
  * Get a specific user collection by ID.
  * SH field: userCollection(userCollectionID: ID!)
- * Cloud:    present on the live schema; gated client-side as of now.
+ * Cloud:    the resolver exists, but this selects `parent`, which Cloud's
+ *           UserCollection does not have, so it is gated on Cloud as of now.
  */
 export const GET_USER_COLLECTION = `
   query GetUserCollection($collectionID: ID!) {
@@ -70,7 +66,7 @@ export const GET_USER_COLLECTION = `
 /**
  * Export all user collections of a given type to JSON.
  * SH field: exportUserCollectionsToJSON(collectionID: ID, collectionType: ReqType!)
- * Cloud:    present on the live schema; gated client-side as of now.
+ * Cloud:    present on the live schema.
  */
 export const EXPORT_USER_COLLECTIONS_JSON = `
   query ExportUserCollectionsJSON($collectionType: ReqType!) {
@@ -84,7 +80,7 @@ export const EXPORT_USER_COLLECTIONS_JSON = `
 /**
  * Export a specific user collection to JSON.
  * SH field: exportUserCollectionToJSON(collectionID: ID!)
- * Cloud:    present on the live schema; gated client-side as of now.
+ * Cloud:    present on the live schema.
  */
 export const EXPORT_USER_COLLECTION_JSON = `
   query ExportUserCollectionJSON($collectionID: ID!) {
@@ -96,8 +92,8 @@ export const EXPORT_USER_COLLECTION_JSON = `
 
 /**
  * List all personal environments for the authenticated user.
- * SH: resolved via me { environments { ... } }
- * Cloud: present on the live schema; gated client-side as of now.
+ * Self-hosted only in this MCP: me { environments { ... } }.
+ * Cloud has no supported personal-environment resolver, so the tool is gated.
  */
 export const GET_USER_ENVIRONMENTS = `
   query GetUserEnvironments {
@@ -174,12 +170,11 @@ export const EXPORT_TEAM_COLLECTION_JSON = `
   }
 `;
 
-// ─── Search (Cloud + SH) ────────────────────────────────────────────────────
+// ─── Search (self-hosted; Cloud rejects the query) ──────────────────────────
 
 /**
- * Search team requests by title.
- * Cloud: searchForRequest(teamID, searchTerm, cursor)
- * SH:    same field name.
+ * Search team requests by title via searchForRequest(teamID, searchTerm).
+ * Self-hosted only: Cloud rejects this with bug/team/no_require_team_role.
  * Returns request rows (with their parent collection metadata), NOT collections.
  */
 export const SEARCH_TEAM_REQUESTS = `
@@ -229,13 +224,14 @@ export const GET_TEAM_REQUEST = `
   }
 `;
 
-// ─── User Requests (reads gated on Cloud as of now) ─────────────────────────
+// ─── User Requests ──────────────────────────────────────────────────────────
 
 /**
  * List requests in a user collection.
  * Field: userCollection(userCollectionID: ID!) { requests { ... } }
  * Note: arg is userCollectionID (not collectionID), same as GET_USER_COLLECTION.
- * Cloud: gated client-side as of now.
+ * Cloud: selects nested UserCollection.requests, which is not evidenced on
+ *        Cloud's schema. Gated on Cloud as of now.
  */
 export const GET_USER_REQUESTS = `
   query GetUserRequests($userCollectionID: ID!) {

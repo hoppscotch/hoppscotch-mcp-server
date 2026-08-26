@@ -31,13 +31,14 @@ signs in through a browser device-login flow and caches the session at
 enforced on Windows). Requires Node 22+. Ships as a CLI binary only; there is no
 importable library entry point.
 
-Both Hoppscotch Cloud and self-hosted instances are supported, but not with the same
-surface. Self-hosted has all of it. On Cloud the personal (user) workspace is only
-partly available: reading personal collections and requests is gated client-side, as
-are all four user-environment tools, while personal collection and request writes
-still run. Team collections, team environments, request execution and
-code generation work on both, except `search_team_requests`, which the Cloud backend
-rejects. Individual tool descriptions state which backends they apply to.
+Both Hoppscotch Cloud and self-hosted instances are supported. Self-hosted has the
+full surface. On Cloud, six tools are gated client-side: `get_user_collection` and
+`list_user_requests` (their queries select fields Cloud's schema does not evidence)
+and the four user-environment tools. Everything else works on both, including
+`list_user_collections`, `export_user_collection`, all personal writes, team
+collections, team environments, request execution and code generation, except
+`search_team_requests`, which the Cloud backend rejects. Individual tool
+descriptions state which backends they apply to.
 
 ### Tools
 

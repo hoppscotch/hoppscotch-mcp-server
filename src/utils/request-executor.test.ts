@@ -211,6 +211,13 @@ describe('request-executor', () => {
       expect(result.errors.join(' ')).toMatch(/not a JSON object/);
     });
 
+    it('jsonObject: true fails for JSON null, despite typeof null === "object"', () => {
+      const nul: ExecutionResult = { ...mockResult, body: 'null' };
+      const result = validateResponse(nul, { jsonObject: true });
+      expect(result.valid).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/not a JSON object/);
+    });
+
     it('jsonSchema (deprecated alias) triggers the same is-a-JSON-object check as jsonObject', () => {
       // Any value under jsonSchema behaves exactly like jsonObject: true.
       expect(validateResponse(mockResult, { jsonSchema: {} }).valid).toBe(true);

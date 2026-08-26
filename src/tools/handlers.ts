@@ -164,9 +164,10 @@ export class ToolHandlers {
       content: [
         {
           type: 'text',
-          text: collectionId
-            ? `Exported user collection (ID: ${collectionId})`
-            : `Exported all ${type} user collections`,
+          text:
+            collectionId !== undefined
+              ? `Exported user collection (ID: ${collectionId})`
+              : `Exported all ${type} user collections`,
         },
         {
           type: 'text',
@@ -375,9 +376,10 @@ export class ToolHandlers {
       content: [
         {
           type: 'text',
-          text: collectionId
-            ? `Exported team collection (ID: ${collectionId})`
-            : 'Exported all team collections',
+          text:
+            collectionId !== undefined
+              ? `Exported team collection (ID: ${collectionId})`
+              : 'Exported all team collections',
         },
         {
           type: 'text',

@@ -784,10 +784,8 @@ export function validateResponse(
   if (criteria.jsonObject || criteria.jsonSchema !== undefined) {
     try {
       const parsed: unknown = JSON.parse(result.body);
-      // Preserve the existing `typeof === 'object'` semantics exactly (objects,
-      // arrays, and the JS quirk `null` all pass). This is a rename and redocument,
-      // not a behavior change.
-      if (typeof parsed !== 'object') {
+      // `typeof null === 'object'`, so null needs its own check to be rejected.
+      if (parsed === null || typeof parsed !== 'object') {
         errors.push('Response body is not a JSON object/array');
       }
     } catch {

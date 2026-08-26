@@ -1,13 +1,10 @@
-/**
- * MCP Tool definitions for Hoppscotch
- * This file defines all available tools in minimal mode
- */
+/** MCP tool definitions, annotations, and profile selection. */
 
 const USER_COLLECTION_TOOLS = {
   list_user_collections: {
     name: 'list_user_collections',
     description:
-      'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL). Not supported on Hoppscotch Cloud as of now.',
+      'List all user collections (personal collections). Returns root-level collections of the specified type (REST or GraphQL).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,7 +128,7 @@ const USER_COLLECTION_TOOLS = {
   export_user_collection: {
     name: 'export_user_collection',
     description:
-      'Export user collection(s) as JSON. Can export a specific collection or all collections of a type. Not supported on Hoppscotch Cloud as of now.',
+      'Export user collection(s) as JSON. Can export a specific collection or all collections of a type.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -190,7 +187,8 @@ const USER_ENVIRONMENT_TOOLS = {
 
   create_user_environment: {
     name: 'create_user_environment',
-    description: 'Create a new user environment with variables.',
+    description:
+      'Create a new user environment with variables. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -228,7 +226,7 @@ const USER_ENVIRONMENT_TOOLS = {
   update_user_environment: {
     name: 'update_user_environment',
     description:
-      'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
+      'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -260,7 +258,8 @@ const USER_ENVIRONMENT_TOOLS = {
 
   delete_user_environment: {
     name: 'delete_user_environment',
-    description: 'Delete a user environment. This action cannot be undone.',
+    description:
+      'Delete a user environment. This action cannot be undone. Not supported on Hoppscotch Cloud as of now.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1055,8 +1054,8 @@ const CODE_GENERATION_TOOLS = {
 } as const;
 
 // ─── Request CRUD Tools ───────────────────────────────────────────────────────
-// Team request reads/writes work on both Cloud and SH.
-// User request reads: gated, self-hosted only. User request writes: ungated, sent to Cloud unchanged.
+// Team request reads/writes work on both Cloud and SH. User request writes do
+// too; list_user_requests is gated on Cloud.
 const REQUEST_CRUD_TOOLS = {
   list_team_requests: {
     name: 'list_team_requests',

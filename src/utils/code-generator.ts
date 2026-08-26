@@ -564,11 +564,7 @@ export function generateDocumentation(
     title?: string;
     description?: string;
     includeExamples?: boolean;
-    /**
-     * Mask credential values in the example snippets (default true). Docs are
-     * share-oriented; pass false only when you explicitly want copy-paste-runnable
-     * snippets with live credentials.
-     */
+    /** Mask credentials throughout the document (default true). */
     redactCredentials?: boolean;
   } = {}
 ): string {

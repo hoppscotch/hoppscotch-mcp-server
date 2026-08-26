@@ -17,7 +17,7 @@ interface RawTeamCollection {
   title: string;
   data?: string | null;
   parent?: { id: string } | null;
-  parentID?: string | null; // SH may return this directly
+  parentID?: string | null; // defensive: no current selection returns this scalar
   teamID?: string;
   children?: Array<{ id: string; title: string }>;
 }
@@ -33,13 +33,12 @@ interface RawUserCollection {
 /**
  * Repository for managing collections (user and team).
  *
- * User collection READS (list, get, export) are not supported on Cloud as of
- * now; the MCP gates them client-side. Calling these methods against Cloud
- * throws a clear error rather than hitting the backend.
+ * Team collections work fully on both backends, as do user collection writes
+ * (they branch on isCloud(); Cloud takes a different mutation shape), plus
+ * list and export.
  *
- * ALL team collection operations work on both Cloud and Self-Hosted. User
- * collection WRITES work on self-hosted; on Cloud the personal (user) workspace
- * is unsupported as of now.
+ * getUserCollection is the exception: its query selects `parent`, which Cloud's
+ * UserCollection does not expose (see the mutations.ts header), so it is gated.
  */
 export class CollectionRepository {
   constructor(private client: HoppscotchClient) {}
@@ -61,44 +60,55 @@ export class CollectionRepository {
 
   /**
    * Normalize a raw GQL TeamCollection response into our internal shape.
-   * Maps parent?.id → parentID (Cloud/SH both use nested parent object).
+   * Maps parent?.id → parentID; omits parentID/teamID the response can't tell us.
    */
-  private normalizeTeamCollection(raw: RawTeamCollection): TeamCollection {
-    return {
+  private normalizeTeamCollection(raw: RawTeamCollection, teamID?: string): TeamCollection {
+    const out: TeamCollection = {
       id: raw.id,
       title: raw.title,
       data: raw.data ?? null,
-      parentID: raw.parentID ?? raw.parent?.id ?? null,
-      teamID: raw.teamID ?? '',
       children: raw.children,
     };
+
+    // Distinguish "selected and null" (a root) from "not selected" (unknown).
+    if (raw.parentID !== undefined) out.parentID = raw.parentID;
+    else if ('parent' in raw) out.parentID = raw.parent?.id ?? null;
+
+    // Nothing selects teamID; it is known only when the caller passed it in.
+    const known = raw.teamID ?? teamID;
+    if (known !== undefined) out.teamID = known;
+
+    return out;
   }
 
   /**
    * Normalize a raw GQL UserCollection response into our internal shape.
-   * SH returns parent { id } (nested object), not a parentID scalar.
+   *
+   * `parentID` comes from the caller, not `raw`: most responses omit `parent`,
+   * and absence is not null. Pass null only for a known root.
    */
-  private normalizeUserCollection(raw: RawUserCollection): UserCollection {
-    return {
+  private normalizeUserCollection(
+    raw: RawUserCollection,
+    parentID: string | null | undefined
+  ): UserCollection {
+    const out: UserCollection = {
       id: raw.id,
       title: raw.title,
       data: raw.data ?? null,
-      parentID: raw.parent?.id ?? null,
     };
+    if (parentID !== undefined) out.parentID = parentID;
+    return out;
   }
 
   // ─── User Collections ─────────────────────────────────────────────────────
 
   /**
    * List root user collections (REST or GQL type).
-   * Not supported on Cloud as of now; gated client-side.
    */
   async getUserCollections(
     type: CollectionType,
     options?: PaginationOptions
   ): Promise<UserCollection[]> {
-    this.assertNotCloud('list_user_collections');
-
     const query =
       type === CollectionType.REST
         ? queries.GET_USER_REST_COLLECTIONS
@@ -119,7 +129,8 @@ export class CollectionRepository {
         ? result.rootRESTUserCollections
         : result.rootGQLUserCollections) || [];
 
-    return raw.map((c) => this.normalizeUserCollection(c));
+    // Root queries: these rows are roots by contract.
+    return raw.map((c) => this.normalizeUserCollection(c, null));
   }
 
   /**
@@ -133,7 +144,11 @@ export class CollectionRepository {
       userCollection: RawUserCollection;
     }>(queries.GET_USER_COLLECTION, { collectionID: collectionId });
 
-    return this.normalizeUserCollection(result.userCollection);
+    // SH-only path; this query does select `parent`.
+    return this.normalizeUserCollection(
+      result.userCollection,
+      result.userCollection.parent?.id ?? null
+    );
   }
 
   /**
@@ -181,7 +196,8 @@ export class CollectionRepository {
       throw new Error('Failed to create user collection');
     }
 
-    return this.normalizeUserCollection(raw);
+    // The mutation omits `parent`, but we chose the destination ourselves.
+    return this.normalizeUserCollection(raw, data.parentCollectionID ?? null);
   }
 
   /**
@@ -206,7 +222,8 @@ export class CollectionRepository {
       updateUserCollection: RawUserCollection;
     }>(mutation, variables);
 
-    return this.normalizeUserCollection(result.updateUserCollection);
+    // Update neither changes nor returns the parent: leave it unknown.
+    return this.normalizeUserCollection(result.updateUserCollection, undefined);
   }
 
   /**
@@ -230,16 +247,15 @@ export class CollectionRepository {
 
   /**
    * Export user collections to JSON.
-   * Not supported on Cloud as of now; gated client-side.
    */
   async exportUserCollection(type: CollectionType, collectionId?: string): Promise<string> {
-    this.assertNotCloud('export_user_collection');
+    // Absence, not falsiness, selects the export-everything query: the schema
+    // rejects "", so anything that arrives here is a real ID.
+    const one = collectionId !== undefined;
 
-    const query = collectionId
-      ? queries.EXPORT_USER_COLLECTION_JSON
-      : queries.EXPORT_USER_COLLECTIONS_JSON;
+    const query = one ? queries.EXPORT_USER_COLLECTION_JSON : queries.EXPORT_USER_COLLECTIONS_JSON;
 
-    const variables = collectionId ? { collectionID: collectionId } : { collectionType: type };
+    const variables = one ? { collectionID: collectionId } : { collectionType: type };
 
     const result = await this.client.graphql<{
       exportUserCollectionsToJSON?: { exportedCollection: string; collectionType: string };
@@ -309,7 +325,8 @@ export class CollectionRepository {
       destCollectionID: newParentId ?? null,
     });
 
-    return this.normalizeUserCollection(result.moveUserCollection);
+    // We chose the destination, so the new parent is known.
+    return this.normalizeUserCollection(result.moveUserCollection, newParentId ?? null);
   }
 
   // ─── Team Collections ─────────────────────────────────────────────────────
@@ -326,7 +343,7 @@ export class CollectionRepository {
       cursor: options?.cursor,
     });
 
-    return (result.rootCollectionsOfTeam || []).map((c) => this.normalizeTeamCollection(c));
+    return (result.rootCollectionsOfTeam || []).map((c) => this.normalizeTeamCollection(c, teamId));
   }
 
   /**
@@ -338,6 +355,7 @@ export class CollectionRepository {
       collection: RawTeamCollection;
     }>(queries.GET_TEAM_COLLECTION, { collectionID: collectionId });
 
+    // Takes only a collection ID, so the owning team stays unknown.
     return this.normalizeTeamCollection(result.collection);
   }
 
@@ -365,7 +383,10 @@ export class CollectionRepository {
       throw new Error('Failed to create team collection');
     }
 
-    return this.normalizeTeamCollection(raw);
+    // Root creation sends teamID, so it is authoritative. Child creation sends
+    // only the parent, which is what determines ownership: stamping the caller's
+    // teamId here would claim a team the backend never confirmed.
+    return this.normalizeTeamCollection(raw, data.parentCollectionID ? undefined : teamId);
   }
 
   /**
@@ -377,14 +398,15 @@ export class CollectionRepository {
     data: UpdateCollectionInput
   ): Promise<TeamCollection> {
     const result = await this.client.graphql<{
-      updateTeamCollection: TeamCollection;
+      updateTeamCollection: RawTeamCollection;
     }>(mutations.UPDATE_TEAM_COLLECTION, {
       collectionID: collectionId,
       newTitle: data.title,
       data: data.data,
     });
 
-    return result.updateTeamCollection;
+    // Selects neither parent nor team, and update changes neither.
+    return this.normalizeTeamCollection(result.updateTeamCollection);
   }
 
   /**
@@ -405,9 +427,10 @@ export class CollectionRepository {
    * Both Cloud and Self-Hosted.
    */
   async exportTeamCollection(teamId: string, collectionId?: string): Promise<string> {
-    const query = collectionId
-      ? queries.EXPORT_TEAM_COLLECTION_JSON
-      : queries.EXPORT_TEAM_COLLECTIONS_JSON;
+    const query =
+      collectionId !== undefined
+        ? queries.EXPORT_TEAM_COLLECTION_JSON
+        : queries.EXPORT_TEAM_COLLECTIONS_JSON;
 
     const variables = { teamID: teamId, collectionID: collectionId };
 

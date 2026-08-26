@@ -90,8 +90,8 @@ function jwtExpiresAt(token: string): number {
 /**
  * Extract a stable account identity from a JWT (the `sub` claim, falling back to
  * `user_id` then `email`). Returns null for a non-JWT / opaque token (e.g. a PAT)
- * or a token with no identity claim. Callers treat null as "identity unknown"
- * and never hard-fail on it.
+ * or a token with no identity claim. null means "identity unknown"; see
+ * identityConflicts for how an unknown identity is treated once pinned.
  */
 export function jwtSubject(token: string): string | null {
   try {
@@ -134,8 +134,8 @@ interface StoredAuth {
   /**
    * Stable account identity (JWT sub/user_id/email) this token belongs to. Used
    * to refuse a silent mid-session account switch when another process overwrites
-   * auth.json for the same apiUrl. Absent on legacy files and PATs, where a missing
-   * subject is re-derived from the token on read and never hard-fails.
+   * auth.json for the same apiUrl. Absent on legacy files and PATs; re-derived
+   * from the token on read, and unknown once pinned is refused, not accepted.
    */
   subject?: string | null;
 }
@@ -161,10 +161,9 @@ let memCache: InMemoryCache | null = null;
 /**
  * The account identity this process first authenticated as, pinned on the first
  * token accepted. A later disk token (written by another process that logged in
- * as a different account on the same apiUrl) carrying a DIFFERENT known subject
- * is refused rather than silently served. The caller must `reauth` to switch.
- * null until pinned; only a both-known-and-different subject is a conflict, so
- * PAT/opaque tokens and legacy files never hard-fail.
+ * as a different account on the same apiUrl) is refused rather than silently
+ * served. The caller must `reauth` to switch. null until pinned: before pinning
+ * anything is accepted, after pinning only the exact same identity is.
  */
 let sessionSubject: string | null = null;
 

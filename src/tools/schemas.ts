@@ -5,11 +5,11 @@ import { z } from 'zod';
  */
 
 // Collection Type
-// z.preprocess normalises empty string / null / undefined → 'REST' default so
-// MCP Inspector (which sends "" when a field is left blank) never causes a
-// validation failure.
+// Blank input defaults to REST so MCP Inspector, which sends "" for an untouched
+// field, does not fail validation. Only blank: `!v` would also swallow false and
+// 0 into REST instead of rejecting them.
 export const CollectionTypeSchema = z.preprocess(
-  (v) => (!v || v === '' ? 'REST' : v),
+  (v) => (v === '' || v == null ? 'REST' : v),
   z.enum(['REST', 'GQL'])
 );
 
@@ -27,7 +27,7 @@ export const GetUserCollectionSchema = z.object({
 export const CreateUserCollectionSchema = z.object({
   title: z.string().min(1),
   type: CollectionTypeSchema,
-  parentCollectionId: z.string().optional(),
+  parentCollectionId: z.string().min(1).optional(),
   data: z.string().optional(),
 });
 
@@ -43,15 +43,16 @@ export const DeleteUserCollectionSchema = z.object({
   type: CollectionTypeSchema.default('REST'),
 });
 
+// collectionId omitted = export everything; "" must not silently mean the same.
 export const ExportUserCollectionSchema = z.object({
   type: CollectionTypeSchema,
-  collectionId: z.string().optional(),
+  collectionId: z.string().min(1).optional(),
 });
 
 export const ImportUserCollectionSchema = z.object({
   jsonString: z.string().min(1),
   type: CollectionTypeSchema,
-  parentCollectionId: z.string().optional(),
+  parentCollectionId: z.string().min(1).optional(),
 });
 
 // Team Collection Tools
@@ -67,7 +68,7 @@ export const GetTeamCollectionSchema = z.object({
 export const CreateTeamCollectionSchema = z.object({
   teamId: z.string().optional(),
   title: z.string().min(1),
-  parentCollectionId: z.string().optional(),
+  parentCollectionId: z.string().min(1).optional(),
   data: z.string().optional(),
 });
 
@@ -83,18 +84,19 @@ export const DeleteTeamCollectionSchema = z.object({
 
 export const MoveTeamCollectionSchema = z.object({
   collectionId: z.string(),
-  parentCollectionId: z.string().optional(),
+  parentCollectionId: z.string().min(1).optional(),
 });
 
+// collectionId omitted = export the whole team; "" must not silently mean the same.
 export const ExportTeamCollectionSchema = z.object({
   teamId: z.string().optional(),
-  collectionId: z.string().optional(),
+  collectionId: z.string().min(1).optional(),
 });
 
 export const ImportTeamCollectionSchema = z.object({
   teamId: z.string().optional(),
   jsonString: z.string().min(1),
-  parentCollectionId: z.string().optional(),
+  parentCollectionId: z.string().min(1).optional(),
 });
 
 // Environment Variables
@@ -156,9 +158,9 @@ export const DuplicateTeamCollectionSchema = z.object({
 export const MoveUserCollectionSchema = z
   .object({
     collectionId: z.string(),
-    parentCollectionId: z.string().optional(),
+    parentCollectionId: z.string().min(1).optional(),
     /** @deprecated alias of parentCollectionId, kept for backward compatibility. */
-    newParentId: z.string().optional(),
+    newParentId: z.string().min(1).optional(),
   })
   // Reject unknown keys: a mistyped target field (e.g. `parentId`) would
   // otherwise be silently dropped and the collection moved to root: silent

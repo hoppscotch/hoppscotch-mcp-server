@@ -196,7 +196,7 @@ export class HoppscotchMCPServer {
             case 'import_team_collection':
               return await this.handlers.importTeamCollection(args);
 
-            // Team Management Tools (Standard Mode)
+            // Read-only Team Management Tools
             case 'list_teams':
               return await this.handlers.listTeams(args);
             case 'get_team_info':
@@ -220,13 +220,13 @@ export class HoppscotchMCPServer {
             case 'update_team_member_role':
               return await this.handlers.updateTeamMemberRole(args);
 
-            // Request Execution Tools (Full Mode)
+            // Request Execution Tools
             case 'execute_request':
               return await this.handlers.executeRequest(args);
             case 'validate_response':
               return await this.handlers.validateResponse(args);
 
-            // Code Generation Tools (Full Mode)
+            // Code Generation Tools
             case 'generate_code':
               return await this.handlers.generateCode(args);
             case 'generate_documentation':

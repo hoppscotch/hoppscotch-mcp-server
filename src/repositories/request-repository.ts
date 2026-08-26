@@ -14,13 +14,11 @@ import * as mutations from '../graphql/mutations.js';
 /**
  * Repository for managing requests inside collections (team and user).
  *
- * Cloud vs Self-Hosted notes:
- *   - Team request CRUD (create/update/delete/move) works on both Cloud and SH.
- *   - Team request READ (`requestsInCollection`, `request`) works on both Cloud and SH.
- *   - User request WRITE (create/update/delete/move) works on self-hosted; on
- *     Cloud the personal (user) workspace is unsupported as of now.
- *   - User request READ (`userCollection { requests }`) is not supported on
- *     Cloud as of now; the MCP gates it client-side.
+ * Team request CRUD works on both backends, as do user request writes.
+ *
+ * User request READS are the exception: the only query selects nested
+ * UserCollection.requests, which is not evidenced on Cloud's schema, so
+ * getUserRequests stays gated client-side.
  */
 export class RequestRepository {
   constructor(private client: HoppscotchClient) {}

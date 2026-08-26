@@ -9,6 +9,11 @@ import {
   DuplicateUserCollectionSchema,
   MoveUserCollectionSchema,
   ValidateResponseSchema,
+  CollectionTypeSchema,
+  CreateTeamCollectionSchema,
+  MoveTeamCollectionSchema,
+  ImportTeamCollectionSchema,
+  ExportTeamCollectionSchema,
 } from './schemas';
 
 describe('CollectionTypeSchema coercion', () => {
@@ -137,5 +142,43 @@ describe('ValidateResponseSchema — optional timeout', () => {
   it('rejects an out-of-range timeout (mirrors execute_request bounds)', () => {
     expect(() => ValidateResponseSchema.parse({ ...base, timeout: 500 })).toThrow();
     expect(() => ValidateResponseSchema.parse({ ...base, timeout: 999999 })).toThrow();
+  });
+});
+
+describe('identifier and type coercion guards', () => {
+  it('rejects empty-string parent identifiers rather than treating them as root', () => {
+    const cases = [
+      ['create user', CreateUserCollectionSchema, { title: 'x', type: 'REST' }],
+      ['import user', ImportUserCollectionSchema, { jsonString: '{}', type: 'REST' }],
+      ['create team', CreateTeamCollectionSchema, { title: 'x' }],
+      ['move team', MoveTeamCollectionSchema, { collectionId: 'c1' }],
+      ['import team', ImportTeamCollectionSchema, { jsonString: '{}' }],
+      ['move user', MoveUserCollectionSchema, { collectionId: 'c1' }],
+    ] as const;
+
+    for (const [label, schema, base] of cases) {
+      expect(schema.safeParse({ ...base, parentCollectionId: '' }).success, label).toBe(false);
+    }
+    expect(
+      MoveUserCollectionSchema.safeParse({ collectionId: 'c1', newParentId: '' }).success
+    ).toBe(false);
+  });
+
+  it('rejects an empty export collectionId, which would silently widen to export-all', () => {
+    expect(ExportUserCollectionSchema.safeParse({ type: 'REST', collectionId: '' }).success).toBe(
+      false
+    );
+    expect(ExportTeamCollectionSchema.safeParse({ collectionId: '' }).success).toBe(false);
+    // Omitting it is still the documented way to ask for everything.
+    expect(ExportUserCollectionSchema.safeParse({ type: 'REST' }).success).toBe(true);
+  });
+
+  it('defaults only blank collection types, rejecting other falsy values', () => {
+    for (const blank of ['', null, undefined]) {
+      expect(CollectionTypeSchema.parse(blank)).toBe('REST');
+    }
+    for (const falsy of [false, 0]) {
+      expect(CollectionTypeSchema.safeParse(falsy).success).toBe(false);
+    }
   });
 });

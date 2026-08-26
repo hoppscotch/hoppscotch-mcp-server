@@ -16,13 +16,12 @@ export enum CollectionType {
 export interface UserCollection {
   id: string;
   title: string;
-  parentID: string | null;
+  /** null = root. Omitted = unknown: most responses do not select `parent`. */
+  parentID?: string | null;
   data: string | null; // JSON-stringified request data
 }
 
-/**
- * Team collection structure
- */
+/** Child summary embedded in TeamCollection.children. */
 export interface TeamCollectionChild {
   id: string;
   title: string;
@@ -31,9 +30,11 @@ export interface TeamCollectionChild {
 export interface TeamCollection {
   id: string;
   title: string;
-  parentID: string | null;
+  /** null = root. Omitted = unknown: the update mutation omits `parent`. */
+  parentID?: string | null;
   data: string | null; // JSON-stringified request data
-  teamID: string;
+  /** Omitted = unknown. Nothing selects it; only the caller can supply it. */
+  teamID?: string;
   children?: TeamCollectionChild[];
 }
 
@@ -63,7 +64,7 @@ export interface TeamRequestSearchResult {
 }
 
 /**
- * User (personal) request within a collection (GQL shape; reads gated on Cloud as of now)
+ * User (personal) request within a collection (GQL shape)
  */
 export interface UserRequest {
   id: string;

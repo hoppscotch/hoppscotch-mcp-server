@@ -14,11 +14,9 @@
  * Auth token must already be stored (~/.config/hoppscotch-mcp/auth.json)
  * OR HOPPSCOTCH_ACCESS_TOKEN must be set.
  *
- * Cloud behavior as of now (personal workspace gated client-side, not bugs):
- * - list_user_collections / get_user_collection / export_user_collection: not supported on Cloud
- * - list_user_environments: returns [] on Cloud
- * - create/update/delete_user_environment: not supported on Cloud
- * - list_user_requests: not supported on Cloud
+ * Cloud behavior as of now (not bugs):
+ * - get_user_collection, list_user_requests: not supported on Cloud
+ * - all four user_environment tools: not supported on Cloud
  * - search_team_requests: returns bug/team/no_require_team_role on Cloud (backend rejection)
  */
 
@@ -27,6 +25,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 import { config as loadDotenv } from 'dotenv';
 
 // Load .env so IDs are available even when running from CLI
@@ -37,7 +36,18 @@ const SERVER_ENTRY = resolve(dirname(fileURLToPath(import.meta.url)), '../../dis
 
 // Only TEAM_ID is required from .env; everything else is self-provisioned
 const TEAM_ID = process.env.HOPPSCOTCH_TEAM_ID ?? '';
-const IS_CLOUD = !process.env.HOPPSCOTCH_SERVER_URL;
+// Mirror isCloudUrl() in src/config.ts: an explicitly configured
+// https://hoppscotch.io is Cloud too, not self-hosted.
+const IS_CLOUD = (() => {
+  const raw = process.env.HOPPSCOTCH_SERVER_URL;
+  if (!raw) return true; // default target is Cloud
+  try {
+    const h = new URL(raw).hostname;
+    return h === 'hoppscotch.io' || h === 'www.hoppscotch.io';
+  } catch {
+    return false;
+  }
+})();
 
 // Self-provisioned in beforeAll, cleaned up in afterAll
 let TEAM_COLLECTION_ID = '';
@@ -80,62 +90,88 @@ function log(label: string, text: string) {
 }
 
 // List team collection IDs (for cleanup-by-diff after import/duplicate operations).
-async function teamCollectionIds(): Promise<string[]> {
-  const text = textOf(
-    await client.callTool({
-      name: 'list_team_collections',
-      arguments: { teamId: TEAM_ID },
-    })
-  );
+async function teamCollections(): Promise<Array<{ id: string; title: string }> | null> {
   try {
-    return jsonOf<Array<{ id: string }>>(text).map((c) => c.id);
+    const text = textOf(
+      await client.callTool({
+        name: 'list_team_collections',
+        arguments: { teamId: TEAM_ID },
+      })
+    );
+    return jsonOf<Array<{ id: string; title: string }>>(text);
   } catch {
-    return [];
+    console.log('[e2e] could not list team collections; skipping diff cleanup');
+    return null;
   }
 }
 
-// List user collection IDs (not supported on Cloud as of now; returns [] there).
-async function userCollectionIds(): Promise<string[]> {
-  if (IS_CLOUD) return [];
-  const text = textOf(
-    await client.callTool({
-      name: 'list_user_collections',
-      arguments: {},
-    })
-  );
+// List user collection IDs. Works on both backends.
+// Returns null when the listing could not be read. That is NOT the same as an
+// empty workspace: cleanup-by-diff treats every id in `after` that is missing
+// from `before` as an orphan, so a failed `before` collapsing to [] would make
+// the whole listing look new and delete real collections.
+async function userCollections(): Promise<Array<{ id: string; title: string }> | null> {
   try {
-    return jsonOf<Array<{ id: string }>>(text).map((c) => c.id);
+    const text = textOf(
+      await client.callTool({
+        name: 'list_user_collections',
+        arguments: {},
+      })
+    );
+    return jsonOf<Array<{ id: string; title: string }>>(text);
   } catch {
-    return [];
+    console.log('[e2e] could not list user collections; skipping diff cleanup');
+    return null;
   }
 }
 
 // Delete collections that appear in `after` but not in `before` (orphan cleanup).
-async function cleanupOrphanTeamCollections(before: string[], after: string[]) {
-  const beforeSet = new Set(before);
-  for (const id of after) {
-    if (!beforeSet.has(id)) {
-      try {
-        await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: id } });
-      } catch (e) {
-        console.error('[e2e] cleanup failed:', e);
-      }
+// Cleanup deletes only rows that (a) are new since the baseline AND (b) carry
+// ORPHAN_TAG. Deleting on "new since baseline" alone would also remove rows a
+// real user created concurrently, and the listing is capped at one page, so a
+// row scrolling into view reads as new.
+//
+// The nonce is random, not pid+time: two runs on different hosts can share a
+// pid and a millisecond, and a collision means one run deletes the other's rows.
+const E2E_PREFIX = 'e2e-';
+const RUN_TAG = `${E2E_PREFIX}${randomUUID().slice(0, 8)}-`;
+// Long-lived fixtures other tests depend on. Never cleanup-eligible: a fixture
+// churning into a later page would otherwise read as an orphan and be deleted
+// out from under the tests still using it.
+const FIXTURE_TAG = `${RUN_TAG}fixture-`;
+// Rows a single test creates and may fail to delete by ID.
+const ORPHAN_TAG = `${RUN_TAG}tmp-`;
+
+type Coll = { id: string; title: string };
+
+function newlyOwned(before: Coll[] | null, after: Coll[] | null): Coll[] {
+  if (before === null || after === null) {
+    console.log('[e2e] skipping orphan cleanup: baseline unknown');
+    return [];
+  }
+  const beforeIds = new Set(before.map((c) => c.id));
+  return after.filter((c) => !beforeIds.has(c.id) && (c.title ?? '').startsWith(ORPHAN_TAG));
+}
+
+async function cleanupOrphanTeamCollections(before: Coll[] | null, after: Coll[] | null) {
+  for (const c of newlyOwned(before, after)) {
+    try {
+      await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: c.id } });
+    } catch (e) {
+      console.error('[e2e] cleanup failed:', e);
     }
   }
 }
 
-async function cleanupOrphanUserCollections(before: string[], after: string[]) {
-  const beforeSet = new Set(before);
-  for (const id of after) {
-    if (!beforeSet.has(id)) {
-      try {
-        await client.callTool({
-          name: 'delete_user_collection',
-          arguments: { collectionId: id, type: 'REST' },
-        });
-      } catch (e) {
-        console.error('[e2e] cleanup failed:', e);
-      }
+async function cleanupOrphanUserCollections(before: Coll[] | null, after: Coll[] | null) {
+  for (const c of newlyOwned(before, after)) {
+    try {
+      await client.callTool({
+        name: 'delete_user_collection',
+        arguments: { collectionId: c.id, type: 'REST' },
+      });
+    } catch (e) {
+      console.error('[e2e] cleanup failed:', e);
     }
   }
 }
@@ -195,7 +231,7 @@ beforeAll(async () => {
     const colText = textOf(
       await client.callTool({
         name: 'create_team_collection',
-        arguments: { teamId: TEAM_ID, title: 'e2e-fixture-collection' },
+        arguments: { teamId: TEAM_ID, title: `${FIXTURE_TAG}collection` },
       })
     );
     const col = jsonOf<{ id: string }>(colText);
@@ -207,7 +243,7 @@ beforeAll(async () => {
         name: 'create_team_environment',
         arguments: {
           teamId: TEAM_ID,
-          name: 'e2e-fixture-env',
+          name: `${FIXTURE_TAG}env`,
           variables: [{ key: 'BASE_URL', value: 'https://example.com' }],
         },
       })
@@ -217,31 +253,30 @@ beforeAll(async () => {
     provisioned.teamEnvironmentId = env.id;
   }
 
-  // Personal collections (not supported on Cloud as of now)
-  if (!IS_CLOUD) {
-    try {
-      const restText = textOf(
-        await client.callTool({
-          name: 'create_user_collection',
-          arguments: { title: 'e2e-fixture-rest', type: 'REST' },
-        })
-      );
-      const restCol = jsonOf<{ id: string }>(restText);
-      PERSONAL_REST_COLLECTION_ID = restCol.id;
-      provisioned.personalRestCollectionId = restCol.id;
+  // Personal collections. create_user_collection is ungated on BOTH backends, so
+  // a failure here is a real defect, not an unsupported-on-Cloud condition.
+  // It must fail the suite: swallowing it leaves the IDs unset, every dependent
+  // test early-returns, and the run reports green while proving nothing.
+  {
+    const restText = textOf(
+      await client.callTool({
+        name: 'create_user_collection',
+        arguments: { title: `${FIXTURE_TAG}rest`, type: 'REST' },
+      })
+    );
+    const restCol = jsonOf<{ id: string }>(restText);
+    PERSONAL_REST_COLLECTION_ID = restCol.id;
+    provisioned.personalRestCollectionId = restCol.id;
 
-      const gqlText = textOf(
-        await client.callTool({
-          name: 'create_user_collection',
-          arguments: { title: 'e2e-fixture-gql', type: 'GQL' },
-        })
-      );
-      const gqlCol = jsonOf<{ id: string }>(gqlText);
-      PERSONAL_GQL_COLLECTION_ID = gqlCol.id;
-      provisioned.personalGqlCollectionId = gqlCol.id;
-    } catch {
-      // Cloud or SH without personal workspace support
-    }
+    const gqlText = textOf(
+      await client.callTool({
+        name: 'create_user_collection',
+        arguments: { title: `${FIXTURE_TAG}gql`, type: 'GQL' },
+      })
+    );
+    const gqlCol = jsonOf<{ id: string }>(gqlText);
+    PERSONAL_GQL_COLLECTION_ID = gqlCol.id;
+    provisioned.personalGqlCollectionId = gqlCol.id;
   }
 
   console.log(
@@ -531,8 +566,9 @@ describe('team collections – read', () => {
       id: 'string',
       title: 'string',
       parentID: 'string|null',
-      teamID: 'string',
     });
+    // The query takes only a collection ID, so the owning team is unknown.
+    expect('teamID' in col).toBe(false);
     expect(col.id).toBe(TEAM_COLLECTION_ID);
   });
 
@@ -652,12 +688,12 @@ describe('team collections – write', () => {
       return;
     }
 
-    const before = await teamCollectionIds();
+    const before = await teamCollections();
 
     const createText = textOf(
       await client.callTool({
         name: 'create_team_collection',
-        arguments: { teamId: TEAM_ID, title: 'e2e-dup-source' },
+        arguments: { teamId: TEAM_ID, title: `${ORPHAN_TAG}dup-source` },
       })
     );
     const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
@@ -681,7 +717,7 @@ describe('team collections – write', () => {
     } finally {
       // Delete source + any orphaned duplicate (API returns no ID for the duplicate)
       await client.callTool({ name: 'delete_team_collection', arguments: { collectionId: srcId } });
-      const after = await teamCollectionIds();
+      const after = await teamCollections();
       await cleanupOrphanTeamCollections(before, after);
     }
   });
@@ -692,14 +728,14 @@ describe('team collections – write', () => {
       return;
     }
 
-    const before = await teamCollectionIds();
+    const before = await teamCollections();
 
     const importText = textOf(
       await client.callTool({
         name: 'import_team_collection',
         arguments: {
           teamId: TEAM_ID,
-          jsonString: JSON.stringify({ name: 'e2e-imported', folders: [], requests: [] }),
+          jsonString: JSON.stringify({ name: `${ORPHAN_TAG}imported`, folders: [], requests: [] }),
         },
       })
     );
@@ -708,7 +744,7 @@ describe('team collections – write', () => {
     expect(importText).toMatchInlineSnapshot(`"Successfully imported team collection(s)"`);
 
     // Cleanup: API returns no ID for the imported collection, so diff and delete orphans
-    const after = await teamCollectionIds();
+    const after = await teamCollections();
     await cleanupOrphanTeamCollections(before, after);
   });
 
@@ -880,126 +916,93 @@ describe('team environments', () => {
 
 // ---------------------------------------------------------------------------
 // User collections
-// Cloud: READ ops (list, get, export) are gated client-side and return a clear
-//        error; WRITE ops are ungated and use the *_CLOUD mutations (reqType).
-// SH:    All ops work. READ ops assert proper shape of returned data.
+// list and export work on both backends; writes use the *_CLOUD mutations
+// (reqType) on Cloud. get_user_collection is gated on Cloud: its query selects
+// `parent`, which Cloud's UserCollection does not expose.
 // ---------------------------------------------------------------------------
 
 describe('user collections', () => {
-  e2e(
-    'list_user_collections (REST) — SH: returns array with collection shape; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({ name: 'list_user_collections', arguments: { type: 'REST' } })
-      );
-      log('list_user_collections (REST)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('list_user_collections (REST) — returns array with collection shape', async () => {
+    const text = textOf(
+      await client.callTool({ name: 'list_user_collections', arguments: { type: 'REST' } })
+    );
+    log('list_user_collections (REST)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      const isShResult = text.startsWith('[');
-      expect(isCloudError || isShResult).toBe(true);
-
-      if (isCloudError) {
-        // Cloud: clear, actionable error message
-        expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        // SH: array of user collections, validate the shape of each item
-        const collections = jsonOf<Record<string, unknown>[]>(text);
-        expect(Array.isArray(collections)).toBe(true);
-        for (const col of collections) {
-          assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-        }
-      }
+    const collections = jsonOf<Record<string, unknown>[]>(text);
+    expect(Array.isArray(collections)).toBe(true);
+    for (const col of collections) {
+      assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
     }
-  );
+  });
 
-  e2e(
-    'list_user_collections (GQL) — SH: returns array with collection shape; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({ name: 'list_user_collections', arguments: { type: 'GQL' } })
-      );
-      log('list_user_collections (GQL)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('list_user_collections (GQL) — returns array with collection shape', async () => {
+    const text = textOf(
+      await client.callTool({ name: 'list_user_collections', arguments: { type: 'GQL' } })
+    );
+    log('list_user_collections (GQL)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      const isShResult = text.startsWith('[');
-      expect(isCloudError || isShResult).toBe(true);
-
-      if (isCloudError) {
-        expect(text).toContain('"list_user_collections" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        const collections = jsonOf<Record<string, unknown>[]>(text);
-        expect(Array.isArray(collections)).toBe(true);
-        for (const col of collections) {
-          assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-        }
-      }
+    const collections = jsonOf<Record<string, unknown>[]>(text);
+    expect(Array.isArray(collections)).toBe(true);
+    for (const col of collections) {
+      assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
     }
-  );
+  });
 
-  e2e(
-    'get_user_collection (REST) — SH: fetches by PERSONAL_REST_COLLECTION_ID; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({
-          name: 'get_user_collection',
-          arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
-        })
-      );
-      log('get_user_collection (REST)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('get_user_collection (REST) — SH: fetches by ID; Cloud: gated', async () => {
+    const text = textOf(
+      await client.callTool({
+        name: 'get_user_collection',
+        arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
+      })
+    );
+    log('get_user_collection (REST)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      if (isCloudError) {
-        expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        // SH: collection object with matching ID
-        if (!PERSONAL_REST_COLLECTION_ID) {
-          console.log('[e2e] skip get_user_collection shape check: no PERSONAL_REST_COLLECTION_ID');
-          return;
-        }
-        expect(text).not.toMatch(/^Error:/);
-        const col = jsonOf<Record<string, unknown>>(text);
-        assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-        expect(col.id).toBe(PERSONAL_REST_COLLECTION_ID);
-      }
+    if (IS_CLOUD) {
+      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
+      expect(text).toContain('Use team collections instead');
+      return;
     }
-  );
 
-  e2e(
-    'get_user_collection (GQL) — SH: fetches by PERSONAL_GQL_COLLECTION_ID; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({
-          name: 'get_user_collection',
-          arguments: { collectionId: PERSONAL_GQL_COLLECTION_ID || 'placeholder' },
-        })
-      );
-      log('get_user_collection (GQL)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
-
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      if (isCloudError) {
-        expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        if (!PERSONAL_GQL_COLLECTION_ID) {
-          console.log(
-            '[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'
-          );
-          return;
-        }
-        expect(text).not.toMatch(/^Error:/);
-        const col = jsonOf<Record<string, unknown>>(text);
-        assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
-        expect(col.id).toBe(PERSONAL_GQL_COLLECTION_ID);
-      }
+    if (!PERSONAL_REST_COLLECTION_ID) {
+      console.log('[e2e] skip get_user_collection shape check: no PERSONAL_REST_COLLECTION_ID');
+      return;
     }
-  );
+    expect(text).not.toMatch(/^Error:/);
+    const col = jsonOf<Record<string, unknown>>(text);
+    assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+    expect(col.id).toBe(PERSONAL_REST_COLLECTION_ID);
+  });
+
+  e2e('get_user_collection (GQL) — SH: fetches by ID; Cloud: gated', async () => {
+    const text = textOf(
+      await client.callTool({
+        name: 'get_user_collection',
+        arguments: { collectionId: PERSONAL_GQL_COLLECTION_ID || 'placeholder' },
+      })
+    );
+    log('get_user_collection (GQL)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
+
+    if (IS_CLOUD) {
+      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
+      expect(text).toContain('Use team collections instead');
+      return;
+    }
+
+    if (!PERSONAL_GQL_COLLECTION_ID) {
+      console.log(
+        '[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'
+      );
+      return;
+    }
+    expect(text).not.toMatch(/^Error:/);
+    const col = jsonOf<Record<string, unknown>>(text);
+    assertShape(col, { id: 'string', title: 'string', parentID: 'string|null' });
+    expect(col.id).toBe(PERSONAL_GQL_COLLECTION_ID);
+  });
 
   e2e(
     'create_user_collection and delete_user_collection (REST) — full lifecycle with update',
@@ -1107,80 +1110,59 @@ describe('user collections', () => {
     }
   );
 
-  e2e(
-    'export_user_collection (REST) — SH: returns valid collection JSON; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({
-          name: 'export_user_collection',
-          arguments: { type: 'REST' },
-        })
-      );
-      log('export_user_collection (REST)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('export_user_collection (REST) — returns valid collection JSON', async () => {
+    const text = textOf(
+      await client.callTool({
+        name: 'export_user_collection',
+        arguments: { type: 'REST' },
+      })
+    );
+    log('export_user_collection (REST)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      const isShResult = text.startsWith('Exported');
-      expect(isCloudError || isShResult).toBe(true);
-
-      if (isCloudError) {
-        expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        // SH: prose label + JSON array of exported collections
-        expect(text).toMatch(/^Exported all REST user collections/m);
-        const exported = jsonOf<unknown[]>(text);
-        expect(Array.isArray(exported)).toBe(true);
-        // Each exported collection has name, folders, requests
-        for (const col of exported as Array<Record<string, unknown>>) {
-          expect(typeof col.name).toBe('string');
-          expect(Array.isArray(col.folders)).toBe(true);
-          expect(Array.isArray(col.requests)).toBe(true);
-        }
-      }
+    expect(text).toMatch(/^Exported all REST user collections/m);
+    const exported = jsonOf<unknown[]>(text);
+    expect(Array.isArray(exported)).toBe(true);
+    // Each exported collection has name, folders, requests
+    for (const col of exported as Array<Record<string, unknown>>) {
+      expect(typeof col.name).toBe('string');
+      expect(Array.isArray(col.folders)).toBe(true);
+      expect(Array.isArray(col.requests)).toBe(true);
     }
-  );
+  });
 
-  e2e(
-    'export_user_collection (GQL) — SH: returns valid collection JSON; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({
-          name: 'export_user_collection',
-          arguments: { type: 'GQL' },
-        })
-      );
-      log('export_user_collection (GQL)', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('export_user_collection (GQL) — returns valid collection JSON', async () => {
+    const text = textOf(
+      await client.callTool({
+        name: 'export_user_collection',
+        arguments: { type: 'GQL' },
+      })
+    );
+    log('export_user_collection (GQL)', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-      const isShResult = text.startsWith('Exported');
-      expect(isCloudError || isShResult).toBe(true);
-
-      if (isCloudError) {
-        expect(text).toContain('"export_user_collection" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team collections instead');
-      } else {
-        expect(text).toMatch(/^Exported all GQL user collections/m);
-        const exported = jsonOf<unknown[]>(text);
-        expect(Array.isArray(exported)).toBe(true);
-        for (const col of exported as Array<Record<string, unknown>>) {
-          expect(typeof col.name).toBe('string');
-          expect(Array.isArray(col.folders)).toBe(true);
-          expect(Array.isArray(col.requests)).toBe(true);
-        }
-      }
+    expect(text).toMatch(/^Exported all GQL user collections/m);
+    const exported = jsonOf<unknown[]>(text);
+    expect(Array.isArray(exported)).toBe(true);
+    for (const col of exported as Array<Record<string, unknown>>) {
+      expect(typeof col.name).toBe('string');
+      expect(Array.isArray(col.folders)).toBe(true);
+      expect(Array.isArray(col.requests)).toBe(true);
     }
-  );
+  });
 
-  e2e('import_user_collection — success on both Cloud and SH; cleanup on SH', async () => {
-    const before = await userCollectionIds();
+  e2e('import_user_collection — success on both Cloud and SH; cleanup on both', async () => {
+    const before = await userCollections();
 
     const text = textOf(
       await client.callTool({
         name: 'import_user_collection',
         arguments: {
-          jsonString: JSON.stringify({ name: 'e2e-imported-user', folders: [], requests: [] }),
+          jsonString: JSON.stringify({
+            name: `${ORPHAN_TAG}imported-user`,
+            folders: [],
+            requests: [],
+          }),
           type: 'REST',
         },
       })
@@ -1190,21 +1172,21 @@ describe('user collections', () => {
     expect(text).not.toMatch(/^Error:/);
     expect(text).toMatchInlineSnapshot(`"Successfully imported REST user collection(s)"`);
 
-    // Cleanup: API returns no ID for the imported collection, so diff and delete orphans
-    // On Cloud, userCollectionIds() returns [] so this is a no-op
-    const after = await userCollectionIds();
+    // Cleanup: API returns no ID for the imported collection, so diff and delete
+    // orphans. Skipped entirely if either listing could not be read.
+    const after = await userCollections();
     await cleanupOrphanUserCollections(before, after);
   });
 
   e2e(
     'duplicate_user_collection — creates temp collection, duplicates, deletes source',
     async () => {
-      const before = await userCollectionIds();
+      const before = await userCollections();
 
       const createText = textOf(
         await client.callTool({
           name: 'create_user_collection',
-          arguments: { title: 'e2e-dup-source', type: 'REST' },
+          arguments: { title: `${ORPHAN_TAG}dup-source`, type: 'REST' },
         })
       );
       const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
@@ -1234,7 +1216,7 @@ describe('user collections', () => {
         } catch (e) {
           console.error('[e2e] cleanup failed:', e);
         }
-        const after = await userCollectionIds();
+        const after = await userCollections();
         await cleanupOrphanUserCollections(before, after);
       }
     }
@@ -1535,49 +1517,43 @@ describe('team requests', () => {
 
 // ---------------------------------------------------------------------------
 // User requests
-// Cloud: list_user_requests is gated client-side and returns a clear error;
-//        write ops are ungated and go to Cloud unchanged
-// SH: all ops work
+// Writes work on both backends. list_user_requests is gated on Cloud: its query
+// selects nested UserCollection.requests, which Cloud's schema does not evidence.
 // ---------------------------------------------------------------------------
 
 describe('user requests', () => {
-  e2e(
-    'list_user_requests — SH: returns array with request shape; Cloud: not available',
-    async () => {
-      const text = textOf(
-        await client.callTool({
-          name: 'list_user_requests',
-          arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
-        })
-      );
-      log('list_user_requests', text);
-      expect(text).not.toMatch(/auth\/fail/i);
+  e2e('list_user_requests — SH: array of requests; Cloud: gated', async () => {
+    const text = textOf(
+      await client.callTool({
+        name: 'list_user_requests',
+        arguments: { collectionId: PERSONAL_REST_COLLECTION_ID || 'placeholder' },
+      })
+    );
+    log('list_user_requests', text);
+    expect(text).not.toMatch(/auth\/fail/i);
 
-      const isCloudError = text.includes('not supported on Hoppscotch Cloud');
-
-      if (isCloudError) {
-        expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
-        expect(text).toContain('Use team requests instead');
-      } else {
-        // SH: array of user requests
-        if (!PERSONAL_REST_COLLECTION_ID) {
-          console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID');
-          return;
-        }
-        expect(text).not.toMatch(/^Error:/);
-        const requests = jsonOf<Record<string, unknown>[]>(text);
-        expect(Array.isArray(requests)).toBe(true);
-        for (const req of requests) {
-          assertShape(req, {
-            id: 'string',
-            title: 'string',
-            request: 'string',
-            collectionID: 'string',
-          });
-        }
-      }
+    if (IS_CLOUD) {
+      expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
+      expect(text).toContain('Use team requests instead');
+      return;
     }
-  );
+
+    if (!PERSONAL_REST_COLLECTION_ID) {
+      console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID');
+      return;
+    }
+    expect(text).not.toMatch(/^Error:/);
+    const requests = jsonOf<Record<string, unknown>[]>(text);
+    expect(Array.isArray(requests)).toBe(true);
+    for (const req of requests) {
+      assertShape(req, {
+        id: 'string',
+        title: 'string',
+        request: 'string',
+        collectionID: 'string',
+      });
+    }
+  });
 
   e2e('create, update, delete user REST request — full lifecycle (both Cloud and SH)', async () => {
     if (!PERSONAL_REST_COLLECTION_ID) {
@@ -1839,15 +1815,18 @@ describe('user requests', () => {
 });
 
 // ---------------------------------------------------------------------------
-// User environments (Cloud: returns []; write ops return "not supported")
+// User environments (Cloud: all four tools return "not supported")
 // ---------------------------------------------------------------------------
 
 describe('user environments', () => {
-  e2e('list_user_environments — Cloud: returns empty array (no GQL endpoint)', async () => {
+  e2e('list_user_environments — SH: array of envs; Cloud: not supported', async () => {
     const text = textOf(await client.callTool({ name: 'list_user_environments', arguments: {} }));
     log('list_user_environments', text);
     expect(text).not.toMatch(/auth\/fail/i);
-    // Cloud returns []; SH returns actual envs (may be [])
+    if (IS_CLOUD) {
+      expect(text).toContain('User environments are not supported on Hoppscotch Cloud');
+      return;
+    }
     const parsed = jsonOf<unknown[]>(text);
     expect(Array.isArray(parsed)).toBe(true);
     // On SH, each env should have id/name/variables
