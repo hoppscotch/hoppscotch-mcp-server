@@ -134,6 +134,40 @@ describe('CollectionRepository', () => {
       });
     });
 
+    it('passes the collection-level data blob through create, update and export unchanged', async () => {
+      // `data` carries collection-level auth/headers. It is an opaque string to
+      // this client: it must survive a round trip byte-for-byte, never reparsed.
+      const blob = JSON.stringify({
+        v: 12,
+        auth: { authActive: true, authType: 'bearer', token: 'tok' },
+        headers: [{ key: 'X-Collection-Header', value: 'from-collection', active: true }],
+      });
+
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTRootUserCollection: { id: 'c1', title: 'C', data: blob },
+      });
+      const created = await repository.createUserCollection(CollectionType.REST, {
+        title: 'C',
+        data: blob,
+      });
+      expect(created.data).toBe(blob);
+      expect(vi.mocked(mockClient.graphql).mock.calls[0][1]).toMatchObject({ data: blob });
+
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        updateUserCollection: { id: 'c1', title: 'C', data: blob },
+      });
+      expect(
+        (await repository.updateUserCollection('c1', CollectionType.REST, { data: blob })).data
+      ).toBe(blob);
+
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        exportUserCollectionToJSON: JSON.stringify({ id: 'c1', name: 'C', data: blob }),
+      });
+      expect(await repository.exportUserCollection(CollectionType.REST, 'c1')).toContain(
+        'X-Collection-Header'
+      );
+    });
+
     it('should throw when the backend returns nothing', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({});
       await expect(repository.exportUserCollection(CollectionType.REST)).rejects.toThrow(
