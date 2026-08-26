@@ -162,14 +162,13 @@ describe('CollectionRepository', () => {
       expect(result.parentID).toBeNull();
     });
 
-    it('works on Cloud: the schema has UserCollection.parent', async () => {
+    it('stays gated on Cloud: the resolver cannot serialize data', async () => {
       vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: ApiType.CLOUD });
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        userCollection: { id: 'c1', title: 'C', data: null, parent: { id: 'p1' } },
-      });
 
-      const result = await repository.getUserCollection('c1');
-      expect(result.parentID).toBe('p1');
+      await expect(repository.getUserCollection('c1')).rejects.toThrow(
+        'not supported on Hoppscotch Cloud'
+      );
+      expect(mockClient.graphql).not.toHaveBeenCalled();
     });
   });
 

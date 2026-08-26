@@ -178,14 +178,17 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 
 ### Cloud / self-hosted compatibility
 
-Every tool works against a self-hosted Hoppscotch backend (CE or SHE), and every
-tool but one works against Hoppscotch Cloud (`hoppscotch.io`). Cloud's schema
-carries `UserCollection.parent`, `UserCollection.requests` and
-`User.environments`, so personal collections, requests and environments are
-available there alongside the team tools and request execution.
+Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
+Hoppscotch Cloud (`hoppscotch.io`) all but two do: personal collections,
+requests and environments are available there alongside the team tools and
+request execution, verified against a live Cloud account on 2026-08-26.
 
-`search_team_requests` is the exception: the Cloud backend rejects the query with
-`bug/team/no_require_team_role`, surfaced as an error from upstream.
+Two tools are unavailable on Cloud:
+
+| Tool | Why |
+|---|---|
+| `get_user_collection` | Cloud's `userCollection` resolver fails to serialize `data` (`String cannot represent value`), so the query errors. The same field returns fine from `rootRESTUserCollections`. Gated client-side. |
+| `search_team_requests` | The Cloud backend rejects the query with `bug/team/no_require_team_role`, surfaced from upstream rather than gated. |
 
 ### Teams
 
@@ -482,7 +485,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### Tool unavailable on Cloud
 
-`search_team_requests` is the only tool unavailable on Cloud: the backend rejects it with `bug/team/no_require_team_role`. Every other tool runs against both backends.
+Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fails to serialize `data`; gated client-side) and `search_team_requests` (the backend rejects it with `bug/team/no_require_team_role`). Every other tool runs against both backends.
 
 ## Security
 

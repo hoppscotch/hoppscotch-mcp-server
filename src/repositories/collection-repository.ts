@@ -41,6 +41,15 @@ export class CollectionRepository {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
+  private assertNotCloud(operation: string): void {
+    if (this.isCloud()) {
+      throw new Error(
+        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
+          'Use team collections instead, or switch to a self-hosted instance.'
+      );
+    }
+  }
+
   private isCloud(): boolean {
     return this.client.getConfig().apiType === ApiType.CLOUD;
   }
@@ -122,9 +131,13 @@ export class CollectionRepository {
 
   /**
    * Get a specific user collection by ID.
-   * Both Cloud and Self-Hosted.
+   * Self-hosted only. Cloud's userCollection resolver fails to serialize `data`
+   * ("String cannot represent value"), though rootRESTUserCollections returns
+   * the same field fine, so the whole query errors. Verified 2026-08-26.
    */
   async getUserCollection(collectionId: string): Promise<UserCollection> {
+    this.assertNotCloud('get_user_collection');
+
     const result = await this.client.graphql<{
       userCollection: RawUserCollection;
     }>(queries.GET_USER_COLLECTION, { collectionID: collectionId });

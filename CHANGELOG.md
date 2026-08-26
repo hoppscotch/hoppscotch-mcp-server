@@ -32,10 +32,11 @@ enforced on Windows). Requires Node 22+. Ships as a CLI binary only; there is no
 importable library entry point.
 
 Both Hoppscotch Cloud and self-hosted instances are supported, with the same tool
-surface on each. `search_team_requests` is the one exception: the Cloud backend
-rejects it with `bug/team/no_require_team_role`. Everything else runs on both,
-including personal collections, requests and environments, team collections and
-environments, request execution and code generation.
+surface on each. Two tools are unavailable on Cloud: `get_user_collection`, whose
+`data` field Cloud's resolver fails to serialize, and `search_team_requests`,
+which the Cloud backend rejects. Everything else runs on both, including personal
+collections, requests and environments, team collections and environments,
+request execution and code generation.
 
 ### Tools
 

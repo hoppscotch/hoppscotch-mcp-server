@@ -32,7 +32,7 @@ const USER_COLLECTION_TOOLS = {
   get_user_collection: {
     name: 'get_user_collection',
     description:
-      'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly.',
+      'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Self-hosted only: Cloud fails to serialize the data field.',
     inputSchema: {
       type: 'object',
       properties: {
