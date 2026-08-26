@@ -33,8 +33,8 @@ interface RawUserCollection {
 /**
  * Repository for managing collections (user and team).
  *
- * Everything here works on both backends. User collection writes branch on
- * isCloud(), which takes a different mutation shape, not a different capability.
+ * Everything here works on both backends except getUserCollection, which Cloud
+ * cannot serialize; see its own comment.
  */
 export class CollectionRepository {
   constructor(private client: HoppscotchClient) {}

@@ -84,7 +84,7 @@ selects how many are exposed: `minimal`, `core` (the default), `standard`, or `f
 - The Firebase Web API key used for Cloud sign-in is injected at build time rather
   than committed to this repository.
 
-Tools marked destructive (`delete_*`, `update_*`, `rename_*`, `move_*`, and team
-member changes) execute on the first call; the server implements no confirmation
-step. Hosts may prompt based on each tool's MCP annotations (`destructiveHint`,
+Tools marked destructive (`delete_*`, `update_*`, `rename_*`, `move_*`, team
+member changes, `reauth`, and the two request-execution tools; 25 of 53) execute
+on the first call; the server implements no confirmation step. Hosts may prompt based on each tool's MCP annotations (`destructiveHint`,
 `readOnlyHint`, `idempotentHint`, `openWorldHint`), which every tool carries.

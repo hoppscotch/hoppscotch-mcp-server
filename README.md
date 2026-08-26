@@ -236,7 +236,7 @@ Two tools are unavailable on Cloud:
 
 ### User (Personal) Collections
 
-> Personal (user) collections work on both **self-hosted** and **Hoppscotch Cloud**. Writes use Cloud-specific mutations there.
+> Personal (user) collections work on both **self-hosted** and **Hoppscotch Cloud**, except `get_user_collection`; see the compatibility section above.
 
 | Tool | Description |
 |------|-------------|
@@ -252,7 +252,7 @@ Two tools are unavailable on Cloud:
 
 ### User (Personal) Environments
 
-> Personal (user) environments work on **self-hosted**. On Hoppscotch Cloud they are **not supported as of now**: all four tools (list, create, update, delete) return a "not supported" error.
+> Personal (user) environments work on both **self-hosted** and **Hoppscotch Cloud**; all four tools (list, create, update, delete) were verified against a live Cloud account on 2026-08-26.
 
 | Tool | Description |
 |------|-------------|
@@ -483,7 +483,7 @@ Set `HOPPSCOTCH_DEFAULT_TEAM_ID` in your environment, or pass `teamId` explicitl
 
 If your self-hosted instance uses a self-signed or private-CA certificate, point Node at the CA bundle with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` in the server environment. **Do not** use `NODE_TLS_REJECT_UNAUTHORIZED=0`: it disables TLS verification for the *entire* Node process (Cloud/Firebase token exchange and every `execute_request` to public hosts included), not just your self-hosted host.
 
-### Tool unavailable on Cloud
+### Tools unavailable on Cloud
 
 Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fails to serialize `data`; gated client-side) and `search_team_requests` (the backend rejects it with `bug/team/no_require_team_role`). Every other tool runs against both backends.
 
