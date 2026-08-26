@@ -111,8 +111,10 @@ describe('CollectionRepository', () => {
       const result = await repository.exportUserCollection(CollectionType.REST, 'col1');
 
       expect(result).toBe('{"a":1}');
+      // collectionType is ReqType! on this field; omitting it fails the query.
       expect(mockClient.graphql).toHaveBeenCalledWith(queries.EXPORT_USER_COLLECTION_JSON, {
         collectionID: 'col1',
+        collectionType: CollectionType.REST,
       });
     });
 
@@ -128,6 +130,7 @@ describe('CollectionRepository', () => {
       expect(result).toBe('{"a":1}');
       expect(cloudClient.graphql).toHaveBeenCalledWith(queries.EXPORT_USER_COLLECTION_JSON, {
         collectionID: 'col1',
+        collectionType: CollectionType.REST,
       });
     });
 

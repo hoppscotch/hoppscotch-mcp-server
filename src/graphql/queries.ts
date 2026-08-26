@@ -81,8 +81,8 @@ export const EXPORT_USER_COLLECTIONS_JSON = `
  * Cloud:    present on the live schema.
  */
 export const EXPORT_USER_COLLECTION_JSON = `
-  query ExportUserCollectionJSON($collectionID: ID!) {
-    exportUserCollectionToJSON(collectionID: $collectionID)
+  query ExportUserCollectionJSON($collectionID: ID!, $collectionType: ReqType!) {
+    exportUserCollectionToJSON(collectionID: $collectionID, collectionType: $collectionType)
   }
 `;
 

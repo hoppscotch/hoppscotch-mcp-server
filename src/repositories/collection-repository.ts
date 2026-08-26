@@ -251,7 +251,10 @@ export class CollectionRepository {
 
     const query = one ? queries.EXPORT_USER_COLLECTION_JSON : queries.EXPORT_USER_COLLECTIONS_JSON;
 
-    const variables = one ? { collectionID: collectionId } : { collectionType: type };
+    // Both branches require collectionType; the by-id one declares it ReqType!.
+    const variables = one
+      ? { collectionID: collectionId, collectionType: type }
+      : { collectionType: type };
 
     const result = await this.client.graphql<{
       exportUserCollectionsToJSON?: { exportedCollection: string; collectionType: string };
