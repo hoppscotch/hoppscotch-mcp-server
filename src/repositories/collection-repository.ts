@@ -46,9 +46,9 @@ export class CollectionRepository {
       throw new Error(
         `"${operation}" does not work on Hoppscotch Cloud as of now: the backend ` +
           "fails to serialize the collection's `data` field, which errors the whole " +
-          'query. This is server-side, so the tool is expected to start working ' +
-          'without an update here. Use "list_user_collections" meanwhile, which ' +
-          'returns the same collections on Cloud.'
+          'query. The check lives in this server, so re-enabling it needs an update ' +
+          'here. Use "list_user_collections" for root-level collections, or ' +
+          '"export_user_collection" for a known ID.'
       );
     }
   }
