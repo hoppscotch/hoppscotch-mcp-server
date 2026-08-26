@@ -7,34 +7,12 @@ import type {
   TeamRequestSearchResult,
 } from '../types.js';
 import { CollectionType, HoppscotchError } from '../types.js';
-import { ApiType } from '../config.js';
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
-/**
- * Repository for managing requests inside collections (team and user).
- *
- * Team request CRUD works on both backends, as do user request writes.
- *
- * User request READS are the exception: the only query selects nested
- * UserCollection.requests, which is not evidenced on Cloud's schema, so
- * getUserRequests stays gated client-side.
- */
+/** Repository for managing requests inside collections (team and user). */
 export class RequestRepository {
   constructor(private client: HoppscotchClient) {}
-
-  private isCloud(): boolean {
-    return this.client.getConfig().apiType === ApiType.CLOUD;
-  }
-
-  private assertNotCloud(operation: string): void {
-    if (this.isCloud()) {
-      throw new Error(
-        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
-          'Use team requests instead, or switch to a self-hosted instance.'
-      );
-    }
-  }
 
   // ─── Team Requests ──────────────────────────────────────────────────────────
 
@@ -133,11 +111,9 @@ export class RequestRepository {
 
   /**
    * List requests in a user collection.
-   * Not supported on Cloud as of now; gated client-side.
+   * Both Cloud and Self-Hosted.
    */
   async getUserRequests(collectionId: string): Promise<UserRequest[]> {
-    this.assertNotCloud('list_user_requests');
-
     const result = await this.client.graphql<{
       userCollection: { requests: UserRequest[] } | null;
     }>(queries.GET_USER_REQUESTS, { userCollectionID: collectionId });

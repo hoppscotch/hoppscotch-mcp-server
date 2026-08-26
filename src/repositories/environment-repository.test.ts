@@ -217,13 +217,12 @@ describe('EnvironmentRepository', () => {
         expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String));
       });
 
-      it('should throw on Cloud (no GQL user-environment field)', async () => {
-        const cloudRepo = new EnvironmentRepository(makeMockClient(ApiType.CLOUD));
-        await expect(cloudRepo.getUserEnvironments()).rejects.toThrow(
-          'User environments are not supported on Hoppscotch Cloud'
-        );
-        // graphql should NOT be called on Cloud
-        expect(mockClient.graphql).not.toHaveBeenCalled();
+      it('works on Cloud: the schema has User.environments', async () => {
+        const envs = [{ id: 'env1', name: 'Dev', variables: '[]', isGlobal: false }];
+        const cloud = makeMockClient(ApiType.CLOUD);
+        vi.mocked(cloud.graphql).mockResolvedValue({ me: { environments: envs } });
+
+        expect(await new EnvironmentRepository(cloud).getUserEnvironments()).toEqual(envs);
       });
 
       it('should propagate errors from GQL call on SH', async () => {

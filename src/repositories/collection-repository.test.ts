@@ -162,12 +162,14 @@ describe('CollectionRepository', () => {
       expect(result.parentID).toBeNull();
     });
 
-    it('should throw on Cloud (query selects parent, which Cloud lacks)', async () => {
-      const cloudClient = makeMockClient(ApiType.CLOUD);
-      await expect(new CollectionRepository(cloudClient).getUserCollection('col1')).rejects.toThrow(
-        'not supported on Hoppscotch Cloud'
-      );
-      expect(cloudClient.graphql).not.toHaveBeenCalled();
+    it('works on Cloud: the schema has UserCollection.parent', async () => {
+      vi.mocked(mockClient.getConfig).mockReturnValue({ apiType: ApiType.CLOUD });
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        userCollection: { id: 'c1', title: 'C', data: null, parent: { id: 'p1' } },
+      });
+
+      const result = await repository.getUserCollection('c1');
+      expect(result.parentID).toBe('p1');
     });
   });
 

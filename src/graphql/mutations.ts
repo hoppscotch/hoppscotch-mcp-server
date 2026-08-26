@@ -5,10 +5,9 @@
  *   Cloud:  live schema introspection (api.hoppscotch.io/graphql)
  *   SH OSS: packages/hoppscotch-backend/src/user-collection/input-type.args.ts
  *
- * Schema facts these selections depend on (verified live):
- *   • Cloud TeamCollection: id, title, data, parent { id }, team { ... }, children.
- *     No parentID scalar; parent is a nested object.
- *   • Cloud UserCollection: id, title, data. No parentID scalar, no parent field.
+ * Schema facts these selections depend on (Cloud introspection, 2026-08-26):
+ *   • UserCollection: id, title, type, data, user, parent, childrenREST,
+ *     childrenGQL, requests. Parent is a nested object, not a parentID scalar.
  *   • Where a response selects parent, repositories map parent?.id → parentID.
  *     Where it does not, they omit parentID rather than defaulting it to null.
  */
@@ -244,7 +243,7 @@ export const DUPLICATE_TEAM_COLLECTION = `
   }
 `;
 
-// ─── User Environments (self-hosted only; gated on Cloud) ───────────────────
+// ─── User Environments (Cloud + SH) ─────────────────────────────────────────
 
 export const CREATE_USER_ENVIRONMENT = `
   mutation CreateUserEnvironment($name: String!, $variables: String!) {

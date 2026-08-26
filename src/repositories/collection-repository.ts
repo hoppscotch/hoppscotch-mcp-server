@@ -33,12 +33,8 @@ interface RawUserCollection {
 /**
  * Repository for managing collections (user and team).
  *
- * Team collections work fully on both backends, as do user collection writes
- * (they branch on isCloud(); Cloud takes a different mutation shape), plus
- * list and export.
- *
- * getUserCollection is the exception: its query selects `parent`, which Cloud's
- * UserCollection does not expose (see the mutations.ts header), so it is gated.
+ * Everything here works on both backends. User collection writes branch on
+ * isCloud(), which takes a different mutation shape, not a different capability.
  */
 export class CollectionRepository {
   constructor(private client: HoppscotchClient) {}
@@ -47,15 +43,6 @@ export class CollectionRepository {
 
   private isCloud(): boolean {
     return this.client.getConfig().apiType === ApiType.CLOUD;
-  }
-
-  private assertNotCloud(operation: string): void {
-    if (this.isCloud()) {
-      throw new Error(
-        `"${operation}" is not supported on Hoppscotch Cloud as of now. ` +
-          'Use team collections instead, or switch to a self-hosted instance.'
-      );
-    }
   }
 
   /**
@@ -135,11 +122,9 @@ export class CollectionRepository {
 
   /**
    * Get a specific user collection by ID.
-   * Not supported on Cloud as of now; gated client-side.
+   * Both Cloud and Self-Hosted.
    */
   async getUserCollection(collectionId: string): Promise<UserCollection> {
-    this.assertNotCloud('get_user_collection');
-
     const result = await this.client.graphql<{
       userCollection: RawUserCollection;
     }>(queries.GET_USER_COLLECTION, { collectionID: collectionId });

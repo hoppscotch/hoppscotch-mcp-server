@@ -6,7 +6,6 @@ import type {
   UpdateEnvironmentInput,
   EnvironmentVariable,
 } from '../types.js';
-import { ApiType } from '../config.js';
 import { HoppscotchError } from '../types.js';
 import { redactSecrets } from '../utils/request-executor.js';
 import * as queries from '../graphql/queries.js';
@@ -107,24 +106,11 @@ export function redactEnvSecrets<T extends { variables: string }>(env: T): T {
 /**
  * Repository for managing environments (user and team).
  *
- * User environments
- * ─────────────────
- * • Self-Hosted: available via me { environments { ... } } resolver field.
- * • Cloud: not supported as of now; the MCP gates them client-side.
- *   Every user-environment call on Cloud raises a "not supported" error.
- *
- * Team environments
- * ─────────────────
- * • Both backends support CRUD mutations for team environments.
- * • Listing team environments: available on both backends via the
- *   team(teamID) { teamEnvironments { ... } } resolver field.
+ * Both work on both backends: user environments via me { environments },
+ * team environments via team(teamID) { teamEnvironments }.
  */
 export class EnvironmentRepository {
   constructor(private client: HoppscotchClient) {}
-
-  private isCloud(): boolean {
-    return this.client.getConfig().apiType === ApiType.CLOUD;
-  }
 
   // ─── Variable serialization ────────────────────────────────────────────────
 
@@ -169,18 +155,9 @@ export class EnvironmentRepository {
 
   /**
    * List personal environments for the authenticated user.
-   * Self-Hosted: me { environments } resolver field.
-   * Cloud: not supported as of now; gated client-side. Throws like its
-   * create/update/delete siblings, since [] would be indistinguishable from
-   * an account that has no environments.
+   * Both: me { environments } resolver field.
    */
   async getUserEnvironments(): Promise<UserEnvironment[]> {
-    if (this.isCloud()) {
-      throw new Error(
-        'User environments are not supported on Hoppscotch Cloud. Use team environments instead.'
-      );
-    }
-
     const result = await this.client.graphql<{
       me: { environments: UserEnvironment[] };
     }>(queries.GET_USER_ENVIRONMENTS);
@@ -190,15 +167,9 @@ export class EnvironmentRepository {
 
   /**
    * Create a personal environment.
-   * Not supported on Cloud as of now; gated client-side.
+   * Both Cloud and Self-Hosted.
    */
   async createUserEnvironment(data: CreateEnvironmentInput): Promise<UserEnvironment> {
-    if (this.isCloud()) {
-      throw new Error(
-        'User environments are not supported on Hoppscotch Cloud. Use team environments instead.'
-      );
-    }
-
     const variables = this.serializeVariables(data.variables);
 
     const result = await this.submitWithSecretScrub(variables, () =>
@@ -215,18 +186,12 @@ export class EnvironmentRepository {
 
   /**
    * Update a personal environment.
-   * Not supported on Cloud as of now; gated client-side.
+   * Both Cloud and Self-Hosted.
    */
   async updateUserEnvironment(
     environmentId: string,
     data: UpdateEnvironmentInput
   ): Promise<UserEnvironment> {
-    if (this.isCloud()) {
-      throw new Error(
-        'User environments are not supported on Hoppscotch Cloud. Use team environments instead.'
-      );
-    }
-
     // name and variables are String! (NON_NULL) on the SH mutation. If the
     // caller omits one we must read the current value and pass it through;
     // sending '' / '[]' as a default would silently wipe data the user did
@@ -259,15 +224,9 @@ export class EnvironmentRepository {
 
   /**
    * Delete a personal environment.
-   * Not supported on Cloud as of now; gated client-side.
+   * Both Cloud and Self-Hosted.
    */
   async deleteUserEnvironment(environmentId: string): Promise<boolean> {
-    if (this.isCloud()) {
-      throw new Error(
-        'User environments are not supported on Hoppscotch Cloud. Use team environments instead.'
-      );
-    }
-
     await this.client.graphql(mutations.DELETE_USER_ENVIRONMENT, {
       id: environmentId,
     });

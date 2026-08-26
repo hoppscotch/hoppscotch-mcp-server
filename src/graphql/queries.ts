@@ -47,8 +47,6 @@ export const GET_USER_GQL_COLLECTIONS = `
 /**
  * Get a specific user collection by ID.
  * SH field: userCollection(userCollectionID: ID!)
- * Cloud:    the resolver exists, but this selects `parent`, which Cloud's
- *           UserCollection does not have, so it is gated on Cloud as of now.
  */
 export const GET_USER_COLLECTION = `
   query GetUserCollection($collectionID: ID!) {
@@ -88,12 +86,11 @@ export const EXPORT_USER_COLLECTION_JSON = `
   }
 `;
 
-// ─── User Environments (via me resolver-field; gated on Cloud as of now) ────
+// ─── User Environments (via me resolver-field; Cloud + SH) ──────────────────
 
 /**
  * List all personal environments for the authenticated user.
- * Self-hosted only in this MCP: me { environments { ... } }.
- * Cloud has no supported personal-environment resolver, so the tool is gated.
+ * Both: me { environments { ... } }.
  */
 export const GET_USER_ENVIRONMENTS = `
   query GetUserEnvironments {
@@ -230,8 +227,6 @@ export const GET_TEAM_REQUEST = `
  * List requests in a user collection.
  * Field: userCollection(userCollectionID: ID!) { requests { ... } }
  * Note: arg is userCollectionID (not collectionID), same as GET_USER_COLLECTION.
- * Cloud: selects nested UserCollection.requests, which is not evidenced on
- *        Cloud's schema. Gated on Cloud as of now.
  */
 export const GET_USER_REQUESTS = `
   query GetUserRequests($userCollectionID: ID!) {

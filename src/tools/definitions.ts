@@ -32,7 +32,7 @@ const USER_COLLECTION_TOOLS = {
   get_user_collection: {
     name: 'get_user_collection',
     description:
-      'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly. Not supported on Hoppscotch Cloud as of now.',
+      'Get the envelope of a specific user collection — id, title, parent id, and the opaque data JSON string. Does NOT include nested requests or child collections in the response; use list_user_requests or list_user_collections (with a cursor) to read those explicitly.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -176,8 +176,7 @@ const USER_COLLECTION_TOOLS = {
 const USER_ENVIRONMENT_TOOLS = {
   list_user_environments: {
     name: 'list_user_environments',
-    description:
-      'List all user environments with their variables. Not supported on Hoppscotch Cloud as of now.',
+    description: 'List all user environments with their variables.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -187,8 +186,7 @@ const USER_ENVIRONMENT_TOOLS = {
 
   create_user_environment: {
     name: 'create_user_environment',
-    description:
-      'Create a new user environment with variables. Not supported on Hoppscotch Cloud as of now.',
+    description: 'Create a new user environment with variables.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -226,7 +224,7 @@ const USER_ENVIRONMENT_TOOLS = {
   update_user_environment: {
     name: 'update_user_environment',
     description:
-      'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged. Not supported on Hoppscotch Cloud as of now.',
+      'Update an existing user environment (rename or modify variables). Providing variables REPLACES the entire list (not a per-variable merge) — include every variable you want to keep; an omitted field is left unchanged.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -258,8 +256,7 @@ const USER_ENVIRONMENT_TOOLS = {
 
   delete_user_environment: {
     name: 'delete_user_environment',
-    description:
-      'Delete a user environment. This action cannot be undone. Not supported on Hoppscotch Cloud as of now.',
+    description: 'Delete a user environment. This action cannot be undone.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1055,7 +1052,7 @@ const CODE_GENERATION_TOOLS = {
 
 // ─── Request CRUD Tools ───────────────────────────────────────────────────────
 // Team request reads/writes work on both Cloud and SH. User request writes do
-// too; list_user_requests is gated on Cloud.
+// too. Both backends.
 const REQUEST_CRUD_TOOLS = {
   list_team_requests: {
     name: 'list_team_requests',
@@ -1181,8 +1178,7 @@ const REQUEST_CRUD_TOOLS = {
 
   list_user_requests: {
     name: 'list_user_requests',
-    description:
-      'List all requests in a personal (user) collection. Not supported on Hoppscotch Cloud as of now.',
+    description: 'List all requests in a personal (user) collection.',
     inputSchema: {
       type: 'object',
       properties: {

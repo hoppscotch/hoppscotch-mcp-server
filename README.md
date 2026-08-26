@@ -178,23 +178,14 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 
 ### Cloud / self-hosted compatibility
 
-Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
-Hoppscotch Cloud (`hoppscotch.io`), the **team** tools (except
-`search_team_requests`, below) and request execution work, as do
-`list_user_collections`, `export_user_collection`, and every personal
-collection/request **write**.
+Every tool works against a self-hosted Hoppscotch backend (CE or SHE), and every
+tool but one works against Hoppscotch Cloud (`hoppscotch.io`). Cloud's schema
+carries `UserCollection.parent`, `UserCollection.requests` and
+`User.environments`, so personal collections, requests and environments are
+available there alongside the team tools and request execution.
 
-Six tools are gated client-side on Cloud and return an `isError: true` response
-there rather than failing silently:
-
-| Tool | Why |
-|---|---|
-| `get_user_collection` | Its query selects `parent`, which Cloud's `UserCollection` does not expose. |
-| `list_user_requests` | Selects nested `UserCollection.requests`, not evidenced on Cloud's schema. |
-| the four `*_user_environment` tools | No personal-environment resolver on Cloud. Use team environments. |
-
-`search_team_requests` is separately unavailable on Cloud: the backend rejects
-the query with `bug/team/no_require_team_role`, surfaced as an error.
+`search_team_requests` is the exception: the Cloud backend rejects the query with
+`bug/team/no_require_team_role`, surfaced as an error from upstream.
 
 ### Teams
 
@@ -242,7 +233,7 @@ the query with `bug/team/no_require_team_role`, surfaced as an error.
 
 ### User (Personal) Collections
 
-> Personal (user) collections work on both **self-hosted** and **Hoppscotch Cloud**, except `get_user_collection`, which is gated on Cloud. Writes use Cloud-specific mutations there.
+> Personal (user) collections work on both **self-hosted** and **Hoppscotch Cloud**. Writes use Cloud-specific mutations there.
 
 | Tool | Description |
 |------|-------------|
@@ -280,7 +271,7 @@ the query with `bug/team/no_require_team_role`, surfaced as an error.
 
 ### User (Personal) Requests
 
-> Personal (user) request **writes** work on both **self-hosted** and **Hoppscotch Cloud**. `list_user_requests` is gated on Cloud.
+> Personal (user) requests work on both **self-hosted** and **Hoppscotch Cloud**.
 
 | Tool | Description |
 |------|-------------|
@@ -419,7 +410,7 @@ node dist/index.js  # triggers browser login; Ctrl+C after auth completes
 pnpm run test:e2e
 ```
 
-Tests create and clean up their own resources. The same suite runs against both Cloud and self-hosted; the Cloud-gated paths are asserted to return the correct error message.
+Tests create and clean up their own resources. The same suite runs against both Cloud and self-hosted.
 
 ### Project Structure
 
@@ -491,7 +482,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### Tool unavailable on Cloud
 
-Six tools are gated on Cloud as of now: `get_user_collection`, `list_user_requests`, and the four user-environment tools. Use team collections/requests/environments instead, or switch to a self-hosted instance. `list_user_collections`, `export_user_collection`, and all personal write tools do run against Cloud.
+`search_team_requests` is the only tool unavailable on Cloud: the backend rejects it with `bug/team/no_require_team_role`. Every other tool runs against both backends.
 
 ## Security
 
