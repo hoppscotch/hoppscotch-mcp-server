@@ -235,19 +235,19 @@ describe('CollectionRepository', () => {
       expect(calledArgs['reqType']).toBeUndefined();
     });
 
-    it('should send reqType on Cloud', async () => {
+    it('must not send reqType on Cloud: the mutation does not accept it', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
-      const rawGql = { id: 'col1', title: 'Updated', data: null };
-      vi.mocked(mockClient.graphql).mockResolvedValue({ updateUserCollection: rawGql });
-      // Cloud client has its own mock
       const cloudMock = cloudRepo['client'] as unknown as { graphql: Mock };
-      cloudMock.graphql = vi.fn().mockResolvedValue({ updateUserCollection: rawGql });
+      cloudMock.graphql = vi
+        .fn()
+        .mockResolvedValue({ updateUserCollection: { id: 'col1', title: 'Updated', data: null } });
 
       await cloudRepo.updateUserCollection('col1', CollectionType.REST, { title: 'Updated' });
-      expect(cloudMock.graphql).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ userCollectionID: 'col1', reqType: CollectionType.REST })
-      );
+      expect(cloudMock.graphql).toHaveBeenCalledWith(expect.any(String), {
+        userCollectionID: 'col1',
+        newTitle: 'Updated',
+        data: undefined,
+      });
     });
   });
 
@@ -260,7 +260,7 @@ describe('CollectionRepository', () => {
       });
     });
 
-    it('should send reqType on Cloud', async () => {
+    it('must not send reqType on Cloud: the mutation does not accept it', async () => {
       const cloudRepo = new CollectionRepository(makeMockClient(ApiType.CLOUD));
       const cloudMock = cloudRepo['client'] as unknown as { graphql: Mock };
       cloudMock.graphql = vi.fn().mockResolvedValue({});
@@ -268,7 +268,6 @@ describe('CollectionRepository', () => {
       await cloudRepo.deleteUserCollection('col1', CollectionType.REST);
       expect(cloudMock.graphql).toHaveBeenCalledWith(expect.any(String), {
         userCollectionID: 'col1',
-        reqType: CollectionType.REST,
       });
     });
   });

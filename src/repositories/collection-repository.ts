@@ -204,24 +204,23 @@ export class CollectionRepository {
   /**
    * Update a user collection's title and/or data.
    * Both Cloud and Self-Hosted.
-   * Arg name: userCollectionID (not collectionID); reqType required on Cloud.
+   * Arg name is userCollectionID, not collectionID. `type` is accepted for call
+   * compatibility but not sent: neither backend takes reqType here.
    */
   async updateUserCollection(
     collectionId: string,
     type: CollectionType,
     data: UpdateCollectionInput
   ): Promise<UserCollection> {
-    const mutation = this.isCloud()
-      ? mutations.UPDATE_USER_COLLECTION_CLOUD
-      : mutations.UPDATE_USER_COLLECTION_SH;
-
-    const variables = this.isCloud()
-      ? { userCollectionID: collectionId, newTitle: data.title, data: data.data, reqType: type }
-      : { userCollectionID: collectionId, newTitle: data.title, data: data.data };
+    void type;
 
     const result = await this.client.graphql<{
       updateUserCollection: RawUserCollection;
-    }>(mutation, variables);
+    }>(mutations.UPDATE_USER_COLLECTION, {
+      userCollectionID: collectionId,
+      newTitle: data.title,
+      data: data.data,
+    });
 
     // Update neither changes nor returns the parent: leave it unknown.
     return this.normalizeUserCollection(result.updateUserCollection, undefined);
@@ -230,18 +229,14 @@ export class CollectionRepository {
   /**
    * Delete a user collection.
    * Both Cloud and Self-Hosted.
-   * Args: userCollectionID + reqType (required on Cloud).
+   * Arg is userCollectionID alone; neither backend takes reqType here.
    */
   async deleteUserCollection(collectionId: string, type: CollectionType): Promise<boolean> {
-    const mutation = this.isCloud()
-      ? mutations.DELETE_USER_COLLECTION_CLOUD
-      : mutations.DELETE_USER_COLLECTION_SH;
+    void type;
 
-    const variables = this.isCloud()
-      ? { userCollectionID: collectionId, reqType: type }
-      : { userCollectionID: collectionId };
-
-    await this.client.graphql(mutation, variables);
+    await this.client.graphql(mutations.DELETE_USER_COLLECTION, {
+      userCollectionID: collectionId,
+    });
 
     return true;
   }

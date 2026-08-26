@@ -58,21 +58,7 @@ export const CREATE_GQL_CHILD_USER_COLLECTION = `
  * Update user collection title/data, Cloud variant.
  * Cloud requires reqType: ReqType! as an additional argument.
  */
-export const UPDATE_USER_COLLECTION_CLOUD = `
-  mutation UpdateUserCollection($userCollectionID: ID!, $newTitle: String, $data: String, $reqType: ReqType!) {
-    updateUserCollection(userCollectionID: $userCollectionID, newTitle: $newTitle, data: $data, reqType: $reqType) {
-      id
-      title
-      data
-    }
-  }
-`;
-
-/**
- * Update user collection title/data, SH variant.
- * SH does not have reqType on updateUserCollection.
- */
-export const UPDATE_USER_COLLECTION_SH = `
+export const UPDATE_USER_COLLECTION = `
   mutation UpdateUserCollection($userCollectionID: ID!, $newTitle: String, $data: String) {
     updateUserCollection(userCollectionID: $userCollectionID, newTitle: $newTitle, data: $data) {
       id
@@ -86,17 +72,7 @@ export const UPDATE_USER_COLLECTION_SH = `
  * Delete user collection, Cloud variant.
  * Cloud requires reqType: ReqType!.
  */
-export const DELETE_USER_COLLECTION_CLOUD = `
-  mutation DeleteUserCollection($userCollectionID: ID!, $reqType: ReqType!) {
-    deleteUserCollection(userCollectionID: $userCollectionID, reqType: $reqType)
-  }
-`;
-
-/**
- * Delete user collection, SH variant.
- * SH does not have reqType on deleteUserCollection.
- */
-export const DELETE_USER_COLLECTION_SH = `
+export const DELETE_USER_COLLECTION = `
   mutation DeleteUserCollection($userCollectionID: ID!) {
     deleteUserCollection(userCollectionID: $userCollectionID)
   }
@@ -138,7 +114,10 @@ export const IMPORT_USER_COLLECTIONS_JSON = `
  */
 export const DUPLICATE_USER_COLLECTION = `
   mutation DuplicateUserCollection($collectionID: String!, $reqType: ReqType!) {
-    duplicateUserCollection(collectionID: $collectionID, reqType: $reqType)
+    duplicateUserCollection(collectionID: $collectionID, reqType: $reqType) {
+      exportedCollection
+      collectionType
+    }
   }
 `;
 
