@@ -384,6 +384,21 @@ pnpm run lint             # ESLint
 pnpm run lint:fix         # ESLint with auto-fix
 pnpm run build            # Production build
 pnpm run dev              # Watch mode build
+pnpm run format           # Prettier over src/
+pnpm run validate:graphql # Check every GQL document against a backend schema
+```
+
+`validate:graphql` takes a captured introspection result and validates the
+documents in `src/graphql/` against it. The unit tests mock the transport, so
+they cannot catch a wrong argument name or a missing selection set: only this
+does.
+
+```bash
+curl -s -X POST https://api.hoppscotch.io/graphql \
+  -H 'Content-Type: application/json' \
+  -d "$(node -e "const{getIntrospectionQuery}=require('graphql');console.log(JSON.stringify({query:getIntrospectionQuery()}))")" \
+  -o schema.json
+pnpm run validate:graphql schema.json
 ```
 
 ### Running E2E Tests

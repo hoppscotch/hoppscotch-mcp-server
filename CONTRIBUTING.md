@@ -15,6 +15,11 @@ pnpm test             # Unit tests (excludes e2e)
 pnpm run build        # Produce dist/
 ```
 
+If you change anything under `src/graphql/`, also run
+`pnpm run validate:graphql <introspection.json>`. The unit tests mock the
+transport, so a wrong argument name or a missing selection set passes them and
+fails against a real backend. See the README for capturing the schema.
+
 `pnpm test` is hermetic (no network, no browser, no real filesystem) so it
 behaves the same locally and in CI. Two suites are opt-in because they need a
 live backend and are therefore skipped by default:
