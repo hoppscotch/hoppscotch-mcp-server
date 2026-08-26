@@ -15,9 +15,9 @@
 /**
  * Get root REST user collections.
  * SH field: rootRESTUserCollections(cursor, take)
- * Cloud:    present on the live schema post-migration.
- * Selects no `parent`: these rows are roots on either backend, and Cloud's
- * UserCollection has no parent field (see mutations.ts header).
+ * Cloud:    present; verified against a live account 2026-08-26.
+ * Selects no `parent`: these rows are roots on either backend, so the field
+ * would cost a join to always return null.
  */
 export const GET_USER_REST_COLLECTIONS = `
   query GetUserRESTCollections($cursor: ID, $take: Int) {

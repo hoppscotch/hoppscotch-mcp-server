@@ -802,8 +802,8 @@ export class ToolHandlers {
   /**
    * Resolve variables for a personal environment. If an environmentId is given it
    * MUST exist: a missing or unknown one is a hard error, not a silent no-op that
-   * would send unresolved `{{placeholder}}`s. Team environments and Cloud user
-   * environments are not available here.
+   * would send unresolved `{{placeholder}}`s. Team environments are not resolved
+   * here; personal environments work on both backends.
    */
   private async resolveEnvironmentVariables(
     environmentId?: string
@@ -814,8 +814,7 @@ export class ToolHandlers {
     if (!found) {
       throw new HoppscotchError(
         `Environment '${environmentId}' not found for this account. Only personal ` +
-          `environments are available here (team environments and Cloud user ` +
-          `environments are not).`,
+          `environments are available here; team environments are not.`,
         'ENVIRONMENT_NOT_FOUND'
       );
     }

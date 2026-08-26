@@ -961,8 +961,8 @@ describe('user collections', () => {
     expect(text).not.toMatch(/auth\/fail/i);
 
     if (IS_CLOUD) {
-      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
+      expect(text).toContain('"get_user_collection" does not work on Hoppscotch Cloud');
+      expect(text).toContain('list_user_collections');
       return;
     }
 
@@ -987,8 +987,8 @@ describe('user collections', () => {
     expect(text).not.toMatch(/auth\/fail/i);
 
     if (IS_CLOUD) {
-      expect(text).toContain('"get_user_collection" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team collections instead');
+      expect(text).toContain('"get_user_collection" does not work on Hoppscotch Cloud');
+      expect(text).toContain('list_user_collections');
       return;
     }
 
@@ -1517,12 +1517,11 @@ describe('team requests', () => {
 
 // ---------------------------------------------------------------------------
 // User requests
-// Writes work on both backends. list_user_requests is gated on Cloud: its query
-// selects nested UserCollection.requests, which Cloud's schema does not evidence.
+// Reads and writes work on both backends; verified against Cloud 2026-08-26.
 // ---------------------------------------------------------------------------
 
 describe('user requests', () => {
-  e2e('list_user_requests — SH: array of requests; Cloud: gated', async () => {
+  e2e('list_user_requests — array of requests on both backends', async () => {
     const text = textOf(
       await client.callTool({
         name: 'list_user_requests',
@@ -1531,12 +1530,6 @@ describe('user requests', () => {
     );
     log('list_user_requests', text);
     expect(text).not.toMatch(/auth\/fail/i);
-
-    if (IS_CLOUD) {
-      expect(text).toContain('"list_user_requests" is not supported on Hoppscotch Cloud');
-      expect(text).toContain('Use team requests instead');
-      return;
-    }
 
     if (!PERSONAL_REST_COLLECTION_ID) {
       console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID');
@@ -1815,21 +1808,17 @@ describe('user requests', () => {
 });
 
 // ---------------------------------------------------------------------------
-// User environments (Cloud: all four tools return "not supported")
+// User environments: all four tools work on both backends (verified 2026-08-26).
 // ---------------------------------------------------------------------------
 
 describe('user environments', () => {
-  e2e('list_user_environments — SH: array of envs; Cloud: not supported', async () => {
+  e2e('list_user_environments — array of envs on both backends', async () => {
     const text = textOf(await client.callTool({ name: 'list_user_environments', arguments: {} }));
     log('list_user_environments', text);
     expect(text).not.toMatch(/auth\/fail/i);
-    if (IS_CLOUD) {
-      expect(text).toContain('User environments are not supported on Hoppscotch Cloud');
-      return;
-    }
     const parsed = jsonOf<unknown[]>(text);
     expect(Array.isArray(parsed)).toBe(true);
-    // On SH, each env should have id/name/variables
+    // Each env should have id/name/variables
     for (const env of parsed as Array<Record<string, unknown>>) {
       assertShape(env, { id: 'string', name: 'string', variables: 'string' });
     }

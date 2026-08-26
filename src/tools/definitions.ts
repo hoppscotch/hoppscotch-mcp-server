@@ -64,6 +64,7 @@ const USER_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of parent collection (omit for root-level collection)',
         },
         data: {
@@ -139,6 +140,7 @@ const USER_COLLECTION_TOOLS = {
         },
         collectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of specific collection to export (omit to export all collections)',
         },
       },
@@ -165,6 +167,7 @@ const USER_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of parent collection (omit to import at root level)',
         },
       },
@@ -323,6 +326,7 @@ const TEAM_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of parent collection (omit for root)',
         },
         data: {
@@ -370,6 +374,7 @@ const TEAM_COLLECTION_TOOLS = {
         },
         collectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of specific collection (omit to export all)',
         },
       },
@@ -541,10 +546,12 @@ const ADVANCED_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of the new parent collection. Omit to move the collection to the root.',
         },
         newParentId: {
           type: 'string',
+          minLength: 1,
           description:
             'Deprecated alias of parentCollectionId — prefer parentCollectionId. Accepted for backward compatibility; must not differ from parentCollectionId if both are given.',
         },
@@ -565,6 +572,7 @@ const ADVANCED_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of the new parent collection (omit to move to root)',
         },
       },
@@ -608,6 +616,7 @@ const ADVANCED_COLLECTION_TOOLS = {
         },
         parentCollectionId: {
           type: 'string',
+          minLength: 1,
           description: 'ID of parent collection (omit for root)',
         },
       },
@@ -1401,12 +1410,14 @@ function annotationsFor(name: string): ToolAnnotations {
       openWorldHint: false,
     };
   }
-  // reauth: triggers an external browser sign-in (open-world), not destructive
-  // to user data, not idempotent (each call restarts the flow).
+  // reauth: triggers an external browser sign-in (open-world) and clears the
+  // cached session first, which aborts any in-flight flow, so it is destructive
+  // to auth state even though it touches no collection data. Not idempotent
+  // either: each call restarts the flow.
   if (name === 'reauth') {
     return {
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: false,
       openWorldHint: true,
     };
