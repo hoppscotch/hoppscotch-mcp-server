@@ -211,7 +211,6 @@ function generateGo(request: RequestDefinition): string {
   lines.push('');
   lines.push('import (');
   lines.push('\t"bytes"');
-  lines.push('\t"encoding/json"');
   lines.push('\t"fmt"');
   lines.push('\t"io"');
   lines.push('\t"net/http"');
