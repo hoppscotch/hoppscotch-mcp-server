@@ -205,6 +205,27 @@ describe('code-generator', () => {
       );
     });
 
+    it('should mask a Stripe-style key-as-username under redaction, raw and base64, in all five languages and docs', () => {
+      const request: RequestDefinition = {
+        method: 'GET',
+        url: 'https://api.example.com/charges',
+        auth: { type: 'basic', username: 'sk_live_leakme', password: '' },
+      };
+      const b64 = Buffer.from('sk_live_leakme:').toString('base64');
+
+      for (const lang of ['curl', 'javascript', 'python', 'go', 'rust'] as const) {
+        const code = generateCode(request, lang, { redactCredentials: true });
+        expect(code).not.toContain('sk_live_leakme');
+        expect(code).not.toContain(b64);
+      }
+      // JS base64-encodes the placeholder, the rest emit it literally.
+      expect(generateCode(request, 'curl', { redactCredentials: true })).toContain('<USERNAME>');
+
+      const docs = generateDocumentation(request);
+      expect(docs).not.toContain('sk_live_leakme');
+      expect(docs).not.toContain(b64);
+    });
+
     it('should drop the body from GET and HEAD snippets, mirroring the executor', () => {
       const request: RequestDefinition = {
         method: 'GET',

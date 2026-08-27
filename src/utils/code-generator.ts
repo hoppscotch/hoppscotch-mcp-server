@@ -409,13 +409,18 @@ export function generateCode(
  * Used for documentation examples, which are share-oriented (wikis, READMEs,
  * chat), where reproducing a live bearer/basic/api-key value verbatim would leak it.
  * The username (basic) and header/key name (api-key) are kept as they are not
- * secrets; only the secret half is masked.
+ * secrets; only the secret half is masked. The exception is basic auth with an
+ * empty password, where the username IS the secret (Stripe-style
+ * key-as-username), so the username is masked instead.
  */
 function redactRequestAuth(request: RequestDefinition): RequestDefinition {
   if (!request.auth) return request;
   const auth = { ...request.auth };
   if (auth.type === 'bearer' && auth.token) auth.token = '<BEARER_TOKEN>';
-  if (auth.type === 'basic' && auth.password) auth.password = '<PASSWORD>';
+  if (auth.type === 'basic') {
+    if (auth.password) auth.password = '<PASSWORD>';
+    else if (auth.password === '' && auth.username) auth.username = '<USERNAME>';
+  }
   if (auth.type === 'api-key' && auth.value) auth.value = '<API_KEY>';
   return { ...request, auth };
 }
