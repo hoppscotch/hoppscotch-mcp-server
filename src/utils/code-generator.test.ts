@@ -153,6 +153,18 @@ describe('code-generator', () => {
 
       expect(code).toContain('.basic_auth("user", Some("pass"))');
     });
+
+    it('should route OPTIONS through the generic builder (regression: client.options() does not exist in reqwest)', () => {
+      const request: RequestDefinition = {
+        method: 'OPTIONS',
+        url: 'https://api.example.com/users',
+      };
+
+      const code = generateCode(request, 'rust');
+
+      expect(code).toContain('client.request(reqwest::Method::OPTIONS, ');
+      expect(code).not.toContain('client.options(');
+    });
   });
 
   describe('generateCode — credential redaction (opt-in redactCredentials:true)', () => {

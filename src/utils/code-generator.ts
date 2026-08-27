@@ -290,7 +290,13 @@ function generateRust(request: RequestDefinition): string {
   lines.push('    let client = reqwest::Client::new();');
   lines.push('');
 
-  lines.push(`    let mut request = client.${request.method.toLowerCase()}("${dq(url)}")`);
+  // reqwest's Client has no `options()` convenience method, so OPTIONS goes
+  // through the generic request builder.
+  const opener =
+    request.method === 'OPTIONS'
+      ? `client.request(reqwest::Method::OPTIONS, "${dq(url)}")`
+      : `client.${request.method.toLowerCase()}("${dq(url)}")`;
+  lines.push(`    let mut request = ${opener}`);
 
   const headers: Record<string, string> = { ...request.headers };
 
