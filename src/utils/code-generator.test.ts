@@ -167,6 +167,44 @@ describe('code-generator', () => {
     });
   });
 
+  describe('generateCode — accepted-input regressions', () => {
+    it('should emit --head for HEAD (regression: -X HEAD hangs waiting for a body)', () => {
+      const request: RequestDefinition = {
+        method: 'HEAD',
+        url: 'https://api.example.com/users',
+      };
+
+      const code = generateCode(request, 'curl');
+
+      expect(code).toContain('--head');
+      expect(code).not.toContain('-X HEAD');
+    });
+
+    it('should not emit a dangling auth=auth for basic auth with an empty password (regression: NameError)', () => {
+      const request: RequestDefinition = {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        auth: { type: 'basic', username: 'user', password: '' },
+      };
+
+      const code = generateCode(request, 'python');
+
+      expect(code).not.toContain('auth=auth');
+    });
+
+    it('should print the response body body-safely in javascript and python (regression: HEAD/204 blew up response.json())', () => {
+      const request: RequestDefinition = {
+        method: 'HEAD',
+        url: 'https://api.example.com/users',
+      };
+
+      expect(generateCode(request, 'javascript')).toContain('response.text()');
+      expect(generateCode(request, 'javascript')).not.toContain('response.json()');
+      expect(generateCode(request, 'python')).toContain('response.text');
+      expect(generateCode(request, 'python')).not.toContain('response.json()');
+    });
+  });
+
   describe('generateCode — credential redaction (opt-in redactCredentials:true)', () => {
     const redact = { redactCredentials: true } as const;
 

@@ -62,7 +62,11 @@ function resolveApiKeyPlacement(request: RequestDefinition): {
 function generateCurl(request: RequestDefinition): string {
   const parts: string[] = ['curl'];
 
-  if (request.method !== 'GET') {
+  if (request.method === 'HEAD') {
+    // -X HEAD makes curl wait for a body that never comes; --head is the
+    // supported spelling.
+    parts.push('--head');
+  } else if (request.method !== 'GET') {
     parts.push(`-X ${request.method}`);
   }
 
@@ -135,7 +139,7 @@ function generateJavaScript(request: RequestDefinition): string {
   lines.push('  }');
   lines.push(');');
   lines.push('');
-  lines.push('const data = await response.json();');
+  lines.push('const data = await response.text();');
   lines.push('console.log(data);');
 
   return lines.join('\n');
@@ -171,8 +175,15 @@ function generatePython(request: RequestDefinition): string {
     lines.push('}');
   }
 
-  if (request.auth?.type === 'basic' && request.auth.username && request.auth.password) {
-    lines.push(`auth = ('${sq(request.auth.username)}', '${sq(request.auth.password)}')`);
+  // Define and use `auth` under the SAME predicate. Truthiness mirrors the
+  // executor and the other emitters, which omit basic auth when either half
+  // is empty.
+  const basicAuth =
+    request.auth?.type === 'basic' && request.auth.username && request.auth.password
+      ? { username: request.auth.username, password: request.auth.password }
+      : undefined;
+  if (basicAuth) {
+    lines.push(`auth = ('${sq(basicAuth.username)}', '${sq(basicAuth.password)}')`);
   }
 
   if (request.body) {
@@ -185,7 +196,7 @@ function generatePython(request: RequestDefinition): string {
   if (Object.keys(headers).length > 0) {
     requestParts.push('headers=headers');
   }
-  if (request.auth?.type === 'basic') {
+  if (basicAuth) {
     requestParts.push('auth=auth');
   }
   if (request.body) {
@@ -195,7 +206,7 @@ function generatePython(request: RequestDefinition): string {
   lines.push(`response = requests.request(${requestParts.join(', ')})`);
   lines.push('');
   lines.push('print(response.status_code)');
-  lines.push('print(response.json())');
+  lines.push('print(response.text)');
 
   return lines.join('\n');
 }
