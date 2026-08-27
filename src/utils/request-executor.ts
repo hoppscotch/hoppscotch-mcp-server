@@ -585,7 +585,13 @@ export async function executeRequest(
     if (request.auth) {
       if (request.auth.type === 'bearer' && request.auth.token) {
         headers['Authorization'] = `Bearer ${request.auth.token}`;
-      } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
+      } else if (
+        // Definedness, not truthiness: an empty password is a legal credential
+        // (e.g. Stripe authenticates with key-as-username and empty password).
+        request.auth.type === 'basic' &&
+        request.auth.username !== undefined &&
+        request.auth.password !== undefined
+      ) {
         const credentials = Buffer.from(
           `${request.auth.username}:${request.auth.password}`
         ).toString('base64');

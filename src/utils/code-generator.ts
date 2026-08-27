@@ -57,6 +57,25 @@ function resolveApiKeyPlacement(request: RequestDefinition): {
 }
 
 /**
+ * Basic auth applies when both halves are DEFINED. An empty password is a
+ * legal credential (e.g. Stripe authenticates with the API key as username
+ * and an empty password), so truthiness would silently drop it.
+ */
+function basicAuthOf(request: RequestDefinition): { username: string; password: string } | null {
+  const auth = request.auth;
+  return auth?.type === 'basic' && auth.username !== undefined && auth.password !== undefined
+    ? { username: auth.username, password: auth.password }
+    : null;
+}
+
+/** GET and HEAD never send a body; mirror the executor, which drops it. */
+function bodyOf(request: RequestDefinition): string | undefined {
+  return request.body && !['GET', 'HEAD'].includes(request.method.toUpperCase())
+    ? request.body
+    : undefined;
+}
+
+/**
  * Generate cURL command from request
  */
 function generateCurl(request: RequestDefinition): string {
@@ -81,15 +100,17 @@ function generateCurl(request: RequestDefinition): string {
   if (request.auth) {
     if (request.auth.type === 'bearer' && request.auth.token) {
       parts.push(`-H ${shToken(`Authorization: Bearer ${request.auth.token}`)}`);
-    } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
-      parts.push(`-u ${shToken(`${request.auth.username}:${request.auth.password}`)}`);
+    } else if (basicAuthOf(request)) {
+      const basic = basicAuthOf(request)!;
+      parts.push(`-u ${shToken(`${basic.username}:${basic.password}`)}`);
     } else if (apiKeyHeader) {
       parts.push(`-H ${shToken(`${apiKeyHeader.key}: ${apiKeyHeader.value}`)}`);
     }
   }
 
-  if (request.body) {
-    parts.push(`-d ${shToken(request.body)}`);
+  const body = bodyOf(request);
+  if (body) {
+    parts.push(`-d ${shToken(body)}`);
   }
 
   parts.push(shToken(url));
@@ -114,10 +135,9 @@ function generateJavaScript(request: RequestDefinition): string {
   if (request.auth) {
     if (request.auth.type === 'bearer' && request.auth.token) {
       headers['Authorization'] = `Bearer ${request.auth.token}`;
-    } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
-      const credentials = Buffer.from(`${request.auth.username}:${request.auth.password}`).toString(
-        'base64'
-      );
+    } else if (basicAuthOf(request)) {
+      const basic = basicAuthOf(request)!;
+      const credentials = Buffer.from(`${basic.username}:${basic.password}`).toString('base64');
       headers['Authorization'] = `Basic ${credentials}`;
     } else if (apiKeyHeader) {
       headers[apiKeyHeader.key] = apiKeyHeader.value;
@@ -132,8 +152,9 @@ function generateJavaScript(request: RequestDefinition): string {
     lines.push('    },');
   }
 
-  if (request.body) {
-    lines.push(`    body: '${sq(request.body)}',`);
+  const body = bodyOf(request);
+  if (body) {
+    lines.push(`    body: '${sq(body)}',`);
   }
 
   lines.push('  }');
@@ -175,19 +196,16 @@ function generatePython(request: RequestDefinition): string {
     lines.push('}');
   }
 
-  // Define and use `auth` under the SAME predicate. Truthiness mirrors the
-  // executor and the other emitters, which omit basic auth when either half
-  // is empty.
-  const basicAuth =
-    request.auth?.type === 'basic' && request.auth.username && request.auth.password
-      ? { username: request.auth.username, password: request.auth.password }
-      : undefined;
+  // Define and use `auth` under the SAME predicate, shared with every emitter
+  // and the executor.
+  const basicAuth = basicAuthOf(request);
   if (basicAuth) {
     lines.push(`auth = ('${sq(basicAuth.username)}', '${sq(basicAuth.password)}')`);
   }
 
-  if (request.body) {
-    lines.push(`data = '${sq(request.body)}'`);
+  const body = bodyOf(request);
+  if (body) {
+    lines.push(`data = '${sq(body)}'`);
   }
 
   lines.push('');
@@ -199,7 +217,7 @@ function generatePython(request: RequestDefinition): string {
   if (basicAuth) {
     requestParts.push('auth=auth');
   }
-  if (request.body) {
+  if (body) {
     requestParts.push('data=data');
   }
 
@@ -229,10 +247,11 @@ function generateGo(request: RequestDefinition): string {
   lines.push('');
   lines.push('func main() {');
 
-  if (request.body) {
+  const body = bodyOf(request);
+  if (body) {
     // Interpreted ("...") string literal: a raw (`...`) literal can't carry an
     // embedded backtick, and dq() escapes quotes/backslashes/newlines safely.
-    lines.push(`\tpayload := []byte("${dq(request.body)}")`);
+    lines.push(`\tpayload := []byte("${dq(body)}")`);
   } else {
     lines.push('\tvar payload []byte');
   }
@@ -251,8 +270,8 @@ function generateGo(request: RequestDefinition): string {
   if (request.auth) {
     if (request.auth.type === 'bearer' && request.auth.token) {
       headers['Authorization'] = `Bearer ${request.auth.token}`;
-    } else if (request.auth.type === 'basic' && request.auth.username && request.auth.password) {
-      basicAuth = { username: request.auth.username, password: request.auth.password };
+    } else if (basicAuthOf(request)) {
+      basicAuth = basicAuthOf(request);
     } else if (apiKeyHeader) {
       headers[apiKeyHeader.key] = apiKeyHeader.value;
     }
@@ -325,14 +344,14 @@ function generateRust(request: RequestDefinition): string {
 
   // reqwest's RequestBuilder.basic_auth(username, Some(password)) sets the
   // Authorization header; mirror curl/JS/Python which all support basic auth.
-  if (request.auth?.type === 'basic' && request.auth.username && request.auth.password) {
-    lines.push(
-      `        .basic_auth("${dq(request.auth.username)}", Some("${dq(request.auth.password)}"))`
-    );
+  const basic = basicAuthOf(request);
+  if (basic) {
+    lines.push(`        .basic_auth("${dq(basic.username)}", Some("${dq(basic.password)}"))`);
   }
 
-  if (request.body) {
-    lines.push(`        .body("${dq(request.body)}")`);
+  const body = bodyOf(request);
+  if (body) {
+    lines.push(`        .body("${dq(body)}")`);
   }
 
   lines.push('        .build()?;');

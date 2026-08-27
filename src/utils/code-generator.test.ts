@@ -180,16 +180,46 @@ describe('code-generator', () => {
       expect(code).not.toContain('-X HEAD');
     });
 
-    it('should not emit a dangling auth=auth for basic auth with an empty password (regression: NameError)', () => {
+    it('should keep basic auth with an empty password (Stripe-style key-as-username), defined and used together', () => {
       const request: RequestDefinition = {
         method: 'GET',
         url: 'https://api.example.com/users',
-        auth: { type: 'basic', username: 'user', password: '' },
+        auth: { type: 'basic', username: 'api-key', password: '' },
       };
 
-      const code = generateCode(request, 'python');
+      const python = generateCode(request, 'python', { redactCredentials: false });
+      expect(python).toContain("auth = ('api-key', '')");
+      expect(python).toContain('auth=auth');
 
-      expect(code).not.toContain('auth=auth');
+      expect(generateCode(request, 'curl', { redactCredentials: false })).toContain(
+        "-u 'api-key:'"
+      );
+      expect(generateCode(request, 'javascript', { redactCredentials: false })).toContain(
+        `Basic ${Buffer.from('api-key:').toString('base64')}`
+      );
+      expect(generateCode(request, 'go', { redactCredentials: false })).toContain(
+        'req.SetBasicAuth("api-key", "")'
+      );
+      expect(generateCode(request, 'rust', { redactCredentials: false })).toContain(
+        '.basic_auth("api-key", Some(""))'
+      );
+    });
+
+    it('should drop the body from GET and HEAD snippets, mirroring the executor', () => {
+      const request: RequestDefinition = {
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        body: '{"ignored": true}',
+      };
+
+      expect(generateCode(request, 'curl')).not.toContain('-d ');
+      expect(generateCode(request, 'javascript')).not.toContain('body:');
+      expect(generateCode(request, 'python')).not.toContain('data=data');
+      expect(generateCode(request, 'go')).toContain('var payload []byte');
+      expect(generateCode(request, 'rust')).not.toContain('.body(');
+
+      const post: RequestDefinition = { ...request, method: 'POST' };
+      expect(generateCode(post, 'curl')).toContain('-d ');
     });
 
     it('should print the response body body-safely in javascript and python (regression: HEAD/204 blew up response.json())', () => {
