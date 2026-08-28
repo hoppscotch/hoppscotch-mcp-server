@@ -14,6 +14,9 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    # Bind the publish to the `release` environment so its reviewer rule and
+    # environment-scoped NPM_TOKEN apply (an unconfigured environment gates nothing).
+    environment: release
 
     steps:
       - name: Checkout code
@@ -35,8 +38,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Full CI gate before any publish, mirroring the checks ci.yml runs on
-      # main so a tag push cannot ship code that wouldn't have passed CI.
+      # Release gate before any publish: the typecheck, lint, test and audit checks
+      # ci.yml runs on main (ci.yml additionally covers formatting and the OS/Node
+      # matrix, so tag only a commit main CI has passed).
       - name: Typecheck
         run: pnpm run typecheck
 
@@ -98,7 +102,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           generate_release_notes: true
           files: |
