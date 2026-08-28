@@ -90,7 +90,7 @@ const USER_COLLECTION_TOOLS = {
           type: 'string',
           enum: ['REST', 'GQL'],
           description:
-            'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+            'Accepted for compatibility and ignored: the collection ID alone determines the target.',
         },
         title: {
           type: 'string',
@@ -119,7 +119,7 @@ const USER_COLLECTION_TOOLS = {
           type: 'string',
           enum: ['REST', 'GQL'],
           description:
-            'Type of the collection (REST, or GQL for GraphQL). Optional — defaults to REST when omitted.',
+            'Accepted for compatibility and ignored: the collection ID alone determines the target.',
         },
       },
       required: ['collectionId'],
@@ -862,6 +862,7 @@ const REQUEST_EXECUTION_TOOLS = {
               description: 'Where to add API key (header or query param)',
             },
           },
+          required: ['type'],
         },
         environmentId: {
           type: 'string',
@@ -903,6 +904,39 @@ const REQUEST_EXECUTION_TOOLS = {
         auth: {
           type: 'object',
           description: 'Authentication configuration',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['bearer', 'basic', 'api-key'],
+              description: 'Authentication type',
+            },
+            token: {
+              type: 'string',
+              description: 'Bearer token (for bearer auth)',
+            },
+            username: {
+              type: 'string',
+              description: 'Username (for basic auth)',
+            },
+            password: {
+              type: 'string',
+              description: 'Password (for basic auth)',
+            },
+            key: {
+              type: 'string',
+              description: 'API key name (for api-key auth)',
+            },
+            value: {
+              type: 'string',
+              description: 'API key value (for api-key auth)',
+            },
+            addTo: {
+              type: 'string',
+              enum: ['header', 'query'],
+              description: 'Where to add API key (header or query param)',
+            },
+          },
+          required: ['type'],
         },
         criteria: {
           type: 'object',
@@ -992,6 +1026,39 @@ const CODE_GENERATION_TOOLS = {
         auth: {
           type: 'object',
           description: 'Authentication configuration',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['bearer', 'basic', 'api-key'],
+              description: 'Authentication type',
+            },
+            token: {
+              type: 'string',
+              description: 'Bearer token (for bearer auth)',
+            },
+            username: {
+              type: 'string',
+              description: 'Username (for basic auth)',
+            },
+            password: {
+              type: 'string',
+              description: 'Password (for basic auth)',
+            },
+            key: {
+              type: 'string',
+              description: 'API key name (for api-key auth)',
+            },
+            value: {
+              type: 'string',
+              description: 'API key value (for api-key auth)',
+            },
+            addTo: {
+              type: 'string',
+              enum: ['header', 'query'],
+              description: 'Where to add API key (header or query param)',
+            },
+          },
+          required: ['type'],
         },
         language: {
           type: 'string',
@@ -1035,6 +1102,39 @@ const CODE_GENERATION_TOOLS = {
         auth: {
           type: 'object',
           description: 'Authentication configuration',
+          properties: {
+            type: {
+              type: 'string',
+              enum: ['bearer', 'basic', 'api-key'],
+              description: 'Authentication type',
+            },
+            token: {
+              type: 'string',
+              description: 'Bearer token (for bearer auth)',
+            },
+            username: {
+              type: 'string',
+              description: 'Username (for basic auth)',
+            },
+            password: {
+              type: 'string',
+              description: 'Password (for basic auth)',
+            },
+            key: {
+              type: 'string',
+              description: 'API key name (for api-key auth)',
+            },
+            value: {
+              type: 'string',
+              description: 'API key value (for api-key auth)',
+            },
+            addTo: {
+              type: 'string',
+              enum: ['header', 'query'],
+              description: 'Where to add API key (header or query param)',
+            },
+          },
+          required: ['type'],
         },
         title: {
           type: 'string',
