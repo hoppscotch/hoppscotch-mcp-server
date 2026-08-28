@@ -58,8 +58,8 @@ don't mind writing to.
 - Include tests for new tools or behaviour changes.
 - `pnpm run lint && pnpm run typecheck && pnpm test` must all pass locally
   before you push. CI enforces the same.
-- Add tool `annotations` when introducing a new tool (see
-  `src/tools/definitions.ts`).
+- Tool `annotations` are derived from the tool name by `annotationsFor` in
+  `src/tools/definitions.ts`; extend it when a new tool's hints differ.
 - Run `pnpm run format` before you push. `src/` is uniformly Prettier-formatted
   and CI runs `pnpm run format:check`, so an unformatted file fails the build.
 

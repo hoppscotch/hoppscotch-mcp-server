@@ -20,7 +20,7 @@ surface, the auth flow, or the minimum supported Node version.
 Deprecations are announced in the release notes for the preceding minor
 release and removed no sooner than the next major.
 
-## [1.0.0] - 2026-08-25
+## [1.0.0] - 2026-08-28
 
 Initial public release.
 
@@ -44,6 +44,17 @@ request execution and code generation.
 execution, response validation, and code/documentation generation. `HOPPSCOTCH_TOOL_PROFILE`
 selects how many are exposed: `minimal`, `core` (the default), `standard`, or `full`.
 `core` and `standard` are separate branches of `full`, not a ladder.
+
+### Deprecated
+
+Accepted in 1.0.0 and slated for removal no sooner than 2.0.0:
+
+- `validate_response`: `criteria.jsonSchema`, an alias of `criteria.jsonObject`. It
+  does not validate against a schema; both only check that the body parses as a JSON
+  object or array. Use `jsonObject: true`.
+- `move_user_collection`: `newParentId`, an alias of `parentCollectionId`.
+- `update_user_collection` and `delete_user_collection`: `type`. It is accepted and
+  ignored; the collection ID alone determines the target.
 
 ### Security posture
 

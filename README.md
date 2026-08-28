@@ -33,6 +33,9 @@ npx @hoppscotch/mcp-server
 npm install -g @hoppscotch/mcp-server
 ```
 
+This also installs the `hoppscotch-mcp` binary, which the client configs below can
+use in place of `npx`.
+
 ### From source
 
 This project uses **pnpm** (`corepack enable` picks up the pinned version):
@@ -54,6 +57,15 @@ instances don't use Firebase and need nothing extra.
 ## Quick Start
 
 ### 1. Configure your MCP client
+
+**Claude Code** / **Codex**: register the server once at user scope. For a self-hosted
+instance, pass `HOPPSCOTCH_SERVER_URL` through the host's env flag (`-e` for Claude Code,
+`--env` for Codex).
+
+```bash
+claude mcp add -s user hoppscotch -- npx -y @hoppscotch/mcp-server
+codex mcp add hoppscotch -- npx -y @hoppscotch/mcp-server
+```
 
 **Claude Desktop**: edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
@@ -419,7 +431,7 @@ HOPPSCOTCH_TEAM_ID=your-team-id
 
 ```bash
 pnpm run build
-node dist/index.js  # triggers browser login; Ctrl+C after auth completes
+npx tsx src/e2e/login.ts  # browser device login; stores the token and exits
 ```
 
 3. Run the suite:
