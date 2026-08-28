@@ -500,17 +500,9 @@ function awaitLoginWithPromptTimeout(current: PendingLogin): Promise<string> {
 }
 
 /**
- * Open the Hoppscotch `/device-login` page (frontend) in the default browser,
- * spin up a temporary local HTTP server to capture the callback, and return
- * the access token.
- *
- * The login page must be served by the frontend app; the API backend does not
- * render the consent UI.
- */
-/**
  * Best-effort detection of an environment where no browser can be opened
  * (CI, SSH session, or a Linux host with no display server). Used to fail the
- * login fast with actionable guidance instead of blocking for 5 minutes.
+ * login fast with actionable guidance instead of waiting out the login prompt timeout.
  */
 function isHeadlessEnvironment(): boolean {
   if (process.env.CI) return true;
@@ -521,6 +513,14 @@ function isHeadlessEnvironment(): boolean {
   return false;
 }
 
+/**
+ * Open the Hoppscotch `/device-login` page (frontend) in the default browser,
+ * spin up a temporary local HTTP server to capture the callback, and return
+ * the access token.
+ *
+ * The login page must be served by the frontend app; the API backend does not
+ * render the consent UI.
+ */
 async function runLoginFlow(
   serverUrl: string,
   apiUrl: string,
@@ -529,9 +529,9 @@ async function runLoginFlow(
   signal: AbortSignal
 ): Promise<string> {
   // Fail fast on headless hosts: the browser device-login can't complete, and
-  // without this the caller would hang for the full 5-minute LOGIN_TIMEOUT_MS
-  // (usually surfacing as an opaque client-side timeout). The escape hatch lets
-  // a user who genuinely has a browser override the heuristic.
+  // without this the caller would wait out the whole login prompt timeout (60s
+  // by default) for a browser that never opens. The escape hatch lets a user
+  // who genuinely has a browser override the heuristic.
   if (isHeadlessEnvironment() && process.env.HOPPSCOTCH_FORCE_BROWSER_LOGIN !== 'true') {
     return Promise.reject(
       new Error(

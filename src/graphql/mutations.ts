@@ -55,8 +55,8 @@ export const CREATE_GQL_CHILD_USER_COLLECTION = `
 `;
 
 /**
- * Update user collection title/data, Cloud variant.
- * Cloud requires reqType: ReqType! as an additional argument.
+ * Update user collection title/data. Same document on both backends; there is
+ * no reqType argument, the collection ID alone identifies the target.
  */
 export const UPDATE_USER_COLLECTION = `
   mutation UpdateUserCollection($userCollectionID: ID!, $newTitle: String, $data: String) {
@@ -69,8 +69,7 @@ export const UPDATE_USER_COLLECTION = `
 `;
 
 /**
- * Delete user collection, Cloud variant.
- * Cloud requires reqType: ReqType!.
+ * Delete user collection. Same document on both backends; no reqType argument.
  */
 export const DELETE_USER_COLLECTION = `
   mutation DeleteUserCollection($userCollectionID: ID!) {

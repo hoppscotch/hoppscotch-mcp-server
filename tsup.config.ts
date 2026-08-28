@@ -23,7 +23,7 @@ export default defineConfig({
   shims: true,
   // Bake the Cloud Firebase Web API key in from the RELEASE machine's
   // environment instead of hardcoding it in source. End users need no
-  // configuration; the literal never lives in the repo. A build without the var
+  // configuration; the literal is not committed to source. A build without the var
   // set injects an empty string, and auth.ts then raises a clear Cloud-sign-in
   // error rather than calling Firebase with an empty key, and release.yml
   // refuses to publish such a build.
