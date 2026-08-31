@@ -1,7 +1,16 @@
 name: Feature request
 description: A tool, an option, or a behaviour you would like the server to have.
+title: '[feature]: '
 labels: [enhancement]
 body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Search the existing issues before requesting a new feature.
+      options:
+        - label: I have searched the existing issues and found no matching request.
+          required: true
+
   - type: textarea
     id: problem
     attributes:

@@ -202,9 +202,18 @@ describe('device-login callback — survives deployed frontends', () => {
       const redirectUri = redirectUriFrom(await waitForLoginUrl());
 
       // The call gives up after the short prompt timeout and the rejection
-      // carries the login URL + retry guidance (not an opaque hang).
-      await expect(p1).rejects.toThrow(/device-login/);
-      await expect(p1).rejects.toThrow(/run the tool again/i);
+      // carries the login URL + caller-safe retry guidance (not an opaque hang).
+      // In particular, a reauth caller must never be told to invoke reauth again:
+      // doing so abandons this still-live callback flow and starts over.
+      const promptError = await p1.catch((err: unknown) => err);
+      expect(promptError).toBeInstanceOf(Error);
+      const promptMessage = (promptError as Error).message;
+      expect(promptMessage).toContain('device-login');
+      expect(promptMessage).toMatch(/finish signing in/i);
+      expect(promptMessage).toMatch(/original Hoppscotch operation/i);
+      expect(promptMessage).toMatch(/another regular Hoppscotch tool/i);
+      expect(promptMessage).toMatch(/do not call `reauth` again/i);
+      expect(promptMessage).not.toMatch(/run the tool again/i);
 
       // The callback server is STILL alive after the prompt timeout, so a late
       // sign-in still completes (old behavior closed the server on timeout →

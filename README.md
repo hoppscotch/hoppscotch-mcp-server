@@ -16,7 +16,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that en
 - **Code generation**: generate code snippets in curl, JavaScript, Python, Go, and Rust
 - **Documentation generation**: auto-generate API documentation in Markdown
 - **REST and GraphQL collections**: personal collections and requests carry a REST/GraphQL type; team collections are untyped
-- **Cloud and self-hosted**: works with Hoppscotch Cloud (`hoppscotch.io`) and any self-hosted instance
+- **Cloud and self-hosted targeting**: Cloud (`hoppscotch.io`) is supported. Self-hosted mode requires the backend under `<server URL>/backend` (subpath-based access, or a reverse proxy that routes it); a split-origin API on another host or port is not supported in this release. See [Cloud / self-hosted compatibility](#cloud--self-hosted-compatibility) for the verification boundary
 - **Browser-based login**: no token setup required for interactive use. Sign in through Hoppscotch's device-login page and the session is cached
 
 ## Installation
@@ -100,7 +100,7 @@ For a self-hosted instance:
 
 On the first tool call the server opens `hoppscotch.io/device-login` (or your self-hosted equivalent) in your browser. Sign in and the session is saved automatically, so subsequent calls skip the browser step.
 
-> **Note:** Tokens are refreshed automatically while the backend keeps issuing refreshes; Cloud (Firebase) sessions may occasionally re-prompt for login.
+> **Note:** Cloud sessions are refreshed automatically through the stored Firebase refresh token and may occasionally re-prompt for login. Sessions against the current Community Edition are **not** refreshed by this release (its refresh endpoint is cookie-based and this server does not use it; Enterprise/custom backends were not verified either way), so a new browser sign-in is needed when the token expires (backend-configured; the Community Edition default is one day). The sign-in page is the one the Hoppscotch Desktop app uses, so its copy says "Desktop".
 
 ## Configuration
 
@@ -123,14 +123,14 @@ situation.
 |---|---|---|
 | `HOPPSCOTCH_ACCESS_TOKEN` | — | A Hoppscotch **JWT** to skip browser login (e.g. for headless/CI). A `pat-…` PAT does **not** work (REST-only). |
 | `HOPPSCOTCH_FORCE_BROWSER_LOGIN` | `false` | Set `true` to attempt browser login even when a headless environment is detected. |
-| `HOPPSCOTCH_AUTH_TIMEOUT_MS` | `60000` | How long a tool call waits for browser sign-in before returning the login URL with retry guidance. The local callback stays open ~5 min regardless, so a slower sign-in still completes. |
+| `HOPPSCOTCH_AUTH_TIMEOUT_MS` | `60000` | How long a tool call waits for browser sign-in before returning retry guidance (with the login URL once it is available). The local callback stays open ~5 min regardless, so a slower sign-in still completes. |
 
 ### Request execution
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `HOPPSCOTCH_TIMEOUT` | `30000` | Request timeout (ms). |
-| `HOPPSCOTCH_MAX_RESPONSE_BYTES` | `5000000` | Cap on the response body `execute_request` buffers; larger responses are truncated. |
+| `HOPPSCOTCH_MAX_RESPONSE_BYTES` | `5000000` | Cap on the response body `execute_request` buffers; a body that would exceed it is cut off and flagged `truncated`. Two limits apply: the raw read stops at the cap plus a small internal redaction margin (bytes), and the returned redacted text is additionally capped at the same number of UTF-16 code units — byte-exact for ASCII bodies; a non-ASCII body can be cut below the byte figure by the raw read, or come back somewhat larger than it after redaction. (Raw bytes that only spill into the internal redaction margin but shrink back under the cap after redaction are complete, not flagged.) |
 | `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS` | `false` | Set `true` to disable SSRF protection so `execute_request` can reach loopback/private/self-hosted targets. Only on trusted input. |
 
 ### Hardening (opt-in)
@@ -160,7 +160,7 @@ The server uses a **browser-based device login flow**, driven by Hoppscotch's `/
 2. Your browser opens `<HOPPSCOTCH_SERVER_URL>/device-login?redirect_uri=http://localhost:<port>/callback/<nonce>`.
 3. After sign-in, the server receives your tokens via the callback.
 4. Tokens are stored at `~/.config/hoppscotch-mcp/auth.json` (permissions: `600`).
-5. Tokens are refreshed automatically before expiry: self-hosted via `/auth/refresh`, Cloud (Firebase-backed, ~1 hour) via the stored Firebase refresh token. A new browser login is needed only if a refresh fails.
+5. Cloud tokens (Firebase-backed, ~1 hour) are refreshed automatically before expiry via the stored Firebase refresh token; a new browser login is needed only if a refresh fails. Tokens from the current Community Edition are not refreshed in this release: when the JWT expires (backend-configured; the CE default is one day), the next tool call opens a new browser sign-in. Enterprise/custom backends were not verified either way.
 
 **Advanced: override token.** You can set `HOPPSCOTCH_ACCESS_TOKEN` to a valid JWT (e.g. copied from `~/.config/hoppscotch-mcp/auth.json` after a device login) to skip the browser flow. Note that Hoppscotch PATs (`pat-xxx`) only work with REST API endpoints, not GQL queries, so they will **not** work here.
 
@@ -178,22 +178,24 @@ If you genuinely have a browser available but detection misfires, set `HOPPSCOTC
 
 - **`execute_request` is a real HTTP client.** By default it blocks requests to loopback, link-local, cloud-metadata (`169.254.169.254`), and private-network addresses (SSRF protection), covering IPv4/IPv6 and additional special-use ranges. The validated address is pinned at connect time (via an undici dispatcher), so a same-host DNS-rebinding race between check and connect is closed too (and redirects, which are disabled, can't reach a private IP either). To test a **local or self-hosted API on a private address**, set `HOPPSCOTCH_ALLOW_PRIVATE_HOSTS=true`. Only do this on trusted inputs, since the tool returns the full response into the model's context. Even with the guard on, it can still reach any **public** host using the request's own credentials.
 - **Redirects are not auto-followed** (`execute_request`/`validate_response`): a 3xx is returned as-is, so a redirect can't silently forward your auth headers to another origin.
-- **Response bodies are capped** at `HOPPSCOTCH_MAX_RESPONSE_BYTES` (default 5 MB); larger responses are truncated.
+- **Response bodies are capped** at `HOPPSCOTCH_MAX_RESPONSE_BYTES` (default 5 MB); `truncated` in the result marks a body that is missing content (cut at the read limit, or clamped after redaction) — a body that only spilled into the redaction margin and shrank back under the cap arrives complete and unflagged.
 - **`validate_response` makes its own HTTP call.** It executes the request you pass rather than inspecting an earlier result, so validating a request you already ran sends it again (a non-idempotent request runs a second time).
 - Request execution and validation take a raw `method`/`url`; they do **not** execute a request already stored in a collection by ID.
 - **`validate_response` does not check a JSON Schema.** `jsonSchema` is a deprecated alias of `jsonObject`: both assert only that the body parses as a JSON object or array. A schema document passed there is ignored, and nothing reports that it was. Use `jsonObject: true` for the check that actually runs.
 - The default `core` profile already keeps the surface lean (CRUD + request execution + codegen + read-only team discovery). Set `HOPPSCOTCH_TOOL_PROFILE=minimal` for an even smaller surface, or `standard`/`full` to add team administration and advanced collection ops.
-- **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account. Use the `reauth` tool to switch or refresh the active identity.
+- **One signed-in identity per OS user.** The auth token in `~/.config/hoppscotch-mcp/auth.json` is a single session shared by every MCP-client process for that OS user and across restarts; tool calls do not select an identity per call. If the on-disk token changes to a **different** account mid-session, the server refuses to silently switch rather than acting as the wrong account. Use the `reauth` tool to switch or refresh the active identity. At runtime this is process-local: a running server keeps serving its in-memory token until expiry or its next disk read — `reauth` rewrites the shared store and refreshes the calling process, while other pinned processes accept same-identity updates and refuse a different account.
 - **Variable substitution reads PERSONAL environments only.** `execute_request`/`validate_response` substitute `{{var}}` from your personal (user) environments on either backend; a team-environment ID is rejected. These tools also do **not** inherit authentication from a parent collection; they use only the `auth` you pass in the call. Values marked **secret** substitute freely by default; set `HOPPSCOTCH_SECRET_ALLOWED_ORIGINS` to restrict which origins may receive them. When an environment is requested, an unresolved `{{placeholder}}` fails the call rather than being sent literally. Substitution covers the URL, header values and body only; the `auth` block is not substituted, so a `{{var}}` written there is treated as the credential text itself; pass auth credentials directly.
 
 ## Available Tools
 
 ### Cloud / self-hosted compatibility
 
-Every tool works against a self-hosted Hoppscotch backend (CE or SHE). On
-Hoppscotch Cloud (`hoppscotch.io`) all but two do: personal collections,
-requests and environments are available there alongside the team tools and
-request execution, verified against a live Cloud account on 2026-08-26.
+All 53 tool definitions are available in self-hosted mode (with `HOPPSCOTCH_TOOL_PROFILE=full`;
+the default `core` profile exposes 39 of them) when the backend is
+reachable at `<server URL>/backend`. Compatibility was assessed against the
+current public Community Edition backend contract, not a live CE instance;
+SHE and custom backends were not available for verification. On Hoppscotch
+Cloud (`hoppscotch.io`), all but two tools were verified against a live account.
 
 Two tools are unavailable on Cloud:
 
@@ -248,7 +250,7 @@ Two tools are unavailable on Cloud:
 
 ### User (Personal) Collections
 
-> Personal (user) collections work on both **self-hosted** and **Hoppscotch Cloud**, except `get_user_collection`; see the compatibility section above.
+> Personal (user) collection tools are exposed in self-hosted mode. On **Hoppscotch Cloud**, all except `get_user_collection` were live-verified; see the compatibility section above for the self-hosted verification boundary.
 
 | Tool | Description |
 |------|-------------|
@@ -264,7 +266,7 @@ Two tools are unavailable on Cloud:
 
 ### User (Personal) Environments
 
-> Personal (user) environments work on both **self-hosted** and **Hoppscotch Cloud**; all four tools (list, create, update, delete) were verified against a live Cloud account on 2026-08-26.
+> Personal (user) environment tools are exposed in self-hosted mode. On **Hoppscotch Cloud**, all four tools (list, create, update, delete) were verified against a live account; see the compatibility section above for the self-hosted verification boundary.
 
 | Tool | Description |
 |------|-------------|
@@ -286,7 +288,7 @@ Two tools are unavailable on Cloud:
 
 ### User (Personal) Requests
 
-> Personal (user) requests work on both **self-hosted** and **Hoppscotch Cloud**.
+> Personal (user) request tools are exposed in self-hosted mode and were live-verified on **Hoppscotch Cloud**; see the compatibility section above for the self-hosted verification boundary.
 
 | Tool | Description |
 |------|-------------|
@@ -314,7 +316,7 @@ Two tools are unavailable on Cloud:
 
 | Tool | Description |
 |------|-------------|
-| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Cannot replace a configured `HOPPSCOTCH_ACCESS_TOKEN`; that static token is always used. Available in every profile. |
+| `reauth` | Force a fresh device-login (browser sign-in), bypassing cached tokens. Cannot replace a configured `HOPPSCOTCH_ACCESS_TOKEN`; that static token is always used. It clears the cached browser session and reports success only when the prior session was verifiably removed before the new sign-in (a successful login then stores the new session); otherwise it returns a tool error. Available in every profile. |
 
 ## Usage Examples
 
@@ -440,7 +442,7 @@ npx tsx src/e2e/login.ts  # browser device login; stores the token and exits
 pnpm run test:e2e
 ```
 
-Tests create and clean up their own resources. The same suite runs against both Cloud and self-hosted.
+Tests create and clean up their own resources. The same suite runs against both Cloud and self-hosted. `HOPPSCOTCH_TEAM_ID` is required; with `HOPPSCOTCH_E2E=1` set, a missing prerequisite fails the affected tests instead of skipping them.
 
 ### Project Structure
 
@@ -494,7 +496,7 @@ Complete the browser login within 5 minutes, or retry the tool call.
 
 ### Session expired (Cloud)
 
-Cloud sessions are Firebase-backed and expire after ~1 hour. The server attempts to refresh automatically using the stored Firebase refresh token. If refresh fails, the next tool call opens a new browser login.
+Cloud sessions are Firebase-backed and expire after ~1 hour. The server attempts to refresh automatically using the stored Firebase refresh token. If refresh fails, the next tool call opens a new browser login. Sessions against the current Community Edition are not refreshed by this release — it mounts refresh at `/v1/auth/refresh`, cookie-based, which this client does not use (Enterprise/custom backends unverified). When the JWT expires (backend-configured; the CE default is one day), the next tool call opens a new browser sign-in.
 
 This applies to sessions created by device login. A token supplied through `HOPPSCOTCH_ACCESS_TOKEN` is used exactly as given and is never refreshed, so keeping it valid is up to you.
 
@@ -512,7 +514,7 @@ If your self-hosted instance uses a self-signed or private-CA certificate, point
 
 ### Tools unavailable on Cloud
 
-Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fails to serialize `data`; gated client-side) and `search_team_requests` (the backend rejects it with `bug/team/no_require_team_role`). Every other tool runs against both backends.
+Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fails to serialize `data`; gated client-side) and `search_team_requests` (the backend rejects it with `bug/team/no_require_team_role`). The other Cloud tools were live-verified. Self-hosted verification is scoped in the compatibility section above.
 
 ## Security
 
@@ -520,16 +522,21 @@ Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fail
 - Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only, best-effort on POSIX)
 - The server is stateless: no user data is cached locally beyond the auth token
 - On Windows, file permissions (`0o600`) are not enforced, so keep `auth.json` in a secure location
-- Only `secret: true` environment values are masked on read. Auth credentials stored on a collection or a request (a bearer token, a basic password, an API key) are returned as stored by `list_user_collections`, `get_user_collection`, `list_user_requests`, `get_team_request` and the team equivalents, so they reach the model in plaintext
+- Only `secret: true` environment values are masked on read. Auth credentials stored on a collection or a request (a bearer token, a basic password, an API key) are returned as stored by every tool that serializes collection or request data — the list/get reads (`list_user_collections`, `get_user_collection`, `list_user_requests`, `get_team_request` and team equivalents), the exports (`export_user_collection`, `export_team_collection`), and the create/update/move responses that echo the object. `search_team_requests` is the exception: it returns only id/title/collection metadata. Stored credentials reach the model in plaintext
+
+## Maintainers
+
+Maintenance expectations and the release and recovery runbook are the
+[Maintainers](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md#maintainers)
+and
+[Releasing](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md#releasing)
+sections of `CONTRIBUTING.md`.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Commit using [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `docs:`, `test:`, etc.
-4. Open a Pull Request
-
-Please run `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before submitting. CI enforces the same.
+See [`CONTRIBUTING.md`](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md) for development, testing, commit, and
+pull-request guidance. Participation in this project follows the
+[`CODE_OF_CONDUCT.md`](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 

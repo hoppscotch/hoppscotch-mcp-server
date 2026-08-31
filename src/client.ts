@@ -179,6 +179,11 @@ export class HoppscotchClient {
     }
   }
 
+  /** True when a static access token is configured (`HOPPSCOTCH_ACCESS_TOKEN`, or an embedder-supplied `accessToken`); `reauth` cannot replace it. */
+  hasStaticAccessToken(): boolean {
+    return Boolean(this.config.accessToken);
+  }
+
   /**
    * Force a fresh device-login, bypassing the in-memory and on-disk token
    * caches and abandoning any in-flight login flow. Backs the `reauth` tool.

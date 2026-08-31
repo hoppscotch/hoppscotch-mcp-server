@@ -12,6 +12,11 @@ maintainers. Include:
 - Steps to reproduce, with a minimal example if possible.
 - Your assessment of impact (auth bypass, token exposure, RCE, DoS, etc).
 
+If private reporting is unavailable in this repository, open a private advisory
+in the main [Hoppscotch repository](https://github.com/hoppscotch/hoppscotch/security/advisories/new)
+and identify `hoppscotch-mcp-server` as the affected component. If you do not
+receive a response, contact `support@hoppscotch.io` with the advisory link.
+
 We aim to acknowledge reports within a few business days and ship a fix
 in a patch release as soon as a remediation is validated. Reporters are
 credited in the changelog unless they prefer to remain anonymous.
@@ -24,7 +29,8 @@ credited in the changelog unless they prefer to remain anonymous.
   (Cloud or self-hosted), and stores the resulting auth token at
   `~/.config/hoppscotch-mcp/auth.json` (file mode `0o600`, directory mode
   `0o700`, best-effort on POSIX). This is a single per-OS-user session, shared across all server
-  processes and restarts; the server refuses to silently switch to a different
+  processes and restarts (each process serves its in-memory token until expiry
+  or its next disk read); the server refuses to silently switch to a different
   account if the on-disk token changes mid-session (switch via the `reauth`
   tool).
 - Exchanges and refreshes Firebase tokens for the Cloud backend, using
@@ -90,6 +96,13 @@ redaction / approval policy.
   Hoppscotch product-level AI features are responsible for that policy.
 - This server does not provide a hosted / multi-tenant mode. Running it
   as a publicly-reachable HTTP server is out of scope.
+
+- Auth credentials stored on collections and requests (bearer tokens, basic
+  passwords, API keys) are returned as stored by every tool that serializes
+  collection or request data: the list/get reads, the exports, and the
+  create/update/move responses that echo the object. (`search_team_requests`
+  is the exception — it returns only id/title/collection metadata.) Only
+  `secret: true` environment values are masked on read.
 
 ## Known-safe exposures
 

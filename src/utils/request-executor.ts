@@ -25,18 +25,18 @@ function maxResponseBytes(): number {
  * response exhausting memory. `margin` lets the caller buffer past `max` so a
  * secret straddling the `max` boundary is fully present for redaction.
  *
- * Returns two independent signals:
- *  - `truncated`: the body exceeded `max`, so the returned/clamped view is partial
- *    (drives the caller's user-facing truncation flag).
- *  - `hitLimit`: the read stopped AT the `max + margin` hard limit, so a secret
- *    may be cut at the read edge, so the redactor must not emit that edge as text.
+ * Returns:
+ *  - `hitLimit`: the read stopped AT the `max + margin` hard limit — bytes were
+ *    dropped (real truncation), and a secret may be cut at the read edge, so the
+ *    redactor must not emit that edge as text. Bytes that merely spill into the
+ *    margin are NOT truncation: redaction may contract them back under `max`.
  */
 async function readBodyCapped(
   response: Response,
   max: number,
   margin = 0
-): Promise<{ text: string; truncated: boolean; hitLimit: boolean }> {
-  if (!response.body) return { text: await response.text(), truncated: false, hitLimit: false };
+): Promise<{ text: string; hitLimit: boolean }> {
+  if (!response.body) return { text: await response.text(), hitLimit: false };
   const hardLimit = max + margin;
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -59,7 +59,6 @@ async function readBodyCapped(
   }
   return {
     text: Buffer.concat(chunks).toString('utf8'),
-    truncated: hitLimit || total > max,
     hitLimit,
   };
 }
@@ -300,6 +299,8 @@ function failSafeRedaction(maxOut: number): { text: string; clamped: boolean } {
 
 /**
  * Redact secrets from a response body AND bound the output to `maxOut` chars.
+ * (`maxOut` counts UTF-16 code units, not bytes: byte-exact for ASCII bodies;
+ * a non-ASCII body's UTF-8 byte count may exceed the configured byte cap.)
  *
  * Find-all → merge → emit: every variant is scanned ONCE for all its occurrences
  * with native `indexOf` (cost O(variants · n), never O(n²)), the occurrence
@@ -657,13 +658,18 @@ export async function executeRequest(
     // fuses redaction with the clamp to the cap, so it never allocates the fully
     // expanded string, and reports whether the returned body was cut.
     const rawCap = maxResponseBytes();
-    const {
-      text: rawBody,
-      truncated: rawTruncated,
-      hitLimit,
-    } = await readBodyCapped(response, rawCap, longestVariantBytes(secretValues));
+    const { text: rawBody, hitLimit } = await readBodyCapped(
+      response,
+      rawCap,
+      longestVariantBytes(secretValues)
+    );
     const { text: body, clamped } = redactSecretsClamped(rawBody, secretValues, rawCap, hitLimit);
-    const truncated = rawTruncated || clamped;
+    // Truncated when content was omitted from the returned body: the read
+    // stopped at the hard limit, or the redacted output had to be clamped to the
+    // cap (including a complete raw body whose redacted form outgrew it). Raw
+    // bytes that only spilled into the redaction margin but contracted back
+    // under the cap after redaction are a complete body, not a truncated one.
+    const truncated = hitLimit || clamped;
 
     return {
       status: response.status,
@@ -726,6 +732,13 @@ export interface ValidationCriteria {
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+  /**
+   * True when no check failed definitively but at least one body assertion
+   * could not be evaluated because the body was incomplete (cut off at the
+   * response-size cap, or clamped during redaction). Fail-closed: `valid` is
+   * false in that case too.
+   */
+  indeterminate?: boolean;
 }
 
 export function validateResponse(
@@ -766,10 +779,22 @@ export function validateResponse(
     }
   }
 
+  // Body assertions need the whole body. When it is incomplete (cut off at the
+  // response-size cap, or clamped during redaction), a substring FOUND in the
+  // returned content is still a definitive pass (the search runs on the
+  // post-redaction text, so placeholders are part of it), but an absent
+  // substring and the JSON-object check are unknowable — neither a pass nor a
+  // fail.
+  const bodyIncomplete = Boolean(result.truncated);
+  const unknowable: string[] = [];
+
   // Check body content
   if (criteria.expectedBodyContains) {
     for (const substring of criteria.expectedBodyContains) {
-      if (!result.body.includes(substring)) {
+      if (result.body.includes(substring)) continue;
+      if (bodyIncomplete) {
+        unknowable.push(`body contains "${substring}"`);
+      } else {
         errors.push(`Expected body to contain "${substring}"`);
       }
     }
@@ -787,7 +812,9 @@ export function validateResponse(
   // Assert the body is structured JSON (object/array). This is NOT JSON Schema
   // validation: it only checks that the body parses to an object/array. Both
   // `jsonObject` and the deprecated `jsonSchema` alias trigger this same check.
-  if (criteria.jsonObject || criteria.jsonSchema !== undefined) {
+  if ((criteria.jsonObject || criteria.jsonSchema !== undefined) && bodyIncomplete) {
+    unknowable.push('body is a JSON object/array');
+  } else if (criteria.jsonObject || criteria.jsonSchema !== undefined) {
     try {
       const parsed: unknown = JSON.parse(result.body);
       // `typeof null === 'object'`, so null needs its own check to be rejected.
@@ -799,9 +826,21 @@ export function validateResponse(
     }
   }
 
+  // Indeterminate only when nothing failed definitively but at least one body
+  // assertion could not be evaluated; a definitive failure stays a failure.
+  const indeterminate = unknowable.length > 0 && errors.length === 0;
+  if (unknowable.length > 0) {
+    errors.push(
+      'Response body is incomplete (cut off at the response-size cap or clamped during ' +
+        `redaction), so these assertions could not be evaluated: ${unknowable.join('; ')}. ` +
+        'Raise HOPPSCOTCH_MAX_RESPONSE_BYTES or narrow the request and retry.'
+    );
+  }
+
   return {
     valid: errors.length === 0,
     errors,
+    ...(indeterminate ? { indeterminate: true } : {}),
   };
 }
 

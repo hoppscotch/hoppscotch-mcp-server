@@ -17,6 +17,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import {
   getValidToken,
   clearStoredAuth,
+  reauthenticate,
   __dropMemCacheForTests,
   __resetSessionIdentityForTests,
 } from './auth.js';
@@ -40,7 +41,7 @@ const cloudStore = (over: Record<string, unknown> = {}) =>
 beforeEach(() => {
   delete process.env.HOPPSCOTCH_ACCESS_TOKEN;
   clearStoredAuth(); // clears the in-process cache + wipes the (mocked) disk
-  __resetSessionIdentityForTests(); // unpin between cases (prod unpins only via reauth)
+  __resetSessionIdentityForTests(); // unpin between cases (prod re-pins only via a completed sign-in)
   vi.mocked(readFileSync).mockReset();
 });
 
@@ -160,5 +161,71 @@ describe('identity-switch guard (getValidToken disk-read refusal)', () => {
 
     await expect(getValidToken(...SH)).resolves.toBe(jwtFor('account-A'));
     vi.unstubAllGlobals();
+  });
+});
+
+describe('reauthenticate strict disk-clear', () => {
+  it('fails loudly when the stored session survives the clear (old token would be re-served)', async () => {
+    // Simulate a store that cannot actually be cleared: reads keep returning the
+    // same-apiUrl session no matter what was written.
+    vi.mocked(readFileSync).mockReturnValue(cloudStore());
+    await expect(reauthenticate(...CLOUD)).rejects.toThrow(/could not clear the stored session/);
+  });
+
+  it('fails when a session for a different API survives the single shared auth-file clear', async () => {
+    vi.mocked(readFileSync).mockReturnValue(
+      cloudStore({ apiUrl: 'https://other-hoppscotch.example/backend' })
+    );
+
+    await expect(reauthenticate(...CLOUD)).rejects.toThrow(/could not clear the stored session/);
+  });
+
+  it('fails before returning a configured static token when any stored session survives', async () => {
+    vi.mocked(readFileSync).mockReturnValue(cloudStore());
+
+    await expect(reauthenticate(...CLOUD, 'configured-static-token')).rejects.toThrow(
+      /could not clear the stored session/
+    );
+  });
+});
+
+describe('reauthenticate strict disk-clear — edge cases', () => {
+  it('treats a missing store (first run, ENOENT) as already clear and proceeds', async () => {
+    vi.mocked(readFileSync).mockImplementation(() => {
+      throw Object.assign(new Error('ENOENT (mocked)'), { code: 'ENOENT' });
+    });
+    vi.mocked(writeFileSync).mockImplementation(() => {
+      throw Object.assign(new Error('ENOENT (mocked)'), { code: 'ENOENT' });
+    });
+    // Static token short-circuits the login flow, so only the clear path is exercised.
+    await expect(reauthenticate(...CLOUD, jwtFor('account-A'))).resolves.toBe(jwtFor('account-A'));
+    vi.mocked(writeFileSync).mockReset();
+  });
+
+  it('fails loudly when the store is unwritable AND unreadable (clear unverifiable)', async () => {
+    vi.mocked(readFileSync).mockImplementation(() => {
+      throw Object.assign(new Error('EACCES (mocked)'), { code: 'EACCES' });
+    });
+    vi.mocked(writeFileSync).mockImplementation(() => {
+      throw Object.assign(new Error('EACCES (mocked)'), { code: 'EACCES' });
+    });
+    await expect(reauthenticate(...CLOUD)).rejects.toThrow(/could not clear the stored session/);
+    vi.mocked(writeFileSync).mockReset();
+  });
+
+  it('keeps the identity pinned through reauth: a different-account token landing on disk after a verified clear is refused', async () => {
+    // Pin account A via a normal disk read.
+    vi.mocked(readFileSync).mockReturnValue(cloudStore({ accessToken: jwtFor('account-A') }));
+    await expect(getValidToken(...CLOUD)).resolves.toBe(jwtFor('account-A'));
+
+    // reauth: readback sees a clean store, but by the time the generic disk
+    // read runs, another process has written account B. The still-pinned
+    // identity guard must refuse it instead of silently adopting B.
+    vi.mocked(readFileSync)
+      .mockImplementationOnce(() => {
+        throw Object.assign(new Error('ENOENT (mocked)'), { code: 'ENOENT' });
+      })
+      .mockReturnValue(cloudStore({ accessToken: jwtFor('account-B') }));
+    await expect(reauthenticate(...CLOUD)).rejects.toThrow(/Signed-in account changed/);
   });
 });

@@ -6,7 +6,7 @@
  *
  * Usage:
  *   npm run build
- *   HOPPSCOTCH_E2E=1 npx vitest run src/e2e/e2e.test.ts
+ *   HOPPSCOTCH_E2E=1 HOPPSCOTCH_TOOL_PROFILE=full npx vitest run src/e2e/e2e.test.ts
  *
  * Only HOPPSCOTCH_TEAM_ID is required from .env; all other resources
  * (team collections, team environments, personal collections) are
@@ -14,9 +14,8 @@
  * Auth token must already be stored (~/.config/hoppscotch-mcp/auth.json)
  * OR HOPPSCOTCH_ACCESS_TOKEN must be set.
  *
- * Cloud behavior as of now (not bugs):
- * - get_user_collection, list_user_requests: not supported on Cloud
- * - all four user_environment tools: not supported on Cloud
+ * Known Cloud limitations (verified 2026-08-26):
+ * - get_user_collection: gated because Cloud's resolver cannot serialize collection data
  * - search_team_requests: returns bug/team/no_require_team_role on Cloud (backend rejection)
  */
 
@@ -235,6 +234,9 @@ beforeAll(async () => {
       })
     );
     const col = jsonOf<{ id: string }>(colText);
+    if (!col.id) {
+      throw new Error('[e2e] setup step failed: create team collection returned no id');
+    }
     TEAM_COLLECTION_ID = col.id;
     provisioned.teamCollectionId = col.id;
 
@@ -249,6 +251,9 @@ beforeAll(async () => {
       })
     );
     const env = jsonOf<{ id: string }>(envText);
+    if (!env.id) {
+      throw new Error('[e2e] setup step failed: create team environment returned no id');
+    }
     TEAM_ENVIRONMENT_ID = env.id;
     provisioned.teamEnvironmentId = env.id;
   }
@@ -265,6 +270,9 @@ beforeAll(async () => {
       })
     );
     const restCol = jsonOf<{ id: string }>(restText);
+    if (!restCol.id) {
+      throw new Error('[e2e] setup step failed: create personal REST collection returned no id');
+    }
     PERSONAL_REST_COLLECTION_ID = restCol.id;
     provisioned.personalRestCollectionId = restCol.id;
 
@@ -275,6 +283,9 @@ beforeAll(async () => {
       })
     );
     const gqlCol = jsonOf<{ id: string }>(gqlText);
+    if (!gqlCol.id) {
+      throw new Error('[e2e] setup step failed: create personal GQL collection returned no id');
+    }
     PERSONAL_GQL_COLLECTION_ID = gqlCol.id;
     provisioned.personalGqlCollectionId = gqlCol.id;
   }
@@ -325,11 +336,9 @@ afterAll(async () => {
 function e2e(name: string, fn: () => Promise<void>, timeout = 30_000) {
   it(
     name,
-    async () => {
-      if (!ENABLED) {
-        console.log(`[e2e] Skipped (set HOPPSCOTCH_E2E=1 to run): ${name}`);
-        return;
-      }
+    async (ctx) => {
+      // Disabled tests report as skipped, not vacuously passed.
+      if (!ENABLED) ctx.skip();
       await fn();
     },
     timeout
@@ -389,6 +398,7 @@ describe('server metadata', () => {
         "move_team_request",
         "move_user_collection",
         "move_user_request",
+        "reauth",
         "remove_team_member",
         "rename_team",
         "revoke_team_invitation",
@@ -437,8 +447,7 @@ describe('teams', () => {
 
   e2e('get_team_info — returns single team with member details', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
     const text = textOf(
       await client.callTool({ name: 'get_team_info', arguments: { teamId: TEAM_ID } })
@@ -521,8 +530,7 @@ describe('team management', () => {
 describe('team collections – read', () => {
   e2e('list_team_collections — returns array with collection shape', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
     const text = textOf(
       await client.callTool({ name: 'list_team_collections', arguments: { teamId: TEAM_ID } })
@@ -547,8 +555,9 @@ describe('team collections – read', () => {
 
   e2e('get_team_collection — returns single collection with matching ID', async () => {
     if (!TEAM_COLLECTION_ID) {
-      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: no team collection was provisioned (is HOPPSCOTCH_TEAM_ID set?)'
+      );
     }
     const text = textOf(
       await client.callTool({
@@ -574,8 +583,9 @@ describe('team collections – read', () => {
 
   e2e('export_team_collection — returns valid Hoppscotch collection JSON', async () => {
     if (!TEAM_ID || !TEAM_COLLECTION_ID) {
-      console.log('[e2e] skip: no TEAM_ID/TEAM_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set or no team collection was provisioned'
+      );
     }
     const text = textOf(
       await client.callTool({
@@ -601,8 +611,7 @@ describe('team collections – read', () => {
 
   e2e('search_team_requests — Cloud returns known API limitation error', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
     const text = textOf(
       await client.callTool({
@@ -628,8 +637,7 @@ describe('team collections – read', () => {
 describe('team collections – write', () => {
   e2e('create, update, delete team collection — full lifecycle', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
 
     // Create
@@ -684,8 +692,7 @@ describe('team collections – write', () => {
 
   e2e('duplicate_team_collection — returns success message', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
 
     const before = await teamCollections();
@@ -698,8 +705,7 @@ describe('team collections – write', () => {
     );
     const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
     if (!srcId) {
-      console.log('[e2e] skip dup: create source failed');
-      return;
+      throw new Error('[e2e] setup step failed: create source collection returned no id');
     }
 
     try {
@@ -724,8 +730,7 @@ describe('team collections – write', () => {
 
   e2e('import_team_collection — returns success message', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
 
     const before = await teamCollections();
@@ -750,8 +755,7 @@ describe('team collections – write', () => {
 
   e2e('move_team_collection — creates parent + child, moves child to root, cleans up', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
 
     // Create parent
@@ -762,6 +766,9 @@ describe('team collections – write', () => {
       })
     );
     const parentId = jsonOf<{ id: string }>(parentText).id;
+    if (!parentId) {
+      throw new Error('[e2e] setup step failed: create parent collection returned no id');
+    }
 
     // Create child under parent
     const childText = textOf(
@@ -771,6 +778,12 @@ describe('team collections – write', () => {
       })
     );
     const childId = jsonOf<{ id: string }>(childText).id;
+    if (!childId) {
+      await client
+        .callTool({ name: 'delete_team_collection', arguments: { collectionId: parentId } })
+        .catch(() => {});
+      throw new Error('[e2e] setup step failed: create child collection returned no id');
+    }
 
     try {
       // Move child to root
@@ -811,8 +824,7 @@ describe('team collections – write', () => {
 describe('team environments', () => {
   e2e('list_team_environments — returns array with env shape', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
     const text = textOf(
       await client.callTool({ name: 'list_team_environments', arguments: { teamId: TEAM_ID } })
@@ -841,8 +853,7 @@ describe('team environments', () => {
 
   e2e('create, update, delete team environment — full lifecycle', async () => {
     if (!TEAM_ID) {
-      console.log('[e2e] skip: no TEAM_ID');
-      return;
+      throw new Error('[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set');
     }
 
     // Create
@@ -917,8 +928,8 @@ describe('team environments', () => {
 // ---------------------------------------------------------------------------
 // User collections
 // list and export work on both backends; writes use the *_CLOUD mutations
-// (reqType) on Cloud. get_user_collection is gated on Cloud: its query selects
-// `parent`, which Cloud's UserCollection does not expose.
+// (reqType) on Cloud. get_user_collection is gated because Cloud's
+// userCollection resolver fails to serialize its `data` field.
 // ---------------------------------------------------------------------------
 
 describe('user collections', () => {
@@ -967,8 +978,9 @@ describe('user collections', () => {
     }
 
     if (!PERSONAL_REST_COLLECTION_ID) {
-      console.log('[e2e] skip get_user_collection shape check: no PERSONAL_REST_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_REST_COLLECTION_ID was not provisioned by the suite setup'
+      );
     }
     expect(text).not.toMatch(/^Error:/);
     const col = jsonOf<Record<string, unknown>>(text);
@@ -993,10 +1005,9 @@ describe('user collections', () => {
     }
 
     if (!PERSONAL_GQL_COLLECTION_ID) {
-      console.log(
-        '[e2e] skip get_user_collection (GQL) shape check: no PERSONAL_GQL_COLLECTION_ID'
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_GQL_COLLECTION_ID was not provisioned by the suite setup'
       );
-      return;
     }
     expect(text).not.toMatch(/^Error:/);
     const col = jsonOf<Record<string, unknown>>(text);
@@ -1191,8 +1202,7 @@ describe('user collections', () => {
       );
       const srcId = jsonOf<Record<string, unknown>>(createText).id as string;
       if (!srcId) {
-        console.log('[e2e] skip duplicate: create failed');
-        return;
+        throw new Error('[e2e] setup step failed: create collection returned no id');
       }
 
       try {
@@ -1231,8 +1241,7 @@ describe('user collections', () => {
     );
     const parentId = jsonOf<Record<string, unknown>>(parentText).id as string;
     if (!parentId) {
-      console.log('[e2e] skip move: create parent failed');
-      return;
+      throw new Error('[e2e] setup step failed: create parent collection returned no id');
     }
 
     const childText = textOf(
@@ -1247,8 +1256,7 @@ describe('user collections', () => {
         name: 'delete_user_collection',
         arguments: { collectionId: parentId, type: 'REST' },
       });
-      console.log('[e2e] skip move: create child failed');
-      return;
+      throw new Error('[e2e] setup step failed: create child collection returned no id');
     }
 
     try {
@@ -1297,8 +1305,9 @@ describe('user collections', () => {
 describe('team requests', () => {
   e2e('list_team_requests — returns array (may be empty) with request shape', async () => {
     if (!TEAM_COLLECTION_ID) {
-      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: no team collection was provisioned (is HOPPSCOTCH_TEAM_ID set?)'
+      );
     }
     const text = textOf(
       await client.callTool({
@@ -1324,8 +1333,9 @@ describe('team requests', () => {
 
   e2e('create, get, update, delete team request — full lifecycle', async () => {
     if (!TEAM_COLLECTION_ID) {
-      console.log('[e2e] skip: no TEAM_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: no team collection was provisioned (is HOPPSCOTCH_TEAM_ID set?)'
+      );
     }
 
     const requestData = JSON.stringify({
@@ -1426,8 +1436,9 @@ describe('team requests', () => {
     'move_team_request — creates request in coll-A, creates coll-B, moves, cleans up',
     async () => {
       if (!TEAM_COLLECTION_ID || !TEAM_ID) {
-        console.log('[e2e] skip move_team_request: no TEAM_COLLECTION_ID or TEAM_ID');
-        return;
+        throw new Error(
+          '[e2e] missing prerequisite: HOPPSCOTCH_TEAM_ID is not set or no team collection was provisioned'
+        );
       }
 
       const requestData = JSON.stringify({
@@ -1455,8 +1466,7 @@ describe('team requests', () => {
       expect(createText).not.toMatch(/^Error:/);
       const requestId = jsonOf<Record<string, unknown>>(createText).id as string;
       if (!requestId) {
-        console.log('[e2e] skip: create failed');
-        return;
+        throw new Error('[e2e] setup step failed: create team request returned no id');
       }
 
       // Create a destination collection
@@ -1469,8 +1479,7 @@ describe('team requests', () => {
       const destId = jsonOf<Record<string, unknown>>(destText).id as string;
       if (!destId) {
         await client.callTool({ name: 'delete_team_request', arguments: { requestId } });
-        console.log('[e2e] skip: create dest collection failed');
-        return;
+        throw new Error('[e2e] setup step failed: create destination collection returned no id');
       }
 
       try {
@@ -1532,8 +1541,9 @@ describe('user requests', () => {
     expect(text).not.toMatch(/auth\/fail/i);
 
     if (!PERSONAL_REST_COLLECTION_ID) {
-      console.log('[e2e] skip list_user_requests shape check: no PERSONAL_REST_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_REST_COLLECTION_ID was not provisioned by the suite setup'
+      );
     }
     expect(text).not.toMatch(/^Error:/);
     const requests = jsonOf<Record<string, unknown>[]>(text);
@@ -1550,8 +1560,9 @@ describe('user requests', () => {
 
   e2e('create, update, delete user REST request — full lifecycle (both Cloud and SH)', async () => {
     if (!PERSONAL_REST_COLLECTION_ID) {
-      console.log('[e2e] skip: no PERSONAL_REST_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_REST_COLLECTION_ID was not provisioned by the suite setup'
+      );
     }
 
     const requestData = JSON.stringify({
@@ -1634,8 +1645,9 @@ describe('user requests', () => {
 
   e2e('create, update, delete user GQL request — full lifecycle (self-hosted)', async () => {
     if (!PERSONAL_GQL_COLLECTION_ID) {
-      console.log('[e2e] skip: no PERSONAL_GQL_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_GQL_COLLECTION_ID was not provisioned by the suite setup'
+      );
     }
 
     const requestData = JSON.stringify({
@@ -1716,8 +1728,9 @@ describe('user requests', () => {
 
   e2e('move_user_request — creates request + dest collection, moves, cleans up', async () => {
     if (!PERSONAL_REST_COLLECTION_ID) {
-      console.log('[e2e] skip move_user_request: no PERSONAL_REST_COLLECTION_ID');
-      return;
+      throw new Error(
+        '[e2e] missing prerequisite: PERSONAL_REST_COLLECTION_ID was not provisioned by the suite setup'
+      );
     }
 
     const requestData = JSON.stringify({
@@ -1744,8 +1757,7 @@ describe('user requests', () => {
     );
     const requestId = jsonOf<Record<string, unknown>>(createText).id as string;
     if (!requestId) {
-      console.log('[e2e] skip: create user request failed');
-      return;
+      throw new Error('[e2e] setup step failed: create user request returned no id');
     }
 
     // Create a destination user collection
@@ -1758,8 +1770,7 @@ describe('user requests', () => {
     const destId = jsonOf<Record<string, unknown>>(destText).id as string;
     if (!destId) {
       await client.callTool({ name: 'delete_user_request', arguments: { requestId } });
-      console.log('[e2e] skip: create dest collection failed');
-      return;
+      throw new Error('[e2e] setup step failed: create destination collection returned no id');
     }
 
     try {
@@ -1824,66 +1835,54 @@ describe('user environments', () => {
     }
   });
 
-  e2e(
-    'create/update/delete user environment — Cloud: not supported; SH: full lifecycle',
-    async () => {
-      const createText = textOf(
+  e2e('create/update/delete user environment — full lifecycle (both Cloud and SH)', async () => {
+    const createText = textOf(
+      await client.callTool({
+        name: 'create_user_environment',
+        arguments: { name: 'e2e-user-env', variables: [{ key: 'FOO', value: 'bar' }] },
+      })
+    );
+    log('create_user_environment', createText);
+    expect(createText).not.toMatch(/auth\/fail/i);
+    expect(createText).not.toMatch(/^Error:/);
+    const created = jsonOf<Record<string, unknown>>(createText);
+    assertShape(created, { id: 'string', name: 'string' });
+    expect(created.name).toBe('e2e-user-env');
+    const envId = created.id as string;
+
+    try {
+      const updateText = textOf(
         await client.callTool({
-          name: 'create_user_environment',
-          arguments: { name: 'e2e-user-env', variables: [{ key: 'FOO', value: 'bar' }] },
+          name: 'update_user_environment',
+          arguments: {
+            environmentId: envId,
+            name: 'e2e-user-env-updated',
+            variables: [{ key: 'FOO', value: 'baz' }],
+          },
         })
       );
-      log('create_user_environment', createText);
-      expect(createText).not.toMatch(/auth\/fail/i);
-
-      // Cloud path: explicit "not supported" message
-      if (createText.includes('not supported')) {
-        expect(createText).toContain('User environments are not supported on Hoppscotch Cloud');
-        expect(createText).toContain('Use team environments instead');
-        return;
-      }
-
-      // SH path: verify create shape
-      expect(createText).not.toMatch(/^Error:/);
-      const created = jsonOf<Record<string, unknown>>(createText);
-      assertShape(created, { id: 'string', name: 'string' });
-      expect(created.name).toBe('e2e-user-env');
-      const envId = created.id as string;
-
+      log('update_user_environment', updateText);
+      expect(updateText).not.toMatch(/auth\/fail/i);
+      expect(updateText).not.toMatch(/^Error:/);
+      const updatedEnv = jsonOf<Record<string, unknown>>(updateText);
+      expect(updatedEnv.id).toBe(envId);
+      expect(updatedEnv.name).toBe('e2e-user-env-updated');
+    } finally {
+      // Delete (best-effort, don't mask the original test failure)
       try {
-        const updateText = textOf(
+        const deleteText = textOf(
           await client.callTool({
-            name: 'update_user_environment',
-            arguments: {
-              environmentId: envId,
-              name: 'e2e-user-env-updated',
-              variables: [{ key: 'FOO', value: 'baz' }],
-            },
+            name: 'delete_user_environment',
+            arguments: { environmentId: envId },
           })
         );
-        log('update_user_environment', updateText);
-        expect(updateText).not.toMatch(/auth\/fail/i);
-        expect(updateText).not.toMatch(/^Error:/);
-        const updatedEnv = jsonOf<Record<string, unknown>>(updateText);
-        expect(updatedEnv.id).toBe(envId);
-        expect(updatedEnv.name).toBe('e2e-user-env-updated');
-      } finally {
-        // Delete (best-effort, don't mask the original test failure)
-        try {
-          const deleteText = textOf(
-            await client.callTool({
-              name: 'delete_user_environment',
-              arguments: { environmentId: envId },
-            })
-          );
-          log('delete_user_environment', deleteText);
-          expect(deleteText).toMatch(/^Successfully deleted user environment \(ID: \S+\)$/);
-        } catch (e) {
-          console.error('[e2e] cleanup delete_user_environment failed:', e);
-        }
+        log('delete_user_environment', deleteText);
+        expect(deleteText).toMatch(/^Successfully deleted user environment \(ID: \S+\)$/);
+      } catch (e) {
+        console.error('[e2e] cleanup delete_user_environment failed:', e);
       }
     }
-  );
+  });
 });
 
 // ---------------------------------------------------------------------------
