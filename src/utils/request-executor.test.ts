@@ -10,7 +10,7 @@ import {
   SecretEgressBlockedError,
   UnresolvedPlaceholderError,
 } from './request-executor.js';
-import type { ExecutionResult, ValidationCriteria } from '../types.js';
+import type { ExecutionResult, ValidationCriteria } from './request-executor.js';
 
 describe('request-executor', () => {
   describe('substituteVariables', () => {
@@ -75,6 +75,57 @@ describe('request-executor', () => {
       const result = validateResponse(mockResult, criteria);
 
       expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('reports body assertions as indeterminate (not pass/fail) when the body was truncated', () => {
+      const truncated: ExecutionResult = { ...mockResult, body: '{"id": 1, "na', truncated: true };
+      const result = validateResponse(truncated, {
+        expectedStatus: 200,
+        expectedBodyContains: ['John'],
+        jsonObject: true,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.indeterminate).toBe(true);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('could not be evaluated');
+      expect(result.errors[0]).not.toContain('Expected body to contain');
+    });
+
+    it('passes a substring found in the returned (redacted) prefix of a truncated body (presence is definitive)', () => {
+      const truncated: ExecutionResult = { ...mockResult, body: '{"id": 1, "na', truncated: true };
+      const result = validateResponse(truncated, {
+        expectedStatus: 200,
+        expectedBodyContains: ['"id"'],
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.indeterminate).toBeUndefined();
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('keeps a definitive status failure a FAIL even when body assertions are unknowable', () => {
+      const truncated: ExecutionResult = {
+        ...mockResult,
+        status: 500,
+        body: '{"id": 1, "na',
+        truncated: true,
+      };
+      const result = validateResponse(truncated, { expectedStatus: 200, jsonObject: true });
+
+      expect(result.valid).toBe(false);
+      expect(result.indeterminate).toBeUndefined();
+      expect(result.errors.some((e) => e.includes('Expected status 200'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('could not be evaluated'))).toBe(true);
+    });
+
+    it('still gives a definitive verdict on a truncated body when no body assertion was requested', () => {
+      const truncated: ExecutionResult = { ...mockResult, body: '{"id": 1, "na', truncated: true };
+      const result = validateResponse(truncated, { expectedStatus: 200 });
+
+      expect(result.valid).toBe(true);
+      expect(result.indeterminate).toBeUndefined();
       expect(result.errors).toHaveLength(0);
     });
 
@@ -753,6 +804,57 @@ describe('executeRequest — secret scrubbing on the response', () => {
     expect(result.body).not.toContain('SUPER'); // no fragment of the secret survives
     expect(result.body).toContain('<red'); // redaction ran before the clamp
     expect(result.body.length).toBeLessThanOrEqual(10); // clamped to the cap
+    expect(result.truncated).toBe(true);
+  });
+
+  it('does not flag truncation when raw bytes only spilled into the redaction margin but the redacted body fits the cap', async () => {
+    process.env.HOPPSCOTCH_ALLOW_PRIVATE_HOSTS = 'true';
+    process.env.HOPPSCOTCH_MAX_RESPONSE_BYTES = '30';
+    const secret = 'S'.repeat(25); // margin >= 25, so the 33-byte raw body is read in full
+    const payload = `{"x":"${secret}"}`; // 33 bytes raw; redacts to 18 bytes — complete
+    const fetchMock = vi.fn(async () => ({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      headers: { forEach: () => {} },
+      body: streamOf(payload),
+      text: async () => payload,
+    }));
+    vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
+
+    const result = await executeRequest({ method: 'GET', url: 'https://api.example.com/x' }, 5000, [
+      secret,
+    ]);
+    expect(result.body).toBe('{"x":"<redacted>"}');
+    expect(result.truncated).toBeFalsy(); // nothing was dropped: the body is complete
+
+    const validation = validateResponse(result, { expectedStatus: 200, jsonObject: true });
+    expect(validation.valid).toBe(true); // and validation stays definitive
+    expect(validation.indeterminate).toBeUndefined();
+  });
+
+  it('flags truncation via hitLimit alone when a secret-free body exceeds the cap', async () => {
+    process.env.HOPPSCOTCH_ALLOW_PRIVATE_HOSTS = 'true';
+    process.env.HOPPSCOTCH_MAX_RESPONSE_BYTES = '30';
+    const payload = 'a'.repeat(100); // no secrets → margin 0: the read stops at the 30-byte cap
+    const fetchMock = vi.fn(async () => ({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      headers: { forEach: () => {} },
+      body: streamOf(payload),
+      text: async () => payload,
+    }));
+    vi.stubGlobal('fetch', fetchMock as unknown as typeof fetch);
+
+    const result = await executeRequest(
+      { method: 'GET', url: 'https://api.example.com/x' },
+      5000,
+      []
+    );
+    // Pins the hitLimit half of `truncated = hitLimit || clamped`: with no secrets
+    // clamped stays false, so only the reader's hard limit can set the flag.
+    expect(result.body).toBe('a'.repeat(30));
     expect(result.truncated).toBe(true);
   });
 

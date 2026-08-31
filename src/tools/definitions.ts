@@ -879,7 +879,7 @@ const REQUEST_EXECUTION_TOOLS = {
   validate_response: {
     name: 'validate_response',
     description:
-      'Execute an HTTP request and validate the response against expected criteria (status code, headers, body content, response time, etc.)',
+      'Execute an HTTP request and validate the response against expected criteria (status code, headers, body content, response time, etc.). Body and header checks run against the returned view — after secret redaction, so placeholders like <redacted> are part of the searched text. On an incomplete (truncated) body, a substring already found in the returned content still passes; an absent substring or the JSON-shape check is reported as indeterminate rather than failed, while status/header/time checks stay definitive.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -963,7 +963,8 @@ const REQUEST_EXECUTION_TOOLS = {
             expectedBodyContains: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Strings that must be present in response body',
+              description:
+                'Strings that must be present in the returned response body (checked after secret redaction; on a truncated body a found string passes, an absent one is indeterminate).',
             },
             jsonObject: {
               type: 'boolean',

@@ -876,7 +876,9 @@ export class ToolHandlers {
     const output: string[] = [];
     output.push('## Validation Result');
     output.push('');
-    output.push(`Status: ${validation.valid ? '✅ PASS' : '❌ FAIL'}`);
+    output.push(
+      `Status: ${validation.valid ? '✅ PASS' : validation.indeterminate ? '⚠️ INDETERMINATE (body truncated)' : '❌ FAIL'}`
+    );
     output.push('');
 
     if (!validation.valid) {
