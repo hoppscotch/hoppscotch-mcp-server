@@ -3,8 +3,11 @@ contact_links:
     url: https://github.com/hoppscotch/hoppscotch-mcp-server/security/advisories/new
     about: Report privately through GitHub Security Advisories. Please do not open a public issue.
   - name: Documentation
-    url: https://docs.hoppscotch.io
+    url: https://github.com/hoppscotch/hoppscotch-mcp-server#readme
     about: Setup, configuration, and per-host instructions.
   - name: Help and support
     url: https://github.com/hoppscotch/hoppscotch#support
     about: Reach out to us on our Discord server or Telegram group or GitHub discussions.
+  - name: Dedicated support
+    url: mailto:support@hoppscotch.io
+    about: Write to us if you would like dedicated support using Hoppscotch.

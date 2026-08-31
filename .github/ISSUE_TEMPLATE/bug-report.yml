@@ -1,7 +1,16 @@
 name: Bug report
 description: Something the server does that it should not, or does not do that it should.
+title: '[bug]: '
 labels: [bug]
 body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Search the existing issues before reporting a new bug.
+      options:
+        - label: I have searched the existing issues and found no matching report.
+          required: true
+
   - type: textarea
     id: what-happened
     attributes:
@@ -55,7 +64,7 @@ body:
     id: versions
     attributes:
       label: Package and Node versions
-      placeholder: "@hoppscotch/mcp-server 1.0.0, Node 22.11.0"
+      placeholder: '@hoppscotch/mcp-server 1.0.0, Node 22.11.0'
     validations:
       required: true
 

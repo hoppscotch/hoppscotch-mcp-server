@@ -12,6 +12,11 @@ maintainers. Include:
 - Steps to reproduce, with a minimal example if possible.
 - Your assessment of impact (auth bypass, token exposure, RCE, DoS, etc).
 
+If private reporting is unavailable in this repository, open a private advisory
+in the main [Hoppscotch repository](https://github.com/hoppscotch/hoppscotch/security/advisories/new)
+and identify `hoppscotch-mcp-server` as the affected component. If you do not
+receive a response, contact `support@hoppscotch.io` with the advisory link.
+
 We aim to acknowledge reports within a few business days and ship a fix
 in a patch release as soon as a remediation is validated. Reporters are
 credited in the changelog unless they prefer to remain anonymous.

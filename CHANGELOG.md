@@ -20,6 +20,62 @@ surface, the auth flow, or the minimum supported Node version.
 Deprecations are announced in the release notes for the preceding minor
 release and removed no sooner than the next major.
 
+## [Unreleased]
+
+### Fixed
+
+- `reauth` no longer reports a fresh session when `HOPPSCOTCH_ACCESS_TOKEN` is
+  configured: the documented cache cleanup still runs, but the result now says
+  the static token stays in use. Hard failures are returned as tool errors;
+  an in-progress browser login remains a retryable result.
+- `reauth` cleanup is verified end to end: a missing store counts as already
+  clear (first run), a store that cannot be overwritten fails the call, the
+  session identity stays pinned until the new sign-in completes (a
+  different-account token landing on disk mid-reauth is refused), and an
+  in-flight token refresh that finishes after a clear or reauth is discarded
+  instead of re-persisting the old session.
+- Live E2E setup fails when any provisioning step returns no id (team
+  collection/environment, personal collections, move fixtures).
+- `validate_response` no longer passes or fails body assertions against an
+  incomplete body: an absent substring and the JSON-object check are reported
+  as indeterminate (a substring already present in the returned redacted
+  content still
+  passes, and a definitive status/header failure stays a failure).
+- `execute_request`/`validate_response` no longer flag a response as truncated
+  when raw bytes only spilled into the redaction margin but the redacted body
+  fits the cap — `truncated` now means the returned body is missing content
+  (cut at the read limit, or clamped after redaction).
+- Live E2E: the registered-tool snapshot includes `reauth` (53 tools), and a
+  missing prerequisite or failed setup step fails the affected test instead of
+  skipping it silently.
+- `reauth` now fails with an explicit error if any valid stored session remains
+  after cache cleanup, instead of reporting success while an on-disk session is
+  still present.
+- The pending-login timeout message directs users to finish sign-in and then
+  retry their original Hoppscotch operation, rather than calling `reauth` again
+  (which abandons the pending flow), and does not claim a browser window opened
+  before a login URL is available.
+
+### Added
+
+- Maintenance expectations and the release and recovery runbook, as
+  `Maintainers` and `Releasing` sections in `CONTRIBUTING.md`.
+
+### Changed
+
+- The release workflow verifies that a tag points to a commit reachable from
+  `main` and that both `server.json` version fields match `package.json` before
+  publishing.
+- Public wording: self-hosted support is scoped to its implementation and
+  evidence boundary (backend reachable at `<server URL>/backend`; current CE
+  backend contract inspected, but compatibility was not live-verified against
+  CE, SHE or custom instances). Current CE sessions are documented as not
+  refreshed by this release because its cookie-based refresh endpoint is not
+  used here. The plaintext-credential note now covers every tool that serializes
+  collection or request data.
+- Disabled live-E2E tests now report as skipped instead of vacuously passing
+  when `HOPPSCOTCH_E2E` is unset.
+
 ## [1.0.0] - 2026-08-28
 
 Initial public release.
@@ -31,12 +87,13 @@ signs in through a browser device-login flow and caches the session at
 enforced on Windows). Requires Node 22+. Ships as a CLI binary only; there is no
 importable library entry point.
 
-Both Hoppscotch Cloud and self-hosted instances are supported, with the same tool
-surface on each. Two tools are unavailable on Cloud: `get_user_collection`, whose
+Hoppscotch Cloud and self-hosted mode expose the same tool definitions.
+Self-hosted mode assumes the backend is reachable at `<server URL>/backend`
+(subpath-based access, or a reverse proxy that routes it); the public CE backend
+contract was source-inspected, but CE, SHE and custom instances were not
+live-verified. Two tools are unavailable on Cloud: `get_user_collection`, whose
 `data` field Cloud's resolver fails to serialize, and `search_team_requests`,
-which the Cloud backend rejects. Everything else runs on both, including personal
-collections, requests and environments, team collections and environments,
-request execution and code generation.
+which the Cloud backend rejects. The other Cloud tools were live-verified.
 
 ### Tools
 

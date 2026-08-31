@@ -522,16 +522,21 @@ Two tools are unavailable on Cloud: `get_user_collection` (Cloud's resolver fail
 - Auth tokens are stored at `~/.config/hoppscotch-mcp/auth.json` with `600` permissions (owner-only, best-effort on POSIX)
 - The server is stateless: no user data is cached locally beyond the auth token
 - On Windows, file permissions (`0o600`) are not enforced, so keep `auth.json` in a secure location
-- Only `secret: true` environment values are masked on read. Auth credentials stored on a collection or a request (a bearer token, a basic password, an API key) are returned as stored by `list_user_collections`, `get_user_collection`, `list_user_requests`, `get_team_request` and the team equivalents, so they reach the model in plaintext
+- Only `secret: true` environment values are masked on read. Auth credentials stored on a collection or a request (a bearer token, a basic password, an API key) are returned as stored by every tool that serializes collection or request data — the list/get reads (`list_user_collections`, `get_user_collection`, `list_user_requests`, `get_team_request` and team equivalents), the exports (`export_user_collection`, `export_team_collection`), and the create/update/move responses that echo the object. `search_team_requests` is the exception: it returns only id/title/collection metadata. Stored credentials reach the model in plaintext
+
+## Maintainers
+
+Maintenance expectations and the release and recovery runbook are the
+[Maintainers](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md#maintainers)
+and
+[Releasing](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md#releasing)
+sections of `CONTRIBUTING.md`.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Commit using [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `docs:`, `test:`, etc.
-4. Open a Pull Request
-
-Please run `pnpm run lint`, `pnpm run typecheck`, and `pnpm test` before submitting. CI enforces the same.
+See [`CONTRIBUTING.md`](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CONTRIBUTING.md) for development, testing, commit, and
+pull-request guidance. Participation in this project follows the
+[`CODE_OF_CONDUCT.md`](https://github.com/hoppscotch/hoppscotch-mcp-server/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 
