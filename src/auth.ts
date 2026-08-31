@@ -312,8 +312,10 @@ export function __resetSessionIdentityForTests(): void {
  *     this function never reads the env var itself (so an ambient host token can't
  *     cross into an embedder that omitted a token).
  *  2. In-process memory cache: avoids disk reads and duplicate login flows.
- *  3. Stored token from a previous browser login: refreshed if close to expiry (both
- *     backends; the refresh mechanism differs, see the Cloud/Self-Hosted notes below).
+ *  3. Stored token from a previous browser login: refreshed if close to expiry —
+ *     Cloud via the stored Firebase refresh token; the self-hosted attempt fails
+ *     against the current Community Edition (cookie-based endpoint) and falls back
+ *     to a fresh browser login. See the Cloud/Self-Hosted notes below.
  *  4. Browser-based device-login flow: opens the Hoppscotch frontend login page.
  *     If a login is already in progress, all callers await the same Promise.
  *
@@ -326,8 +328,10 @@ export function __resetSessionIdentityForTests(): void {
  * Cloud note: Firebase ID tokens expire after ~1 hour. Token refresh uses the Firebase
  * securetoken API with the stored Firebase refresh token (no re-login needed).
  *
- * Self-Hosted note: JWTs are valid for 1 day; `/auth/refresh` accepts the refresh token
- * as a Bearer credential and returns a new token pair.
+ * Self-Hosted note: this client calls `<api>/auth/refresh` with the refresh token as a
+ * Bearer credential and expects a JSON token pair. Current Community Edition mounts
+ * refresh at `/v1/auth/refresh`, cookie-in/cookie-out, so this call fails there and the
+ * flow falls back to a fresh browser login at token expiry (backend-configured).
  */
 export async function getValidToken(
   serverUrl: string,
