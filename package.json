@@ -1,6 +1,6 @@
 {
   "name": "@hoppscotch/mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "mcpName": "io.github.hoppscotch/mcp-server",
   "description": "Model Context Protocol server for Hoppscotch API testing platform",
   "type": "module",

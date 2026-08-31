@@ -22,6 +22,8 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-31
+
 ### Fixed
 
 - `reauth` no longer reports a fresh session when `HOPPSCOTCH_ACCESS_TOKEN` is
