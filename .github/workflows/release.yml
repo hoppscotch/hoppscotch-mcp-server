@@ -24,6 +24,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # A matching version tag must identify a commit already reachable from
+      # main. This prevents a tag on an unmerged branch from publishing.
+      - name: Verify release commit belongs to main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "Release tag must point to a commit reachable from main."
+            exit 1
+          fi
+
       # Reads the pinned version from package.json "packageManager".
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -34,6 +44,23 @@ jobs:
           node-version: 22.x
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
+
+      - name: Verify tag matches package version
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG_VERSION="${REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          SRV_VERSION=$(node -p "require('./server.json').version")
+          SRV_PKG_VERSION=$(node -p "require('./server.json').packages[0].version")
+          if [ "$SRV_VERSION" != "$PKG_VERSION" ] || [ "$SRV_PKG_VERSION" != "$PKG_VERSION" ]; then
+            echo "server.json versions ($SRV_VERSION / $SRV_PKG_VERSION) do not match package.json ($PKG_VERSION)"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -56,12 +83,22 @@ jobs:
       # The Cloud Firebase Web API key is baked into the bundle at build time
       # (tsup `define`) rather than hardcoded in source. Without it the published
       # package would fail every Cloud sign-in, so fail before building.
+      # The changelog is a release source of truth (CONTRIBUTING.md, Releasing): the tagged
+      # version must have a matching section before anything publishes.
+      - name: Verify changelog section
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if ! grep -q "^## \[${PKG_VERSION//./\.}\]" CHANGELOG.md; then
+            echo "CHANGELOG.md has no \"## [$PKG_VERSION]\" section."
+            exit 1
+          fi
+
       - name: Verify release secrets
         env:
           HOPPSCOTCH_FIREBASE_API_KEY: ${{ secrets.HOPPSCOTCH_FIREBASE_API_KEY }}
         run: |
           if [ -z "$(printf '%s' "$HOPPSCOTCH_FIREBASE_API_KEY" | tr -d '[:space:]')" ]; then
-            echo "HOPPSCOTCH_FIREBASE_API_KEY repo secret is not set (or is blank)."
+            echo "HOPPSCOTCH_FIREBASE_API_KEY secret (release environment or repository) is not set (or is blank)."
             echo "Publishing without it would ship a build whose Cloud sign-in always fails."
             exit 1
           fi
@@ -76,17 +113,6 @@ jobs:
       - name: Check build output
         run: |
           test -f dist/index.js || exit 1
-
-      - name: Verify tag matches package version
-        env:
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          TAG_VERSION="${REF_NAME#v}"
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
-            exit 1
-          fi
 
       # --provenance attaches a signed SLSA provenance attestation to the
       # published tarball, letting downstream consumers verify the package was
