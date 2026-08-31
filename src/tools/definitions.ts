@@ -1406,8 +1406,8 @@ const AUTH_TOOLS = {
     description:
       'Force a fresh Hoppscotch sign-in: clears the cached token and starts a new browser device-login flow, ' +
       'instead of waiting for the current token to expire. Use when the session is wrong/expired or to switch accounts. ' +
-      'Returns the new session on success, or — if the browser login is still pending — the URL to open plus instructions to retry. ' +
-      'No effect when HOPPSCOTCH_ACCESS_TOKEN is set (that token is used as-is).',
+      'Returns the new session on success, or — if the browser login is still pending — tells you to finish sign-in and then retry the original operation or invoke a regular Hoppscotch tool; do not call reauth again while that login is active. ' +
+      'When a static access token is configured (HOPPSCOTCH_ACCESS_TOKEN, or an embedder-supplied accessToken), the cached browser session is still cleared but the static token cannot be replaced and stays in use.',
     inputSchema: {
       type: 'object',
       properties: {},

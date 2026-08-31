@@ -23,26 +23,43 @@ export class ToolHandlers {
   ) {}
 
   /**
-   * Force a fresh device-login (QoL). Clears caches + abandons any in-flight
-   * flow, then re-authenticates. The "login still pending" case rejects with an
-   * actionable, URL-bearing message, surfaced as normal content (not isError)
-   * so the agent shows the URL and retries. The token itself is never echoed.
+   * Force a fresh device-login (QoL). ALWAYS clears caches + abandons any
+   * in-flight flow via reauthenticate() — the documented cleanup. A configured
+   * HOPPSCOTCH_ACCESS_TOKEN cannot be replaced, so that branch reports that the
+   * static token stays in use instead of claiming a fresh session. The "login
+   * still pending" case rejects with an actionable, URL-bearing message,
+   * surfaced as normal content (not isError) so the agent shows the URL and
+   * retries the original operation or another regular tool without invoking
+   * reauth again; any other failure is returned with isError so it can never
+   * read as a success. The token itself is never echoed.
    */
   async reauth(args: unknown) {
     schemas.ReauthSchema.parse(args);
+    const hadStaticToken = this.client.hasStaticAccessToken();
     try {
       await this.client.reauthenticate();
       return {
         content: [
           {
             type: 'text',
-            text: 'Re-authenticated successfully — a fresh Hoppscotch session is now active.',
+            text: hadStaticToken
+              ? 'Cleared the cached browser session, but a static access token is configured ' +
+                '(HOPPSCOTCH_ACCESS_TOKEN, or the embedder-supplied accessToken setting) and ' +
+                'cannot be replaced: the static token stays in use and no browser sign-in was ' +
+                'started. Remove that configuration to switch to device login.'
+              : 'Re-authenticated successfully — a fresh Hoppscotch session is now active.',
           },
         ],
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { content: [{ type: 'text', text: message }] };
+      if (message.startsWith('Hoppscotch login is not finished yet')) {
+        return { content: [{ type: 'text', text: message }] };
+      }
+      return {
+        content: [{ type: 'text', text: `Re-authentication failed: ${message}` }],
+        isError: true,
+      };
     }
   }
 

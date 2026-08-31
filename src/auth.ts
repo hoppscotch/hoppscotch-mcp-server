@@ -159,6 +159,15 @@ interface InMemoryCache {
 let memCache: InMemoryCache | null = null;
 
 /**
+ * Monotonic auth generation. Incremented by clearStoredAuth() (and therefore by
+ * every explicit reauthenticate()); an in-flight token refresh captures it
+ * before awaiting and discards its result when the generation moved on, so a
+ * refresh that completes AFTER a clear/reauth cannot re-persist or re-cache the
+ * old session behind the user's back.
+ */
+let authGeneration = 0;
+
+/**
  * The account identity this process first authenticated as, pinned on the first
  * token accepted. A later disk token (written by another process that logged in
  * as a different account on the same apiUrl) is refused rather than silently
@@ -289,7 +298,7 @@ export function __dropMemCacheForTests(): void {
   memCache = null;
 }
 
-/** Test-only: unpin the session identity (production unpins only via reauthenticate). */
+/** Test-only: unpin the session identity (production re-pins only via a completed explicit sign-in). */
 export function __resetSessionIdentityForTests(): void {
   sessionSubject = null;
 }
@@ -376,6 +385,7 @@ export async function getValidToken(
     // identity is re-checked OUTSIDE the try/catch: a refresh must never silently
     // change the effective account, and the catch (which falls back to browser
     // login) must not swallow that refusal.
+    const authGenAtRefreshStart = authGeneration;
     if (apiType === 'cloud' && stored.firebaseRefreshToken) {
       // Cloud: use Firebase refresh token to get a new ID token.
       let refreshed: { idToken: string; refreshToken: string | undefined } | null = null;
@@ -386,6 +396,13 @@ export async function getValidToken(
         process.stderr.write(
           `[MCP] Firebase token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`
         );
+      }
+      // A clear/reauth that happened while the refresh was in flight owns the
+      // session now: this result is stale. Re-resolve from the current state
+      // (fresh cache, pending login, or a new sign-in) rather than persisting
+      // it or blindly opening a second browser login.
+      if (refreshed && authGenAtRefreshStart !== authGeneration) {
+        return getValidToken(serverUrl, apiUrl, apiType, accessToken);
       }
       if (refreshed) {
         const refreshedSubject = jwtSubject(refreshed.idToken);
@@ -411,6 +428,13 @@ export async function getValidToken(
         process.stderr.write(
           `[MCP] Token refresh failed, falling back to browser login: ${err instanceof Error ? err.message : err}\n`
         );
+      }
+      // A clear/reauth that happened while the refresh was in flight owns the
+      // session now: this result is stale. Re-resolve from the current state
+      // (fresh cache, pending login, or a new sign-in) rather than persisting
+      // it or blindly opening a second browser login.
+      if (refreshed && authGenAtRefreshStart !== authGeneration) {
+        return getValidToken(serverUrl, apiUrl, apiType, accessToken);
       }
       if (refreshed) {
         const refreshedSubject = jwtSubject(refreshed.accessToken);
@@ -476,9 +500,11 @@ function awaitLoginWithPromptTimeout(current: PendingLogin): Promise<string> {
           'Hoppscotch login is not finished yet. ' +
             (url
               ? `Open this URL in a browser and sign in:\n  ${url}\n`
-              : 'A browser window was opened for you to sign in.\n') +
-            `The login stays active for ~${mins} minutes — once you've signed in, run the tool again ` +
-            '(or call the `reauth` tool) and the token will be picked up automatically.'
+              : 'The browser sign-in is still starting; wait for its window or login URL.\n') +
+            `The login stays active for ~${mins} minutes. Finish signing in, then retry the ` +
+            'original Hoppscotch operation (or invoke another regular Hoppscotch tool); it will ' +
+            'pick up the token automatically. Do not call `reauth` again while this login is ' +
+            'active because that would abandon it and start over.'
         )
       );
     }, loginPromptTimeoutMs());
@@ -1023,21 +1049,27 @@ function storeAuth(auth: StoredAuth): void {
 
 /**
  * Clear stored auth, called when the server returns auth/fail (expired/revoked token).
- * Clears both disk and in-process memory cache.
+ * Clears both disk and in-process memory cache. Returns false when the store
+ * could not actually be cleared (the file exists but cannot be overwritten);
+ * a missing file or directory counts as already clear.
  */
-export function clearStoredAuth(): void {
+export function clearStoredAuth(): boolean {
+  authGeneration++;
   memCache = null;
   // Do NOT unpin sessionSubject here: clearStoredAuth runs on an ordinary
   // auth/fail (expired/revoked token) followed by an immediate retry; unpinning
   // would let an attacker who rewrites auth.json during that window get a
-  // different account adopted. Only explicit reauthenticate() unpins identity.
+  // different account adopted. Identity is re-pinned only by a completed
+  // explicit browser sign-in (reauthenticate -> fresh login).
   // Do NOT reset pendingLogin here: if a login window is already open,
   // subsequent calls should await it rather than opening another. (reauthenticate
   // is the explicit path that abandons an in-flight flow to start fresh.)
   try {
     writeFileSync(AUTH_FILE, '', { mode: 0o600, flag: 'w' });
-  } catch {
-    // Ignore.
+    return true;
+  } catch (err) {
+    // Nothing stored yet (first run): the store is already clear.
+    return (err as NodeJS.ErrnoException).code === 'ENOENT';
   }
 }
 
@@ -1058,9 +1090,24 @@ export async function reauthenticate(
   accessToken?: string
 ): Promise<string> {
   memCache = null;
-  sessionSubject = null;
   pendingLogin?.abort();
   pendingLogin = null;
-  clearStoredAuth();
+  const cleared = clearStoredAuth();
+  // Verify the clear actually took: clearStoredAuth is best-effort, and this is
+  // the single per-user auth store. A failed overwrite or ANY surviving valid
+  // store means reauth did not perform the cleanup it promises, even when the
+  // leftover belongs to a different apiUrl or an explicit static token will be
+  // returned below.
+  const leftover = readStoredAuth();
+  if (!cleared || leftover) {
+    throw new Error(
+      'Re-authentication could not clear the stored session file ' +
+        '(~/.config/hoppscotch-mcp/auth.json); remove it manually and retry.'
+    );
+  }
+  // The session identity stays pinned through the new sign-in: a different-
+  // account token that lands on disk during this window is refused by the
+  // identity guard, and the completed browser login re-pins whatever account
+  // the user actively signs into.
   return getValidToken(serverUrl, apiUrl, apiType, accessToken);
 }
