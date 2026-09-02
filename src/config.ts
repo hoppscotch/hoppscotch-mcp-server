@@ -27,8 +27,11 @@ export enum ApiType {
  * Self-hosted: serverUrl = https://your-sh.example.com   → apiUrl = https://your-sh.example.com/backend
  *
  * Self-hosted Hoppscotch uses nginx to route `/backend` to the NestJS backend service.
+ * Deployments where frontend and backend live on different domains can set
+ * HOPPSCOTCH_API_URL to bypass this derivation entirely.
  */
-export function deriveApiUrl(serverUrl: string): string {
+export function deriveApiUrl(serverUrl: string, explicitApiUrl?: string): string {
+  if (explicitApiUrl) return explicitApiUrl;
   if (isCloudUrl(serverUrl)) return CLOUD_API_URL;
   // Build via the URL API (not string concatenation) so a query string or
   // fragment can never corrupt the derived path. serverUrl is validated by
@@ -94,7 +97,9 @@ export function assertValidServerUrl(serverUrl: string): void {
  *   Cloud (default): https://hoppscotch.io
  *   Self-hosted:     https://your-sh.example.com  (the nginx-served frontend)
  *
- * The API URL and API type are derived automatically, so there is no need to set them.
+ * HOPPSCOTCH_API_URL: optional explicit backend API URL. When set, overrides the
+ *   default derivation (serverUrl + /backend). Use this when frontend and backend
+ *   are served on different domains (e.g. separate Cloud Run services).
  *
  * HOPPSCOTCH_ACCESS_TOKEN: optional JWT to skip browser login. A `pat-…` PAT
  * does NOT work here (PATs are REST-only; the GraphQL API requires a JWT).
@@ -137,9 +142,19 @@ export function loadConfig(): Config {
     throw new Error(`Configuration validation failed:\n  - serverUrl: ${message}`);
   }
 
+  const explicitApiUrl = process.env.HOPPSCOTCH_API_URL?.trim() || undefined;
+  if (explicitApiUrl) {
+    try {
+      assertValidServerUrl(explicitApiUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Configuration validation failed:\n  - HOPPSCOTCH_API_URL: ${message}`);
+    }
+  }
+
   const rawConfig = {
     serverUrl,
-    apiUrl: deriveApiUrl(serverUrl),
+    apiUrl: deriveApiUrl(serverUrl, explicitApiUrl),
     apiType: inferApiType(serverUrl),
     accessToken: process.env.HOPPSCOTCH_ACCESS_TOKEN,
     defaultTeamId: process.env.HOPPSCOTCH_DEFAULT_TEAM_ID,
@@ -184,6 +199,7 @@ export const TRUST_SENSITIVE_ENV_KEYS = [
   // inject an access token. Stripping these fails safe: serverUrl falls back to
   // the Cloud default, and an absent token triggers device-login.
   'HOPPSCOTCH_SERVER_URL',
+  'HOPPSCOTCH_API_URL',
   'HOPPSCOTCH_ACCESS_TOKEN',
   // A hostile .env defaulting the team could redirect omitted-team writes into an
   // attacker's workspace; an enormous response cap re-enables memory exhaustion;
