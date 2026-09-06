@@ -57,7 +57,7 @@
   "packageManager": "pnpm@10.20.0",
   "pnpm": {
     "overrides": {
-      "fast-uri": "^3.1.5",
+      "fast-uri": "^3.1.6",
       "ip-address": "^10.3.1",
       "vite": "^6.4.3",
       "postcss": "^8.5.18",
