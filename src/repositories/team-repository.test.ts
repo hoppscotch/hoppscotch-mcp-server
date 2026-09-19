@@ -169,6 +169,7 @@ describe('TeamRepository', () => {
       expect(mockClient.graphql).toHaveBeenNthCalledWith(3, expect.any(String), {
         cursor: 'team12',
       });
+      expect(mockClient.graphql).toHaveBeenCalledTimes(3);
     });
   });
 
