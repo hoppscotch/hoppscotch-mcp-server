@@ -39,6 +39,8 @@ export class TeamRepository {
       teams.push(...page);
 
       const nextCursor = this.getNextListTeamsCursor(page);
+      // Defensive stop: if the backend ever repeats the same page cursor, do not
+      // loop forever. The normal completion path is an empty page.
       if (!nextCursor || nextCursor === cursor) {
         break;
       }
