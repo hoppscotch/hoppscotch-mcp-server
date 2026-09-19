@@ -3,8 +3,6 @@ import type { Team, TeamInvitation, TeamMember, TeamMemberRole } from '../types.
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
-const MY_TEAMS_PAGE_SIZE = 10;
-
 /**
  * Repository for managing teams
  */
@@ -33,7 +31,7 @@ export class TeamRepository {
       teams.push(...page);
 
       const nextCursor = page.at(-1)?.id;
-      if (page.length !== MY_TEAMS_PAGE_SIZE || !nextCursor || nextCursor === cursor) {
+      if (!nextCursor || nextCursor === cursor) {
         break;
       }
 
