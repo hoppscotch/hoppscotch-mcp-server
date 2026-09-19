@@ -266,11 +266,11 @@ export const GET_TEAM_ENVIRONMENTS = `
 
 /**
  * List all teams the authenticated user belongs to.
- * Both: myTeams
+ * Both: myTeams(cursor)
  */
 export const LIST_TEAMS = `
-  query ListTeams {
-    myTeams {
+  query ListTeams($cursor: ID) {
+    myTeams(cursor: $cursor) {
       id
       name
       myRole

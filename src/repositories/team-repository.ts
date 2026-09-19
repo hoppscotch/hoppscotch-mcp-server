@@ -3,6 +3,8 @@ import type { Team, TeamInvitation, TeamMember, TeamMemberRole } from '../types.
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
+const MY_TEAMS_PAGE_SIZE = 10;
+
 /**
  * Repository for managing teams
  */
@@ -13,11 +15,32 @@ export class TeamRepository {
    * List all teams user has access to
    */
   async listTeams(): Promise<Team[]> {
-    const result = await this.client.graphql<{
-      myTeams: Team[];
-    }>(queries.LIST_TEAMS);
+    const teams: Team[] = [];
+    let cursor: string | undefined;
 
-    return result.myTeams || [];
+    while (true) {
+      const result = cursor
+        ? await this.client.graphql<{
+            myTeams: Team[] | null;
+          }>(queries.LIST_TEAMS, { cursor })
+        : await this.client.graphql<{
+            myTeams: Team[] | null;
+          }>(queries.LIST_TEAMS);
+
+      const page = result.myTeams || [];
+      if (page.length === 0) break;
+
+      teams.push(...page);
+
+      const nextCursor = page.at(-1)?.id;
+      if (page.length !== MY_TEAMS_PAGE_SIZE || !nextCursor || nextCursor === cursor) {
+        break;
+      }
+
+      cursor = nextCursor;
+    }
+
+    return teams;
   }
 
   /**
