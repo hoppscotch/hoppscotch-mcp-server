@@ -10,6 +10,14 @@ export class TeamRepository {
   constructor(private client: HoppscotchClient) {}
 
   /**
+   * Hoppscotch `myTeams(cursor)` expects the ID of the last returned team entry
+   * as the next cursor token; the API does not expose a separate opaque cursor.
+   */
+  private getNextListTeamsCursor(page: Team[]): string | undefined {
+    return page.at(-1)?.id;
+  }
+
+  /**
    * List all teams user has access to
    */
   async listTeams(): Promise<Team[]> {
@@ -30,7 +38,7 @@ export class TeamRepository {
 
       teams.push(...page);
 
-      const nextCursor = page.at(-1)?.id;
+      const nextCursor = this.getNextListTeamsCursor(page);
       if (!nextCursor || nextCursor === cursor) {
         break;
       }
