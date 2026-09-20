@@ -59,9 +59,13 @@ describe('TeamRepository', () => {
         },
       ];
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
@@ -93,9 +97,13 @@ describe('TeamRepository', () => {
         },
       ];
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
@@ -109,15 +117,59 @@ describe('TeamRepository', () => {
         { id: 'team3', name: 'Team 3', myRole: 'VIEWER', teamMembers: [] },
       ];
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
       expect(result[0].myRole).toBe('OWNER');
       expect(result[1].myRole).toBe('EDITOR');
       expect(result[2].myRole).toBe('VIEWER');
+    });
+
+    it('should follow myTeams cursor pagination until all teams are fetched', async () => {
+      const firstPage = Array.from({ length: 10 }, (_, i) => ({
+        id: `team${i + 1}`,
+        name: `Team ${i + 1}`,
+        myRole: 'EDITOR' as const,
+        teamMembers: [],
+      }));
+      const secondPage = [
+        {
+          id: 'team11',
+          name: 'Team 11',
+          myRole: 'OWNER' as const,
+          teamMembers: [],
+        },
+        {
+          id: 'team12',
+          name: 'Team 12',
+          myRole: 'VIEWER' as const,
+          teamMembers: [],
+        },
+      ];
+
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({ myTeams: firstPage })
+        .mockResolvedValueOnce({ myTeams: secondPage })
+        .mockResolvedValueOnce({ myTeams: [] });
+
+      const result = await repository.listTeams();
+
+      expect(result).toEqual([...firstPage, ...secondPage]);
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(1, expect.any(String));
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.any(String), {
+        cursor: 'team10',
+      });
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(3, expect.any(String), {
+        cursor: 'team12',
+      });
+      expect(mockClient.graphql).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -279,9 +331,13 @@ describe('TeamRepository', () => {
         },
       ];
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
@@ -329,9 +385,13 @@ describe('TeamRepository', () => {
         teamMembers: [],
       }));
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
@@ -381,9 +441,13 @@ describe('TeamRepository', () => {
         },
       ];
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
-      });
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({
+          myTeams: mockTeams,
+        })
+        .mockResolvedValueOnce({
+          myTeams: [],
+        });
 
       const result = await repository.listTeams();
 
@@ -418,6 +482,7 @@ describe('TeamRepository', () => {
 
       vi.mocked(mockClient.graphql)
         .mockResolvedValueOnce({ myTeams: mockTeams })
+        .mockResolvedValueOnce({ myTeams: [] })
         .mockResolvedValueOnce({ team: mockTeamDetail });
 
       const teams = await repository.listTeams();

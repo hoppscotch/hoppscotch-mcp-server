@@ -10,14 +10,45 @@ export class TeamRepository {
   constructor(private client: HoppscotchClient) {}
 
   /**
+   * Hoppscotch `myTeams(cursor)` expects the ID of the last returned team entry
+   * as the next cursor token; the API does not expose a separate opaque cursor.
+   */
+  private getNextListTeamsCursor(page: Team[]): string | undefined {
+    return page.at(-1)?.id;
+  }
+
+  /**
    * List all teams user has access to
    */
   async listTeams(): Promise<Team[]> {
-    const result = await this.client.graphql<{
-      myTeams: Team[];
-    }>(queries.LIST_TEAMS);
+    const teams: Team[] = [];
+    let cursor: string | undefined;
 
-    return result.myTeams || [];
+    while (true) {
+      const result = cursor
+        ? await this.client.graphql<{
+            myTeams: Team[] | null;
+          }>(queries.LIST_TEAMS, { cursor })
+        : await this.client.graphql<{
+            myTeams: Team[] | null;
+          }>(queries.LIST_TEAMS);
+
+      const page = result.myTeams || [];
+      if (page.length === 0) break;
+
+      teams.push(...page);
+
+      const nextCursor = this.getNextListTeamsCursor(page);
+      // Defensive stop: if the backend ever repeats the same page cursor, do not
+      // loop forever. The normal completion path is an empty page.
+      if (!nextCursor || nextCursor === cursor) {
+        break;
+      }
+
+      cursor = nextCursor;
+    }
+
+    return teams;
   }
 
   /**
