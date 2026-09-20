@@ -49,6 +49,24 @@ describe('deriveApiUrl', () => {
   it('strips trailing slash before appending /backend', () => {
     expect(deriveApiUrl('https://my-sh.example.com/')).toBe('https://my-sh.example.com/backend');
   });
+
+  it('uses explicitApiUrl when provided, bypassing derivation', () => {
+    expect(deriveApiUrl('https://my-sh.example.com', 'https://api.my-sh.example.com')).toBe(
+      'https://api.my-sh.example.com'
+    );
+  });
+
+  it('uses explicitApiUrl even for Cloud URLs', () => {
+    expect(deriveApiUrl('https://hoppscotch.io', 'https://custom-api.example.com')).toBe(
+      'https://custom-api.example.com'
+    );
+  });
+
+  it('strips trailing slashes from an explicit API URL', () => {
+    expect(deriveApiUrl('https://my-sh.example.com', 'https://api.my-sh.example.com/')).toBe(
+      'https://api.my-sh.example.com'
+    );
+  });
 });
 
 describe('loadConfig', () => {
@@ -57,6 +75,7 @@ describe('loadConfig', () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.HOPPSCOTCH_SERVER_URL;
+    delete process.env.HOPPSCOTCH_API_URL;
     delete process.env.HOPPSCOTCH_ACCESS_TOKEN;
     delete process.env.HOPPSCOTCH_TIMEOUT;
     delete process.env.HOPPSCOTCH_DEFAULT_TEAM_ID;
@@ -139,6 +158,44 @@ describe('loadConfig', () => {
     process.env.HOPPSCOTCH_SERVER_URL = 'https://sh.example.com#frag';
     expect(() => loadConfig()).toThrow(/fragment/);
   });
+
+  it('uses HOPPSCOTCH_API_URL as the apiUrl when set', () => {
+    process.env.HOPPSCOTCH_SERVER_URL = 'https://my-sh.example.com';
+    process.env.HOPPSCOTCH_API_URL = 'https://api.my-sh.example.com';
+    const config = loadConfig();
+    expect(config.apiUrl).toBe('https://api.my-sh.example.com');
+    expect(config.apiType).toBe(ApiType.SELFHOST);
+  });
+
+  it('derives apiUrl normally when HOPPSCOTCH_API_URL is not set', () => {
+    process.env.HOPPSCOTCH_SERVER_URL = 'https://my-sh.example.com';
+    const config = loadConfig();
+    expect(config.apiUrl).toBe('https://my-sh.example.com/backend');
+  });
+
+  it('validates HOPPSCOTCH_API_URL the same way as serverUrl', () => {
+    process.env.HOPPSCOTCH_SERVER_URL = 'https://my-sh.example.com';
+    process.env.HOPPSCOTCH_API_URL = 'not-a-url';
+    expect(() => loadConfig()).toThrow(/HOPPSCOTCH_API_URL/);
+  });
+
+  it.each([
+    ['HOPPSCOTCH_SERVER_URL', '?', /query string/],
+    ['HOPPSCOTCH_SERVER_URL', '#', /fragment/],
+    ['HOPPSCOTCH_API_URL', '?', /query string/],
+    ['HOPPSCOTCH_API_URL', '#', /fragment/],
+  ])('rejects %s with a bare trailing %s', (envKey, delimiter, error) => {
+    process.env[envKey] = `https://sh.example.com/backend${delimiter}`;
+    expect(() => loadConfig()).toThrow(error);
+  });
+
+  it.each([
+    ['https://api.example.com/backend/v1///', 'https://api.example.com/backend/v1/graphql'],
+    ['https://api.example.com/backend/%3F%23/', 'https://api.example.com/backend/%3F%23/graphql'],
+  ])('preserves the API base path in %s', (apiUrl, graphqlUrl) => {
+    process.env.HOPPSCOTCH_API_URL = apiUrl;
+    expect(getGraphqlUrl(loadConfig())).toBe(graphqlUrl);
+  });
 });
 
 describe('getGraphqlUrl', () => {
@@ -147,6 +204,13 @@ describe('getGraphqlUrl', () => {
       apiUrl: 'https://api.hoppscotch.io',
     } as unknown as Config;
     expect(getGraphqlUrl(config)).toBe('https://api.hoppscotch.io/graphql');
+  });
+
+  it('normalizes a trailing slash before appending the GraphQL path', () => {
+    const config = {
+      apiUrl: 'https://api.example.com/',
+    } as unknown as Config;
+    expect(getGraphqlUrl(config)).toBe('https://api.example.com/graphql');
   });
 });
 
@@ -170,6 +234,13 @@ describe('sanitizeTrustSensitiveEnv', () => {
     const stripped = sanitizeTrustSensitiveEnv({ HOPPSCOTCH_SERVER_URL: undefined }, env);
     expect(stripped).toContain('HOPPSCOTCH_SERVER_URL');
     expect(env.HOPPSCOTCH_SERVER_URL).toBeUndefined();
+  });
+
+  it('strips a .env-introduced HOPPSCOTCH_API_URL (the API target is operator-only)', () => {
+    const env: NodeJS.ProcessEnv = { HOPPSCOTCH_API_URL: 'http://attacker.example' };
+    const stripped = sanitizeTrustSensitiveEnv({ HOPPSCOTCH_API_URL: undefined }, env);
+    expect(stripped).toContain('HOPPSCOTCH_API_URL');
+    expect(env.HOPPSCOTCH_API_URL).toBeUndefined();
   });
 
   it('strips .env-introduced HOPPSCOTCH_DEFAULT_TEAM_ID and HOPPSCOTCH_MAX_RESPONSE_BYTES', () => {

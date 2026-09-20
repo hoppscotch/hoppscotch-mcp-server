@@ -25,6 +25,11 @@
           "isRequired": false
         },
         {
+          "name": "HOPPSCOTCH_API_URL",
+          "description": "Optional backend API base URL for self-hosted instances. Omit to derive it from HOPPSCOTCH_SERVER_URL. Do not append /graphql.",
+          "isRequired": false
+        },
+        {
           "name": "HOPPSCOTCH_ACCESS_TOKEN",
           "description": "Override token for authentication (advanced). Use device-login flow instead for normal usage.",
           "isRequired": false,

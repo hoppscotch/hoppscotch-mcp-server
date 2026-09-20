@@ -22,6 +22,16 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+### Added
+
+- Allow a custom backend API base URL through `HOPPSCOTCH_API_URL` for
+  self-hosted deployments. Existing URL derivation remains the default.
+
+### Fixed
+
+- Reject bare `?` or `#` in `HOPPSCOTCH_SERVER_URL` to prevent malformed
+  device-login URLs.
+
 ## [1.0.1] - 2026-08-31
 
 ### Fixed
