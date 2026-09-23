@@ -100,6 +100,21 @@ describe('TeamRepository', () => {
       });
     });
 
+    it('should throw rather than truncate when the page cap is exhausted', async () => {
+      // Every page comes back full with a fresh cursor, so the end is never reached.
+      let seq = 0;
+      vi.mocked(mockClient.graphql).mockImplementation(async () => ({
+        myTeams: Array.from({ length: 10 }, () => ({
+          id: `team${seq++}`,
+          name: 'Team',
+          myRole: 'OWNER',
+          teamMembers: [],
+        })),
+      }));
+
+      await expect(repository.listTeams()).rejects.toThrow('without reaching the end');
+    });
+
     it('should stop paginating when a full page is followed by an empty one', async () => {
       const fullPage = Array.from({ length: 10 }, (_, i) => ({
         id: `team${i}`,

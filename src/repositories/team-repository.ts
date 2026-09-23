@@ -6,7 +6,11 @@ import * as mutations from '../graphql/mutations.js';
 /** Page size the backend applies to `myTeams` (it takes no `take` argument). */
 const MY_TEAMS_PAGE_SIZE = 10;
 
-/** Cap on pages followed, so an unexpected backend response can't loop forever. */
+/**
+ * Cap on pages followed, so an unexpected backend response can't loop forever.
+ * Reaching it is an error rather than a short list: silently dropping teams
+ * would be indistinguishable from the user simply not being in them.
+ */
 const MAX_TEAM_PAGES = 100;
 
 /**
@@ -33,12 +37,16 @@ export class TeamRepository {
       const batch = result.myTeams || [];
       teams.push(...batch);
 
-      if (batch.length < MY_TEAMS_PAGE_SIZE) break;
+      if (batch.length < MY_TEAMS_PAGE_SIZE) return teams;
       cursor = batch[batch.length - 1]?.id;
-      if (!cursor) break;
+      if (!cursor) return teams;
     }
 
-    return teams;
+    throw new Error(
+      `Stopped listing teams after ${MAX_TEAM_PAGES} pages (${teams.length} teams) ` +
+        'without reaching the end. Either the account belongs to an unexpected number ' +
+        'of teams, or the backend is not honouring the pagination cursor.'
+    );
   }
 
   /**
