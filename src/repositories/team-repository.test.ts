@@ -70,7 +70,69 @@ describe('TeamRepository', () => {
       expect(result[0].name).toBe('Engineering Team');
       expect(result[0].myRole).toBe('OWNER');
       expect(result[0].teamMembers).toHaveLength(2);
-      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String));
+      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), { cursor: undefined });
+    });
+
+    it('should follow the cursor until a short page is returned', async () => {
+      const page = (offset: number, size: number) =>
+        Array.from({ length: size }, (_, i) => ({
+          id: `team${offset + i}`,
+          name: `Team ${offset + i}`,
+          myRole: 'OWNER',
+          teamMembers: [],
+        }));
+
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({ myTeams: page(0, 10) })
+        .mockResolvedValueOnce({ myTeams: page(10, 10) })
+        .mockResolvedValueOnce({ myTeams: page(20, 3) });
+
+      const result = await repository.listTeams();
+
+      expect(result).toHaveLength(23);
+      expect(result[22].id).toBe('team22');
+      expect(mockClient.graphql).toHaveBeenCalledTimes(3);
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(
+        2,
+        expect.stringMatching(/\bmyTeams\s*\(\s*cursor\s*:\s*\$cursor\s*\)/),
+        { cursor: 'team9' }
+      );
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(3, expect.any(String), {
+        cursor: 'team19',
+      });
+    });
+
+    it('should throw rather than truncate when the page cap is exhausted', async () => {
+      // Every page comes back full with a fresh cursor, so the end is never reached.
+      let seq = 0;
+      vi.mocked(mockClient.graphql).mockImplementation(async () => ({
+        myTeams: Array.from({ length: 10 }, () => ({
+          id: `team${seq++}`,
+          name: 'Team',
+          myRole: 'OWNER',
+          teamMembers: [],
+        })),
+      }));
+
+      await expect(repository.listTeams()).rejects.toThrow('without reaching the end');
+    });
+
+    it('should stop paginating when a full page is followed by an empty one', async () => {
+      const fullPage = Array.from({ length: 10 }, (_, i) => ({
+        id: `team${i}`,
+        name: `Team ${i}`,
+        myRole: 'OWNER',
+        teamMembers: [],
+      }));
+
+      vi.mocked(mockClient.graphql)
+        .mockResolvedValueOnce({ myTeams: fullPage })
+        .mockResolvedValueOnce({ myTeams: [] });
+
+      const result = await repository.listTeams();
+
+      expect(result).toHaveLength(10);
+      expect(mockClient.graphql).toHaveBeenCalledTimes(2);
     });
 
     it('should return empty array when user has no teams', async () => {
@@ -329,8 +391,11 @@ describe('TeamRepository', () => {
         teamMembers: [],
       }));
 
-      vi.mocked(mockClient.graphql).mockResolvedValue({
-        myTeams: mockTeams,
+      // The backend serves `myTeams` 10 at a time, keyed off the cursor.
+      vi.mocked(mockClient.graphql).mockImplementation(async (_query, variables) => {
+        const cursor = (variables as { cursor?: string } | undefined)?.cursor;
+        const start = cursor ? mockTeams.findIndex((t) => t.id === cursor) + 1 : 0;
+        return { myTeams: mockTeams.slice(start, start + 10) };
       });
 
       const result = await repository.listTeams();

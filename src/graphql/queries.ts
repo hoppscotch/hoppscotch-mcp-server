@@ -265,12 +265,13 @@ export const GET_TEAM_ENVIRONMENTS = `
 // ─── Teams (Cloud + SH) ─────────────────────────────────────────────────────
 
 /**
- * List all teams the authenticated user belongs to.
- * Both: myTeams
+ * List the teams the authenticated user belongs to.
+ * Both: myTeams(cursor: ID) — returns a fixed page of 10 teams per call, so
+ * callers must follow the cursor (the last team's ID) to read every page.
  */
 export const LIST_TEAMS = `
-  query ListTeams {
-    myTeams {
+  query ListTeams($cursor: ID) {
+    myTeams(cursor: $cursor) {
       id
       name
       myRole

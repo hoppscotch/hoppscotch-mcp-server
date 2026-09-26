@@ -3,6 +3,16 @@ import type { Team, TeamInvitation, TeamMember, TeamMemberRole } from '../types.
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
 
+/** Page size the backend applies to `myTeams` (it takes no `take` argument). */
+const MY_TEAMS_PAGE_SIZE = 10;
+
+/**
+ * Cap on pages followed, so an unexpected backend response can't loop forever.
+ * Reaching it is an error rather than a short list: silently dropping teams
+ * would be indistinguishable from the user simply not being in them.
+ */
+const MAX_TEAM_PAGES = 100;
+
 /**
  * Repository for managing teams
  */
@@ -10,14 +20,33 @@ export class TeamRepository {
   constructor(private client: HoppscotchClient) {}
 
   /**
-   * List all teams user has access to
+   * List all teams user has access to.
+   *
+   * `myTeams` returns at most 10 teams per call, so follow the cursor (the last
+   * team's ID) until a short page comes back and return the combined list.
    */
   async listTeams(): Promise<Team[]> {
-    const result = await this.client.graphql<{
-      myTeams: Team[];
-    }>(queries.LIST_TEAMS);
+    const teams: Team[] = [];
+    let cursor: string | undefined;
 
-    return result.myTeams || [];
+    for (let page = 0; page < MAX_TEAM_PAGES; page++) {
+      const result = await this.client.graphql<{
+        myTeams: Team[] | null;
+      }>(queries.LIST_TEAMS, { cursor });
+
+      const batch = result.myTeams || [];
+      teams.push(...batch);
+
+      if (batch.length < MY_TEAMS_PAGE_SIZE) return teams;
+      cursor = batch[batch.length - 1]?.id;
+      if (!cursor) return teams;
+    }
+
+    throw new Error(
+      `Stopped listing teams after ${MAX_TEAM_PAGES} pages (${teams.length} teams) ` +
+        'without reaching the end. Either the account belongs to an unexpected number ' +
+        'of teams, or the backend is not honouring the pagination cursor.'
+    );
   }
 
   /**

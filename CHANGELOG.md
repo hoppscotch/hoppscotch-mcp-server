@@ -29,6 +29,10 @@ release and removed no sooner than the next major.
 
 ### Fixed
 
+- `list_teams` returns every team the user belongs to. The backend serves
+  `myTeams` 10 at a time, so the query now takes a cursor and the repository
+  follows it until a short page comes back; previously teams past the first
+  page were invisible.
 - Reject bare `?` or `#` in `HOPPSCOTCH_SERVER_URL` to prevent malformed
   device-login URLs.
 
