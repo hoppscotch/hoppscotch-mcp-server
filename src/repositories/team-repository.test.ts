@@ -92,9 +92,11 @@ describe('TeamRepository', () => {
       expect(result).toHaveLength(23);
       expect(result[22].id).toBe('team22');
       expect(mockClient.graphql).toHaveBeenCalledTimes(3);
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.any(String), {
-        cursor: 'team9',
-      });
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(
+        2,
+        expect.stringMatching(/\bmyTeams\s*\(\s*cursor\s*:\s*\$cursor\s*\)/),
+        { cursor: 'team9' }
+      );
       expect(mockClient.graphql).toHaveBeenNthCalledWith(3, expect.any(String), {
         cursor: 'team19',
       });
