@@ -22,6 +22,8 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-07
+
 ### Added
 
 - Allow a custom backend API base URL through `HOPPSCOTCH_API_URL` for
@@ -29,10 +31,7 @@ release and removed no sooner than the next major.
 
 ### Fixed
 
-- `list_teams` returns every team the user belongs to. The backend serves
-  `myTeams` 10 at a time, so the query now takes a cursor and the repository
-  follows it until a short page comes back; previously teams past the first
-  page were invisible.
+- `list_teams` now follows pagination instead of returning only the first 10 teams.
 - Reject bare `?` or `#` in `HOPPSCOTCH_SERVER_URL` to prevent malformed
   device-login URLs.
 
