@@ -35,6 +35,10 @@ release and removed no sooner than the next major.
 - Reject bare `?` or `#` in `HOPPSCOTCH_SERVER_URL` to prevent malformed
   device-login URLs.
 
+### Security
+
+- Update the MCP SDK, Undici, and `proxy-addr` to address security advisories.
+
 ## [1.0.1] - 2026-08-31
 
 ### Fixed
