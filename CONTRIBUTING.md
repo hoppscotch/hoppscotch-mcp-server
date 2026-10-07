@@ -111,7 +111,7 @@ Access invariants:
 ## Releasing
 
 Releases are published by `.github/workflows/release.yml`, triggered only by
-an explicit `vX.Y.Z` tag. The workflow refuses to publish unless the tag
+an explicit `X.Y.Z` tag. The workflow refuses to publish unless the tag
 points to a commit reachable from `main`, the tag matches `package.json` and
 both `server.json` version fields, `CHANGELOG.md` has a matching section, the
 core checks and the production dependency audit pass, and the Firebase build
@@ -120,7 +120,7 @@ input is present.
 Required repository setup, once, before the first release:
 
 - protect `main` (pull-request review, required CI checks) and release tags,
-  restricting who can create or modify `v*` tags;
+  restricting who can create or modify `*.*.*` tags;
 - a GitHub `release` environment with a required reviewer, self-review
   disabled, and deployment restricted to release tags;
 - the npm publishing authentication the workflow expects; and
@@ -142,8 +142,8 @@ To release:
    commit — and push only that tag, never `git push --tags`:
 
    ```bash
-   git tag vX.Y.Z <main-commit-sha>
-   git push origin vX.Y.Z
+   git tag X.Y.Z <main-commit-sha>
+   git push origin X.Y.Z
    ```
 
 3. Have another maintainer approve the `release` environment, then watch the
