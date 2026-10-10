@@ -50,13 +50,19 @@ export class RequestRepository {
     teamId: string,
     data: CreateRequestInput
   ): Promise<TeamRequest> {
+    const normalizedRequest = this.normalizeRequestPayload(
+      data.request,
+      data.title,
+      CollectionType.REST
+    );
+
     const result = await this.client.graphql<{
       createRequestInCollection: TeamRequest;
     }>(mutations.CREATE_TEAM_REQUEST, {
       collectionID: collectionId,
       teamID: teamId,
       title: data.title,
-      request: data.request,
+      request: normalizedRequest,
     });
 
     return result.createRequestInCollection;
@@ -72,12 +78,20 @@ export class RequestRepository {
     // Fetch current state so omitted fields aren't blanked
     const current = await this.getTeamRequest(requestId);
 
+    const rawRequest = data.request ?? current.request;
+    const resolvedTitle = data.title ?? current.title;
+    const normalizedRequest = this.normalizeRequestPayload(
+      rawRequest,
+      resolvedTitle,
+      CollectionType.REST
+    );
+
     const result = await this.client.graphql<{
       updateRequest: TeamRequest;
     }>(mutations.UPDATE_TEAM_REQUEST, {
       requestID: requestId,
-      title: data.title ?? current.title,
-      request: data.request ?? current.request,
+      title: resolvedTitle,
+      request: normalizedRequest,
     });
 
     return result.updateRequest;
@@ -144,10 +158,16 @@ export class RequestRepository {
 
     const key = type === CollectionType.REST ? 'createRESTUserRequest' : 'createGQLUserRequest';
 
+    const normalizedRequest = this.normalizeRequestPayload(
+      data.request,
+      data.title,
+      type
+    );
+
     const result = await this.client.graphql<Record<string, UserRequest>>(mutation, {
       collectionID: collectionId,
       title: data.title,
-      request: data.request,
+      request: normalizedRequest,
     });
 
     const created = result[key];
@@ -171,10 +191,14 @@ export class RequestRepository {
 
     const key = type === CollectionType.REST ? 'updateRESTUserRequest' : 'updateGQLUserRequest';
 
+    const normalizedRequest = data.request
+      ? this.normalizeRequestPayload(data.request, data.title, type)
+      : data.request;
+
     const result = await this.client.graphql<Record<string, UserRequest>>(mutation, {
       id: requestId,
       title: data.title,
-      request: data.request,
+      request: normalizedRequest,
     });
 
     const updated = result[key];
@@ -227,4 +251,83 @@ export class RequestRepository {
 
     return result.searchForRequest || [];
   }
+
+  /**
+   * Normalizes request JSON payload by ensuring canonical defaults are populated.
+   * Prevents web app sidebar crashes caused by missing arrays/fields (e.g. params.map).
+   */
+  private normalizeRequestPayload(
+    requestJson: string,
+    title?: string,
+    type: CollectionType = CollectionType.REST
+  ): string {
+    try {
+      const parsed = JSON.parse(requestJson);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return requestJson;
+      }
+
+      const resolvedName = (title && title.trim().length > 0) ? title : (typeof parsed.name === 'string' && parsed.name.trim().length > 0 ? parsed.name : 'Untitled');
+
+      if (type === CollectionType.GQL) {
+        const normalizedGql: Record<string, unknown> = {
+          v: 9,
+          name: resolvedName,
+          url: 'https://echo.hoppscotch.io/graphql',
+          headers: [],
+          variables: '{\n  "id": "1"\n}',
+          query: 'query Request {\n  method\n  url\n  headers {\n    key\n    value\n  }\n}',
+          auth: {
+            authType: 'inherit',
+            authActive: true,
+          },
+          responses: {},
+          preRequestScript: '',
+          testScript: '',
+          ...parsed,
+        };
+        if (!Array.isArray(normalizedGql.headers)) {
+          normalizedGql.headers = [];
+        }
+        return JSON.stringify(normalizedGql);
+      }
+
+      const normalizedRest: Record<string, unknown> = {
+        v: '17',
+        endpoint: 'https://echo.hoppscotch.io',
+        name: resolvedName,
+        params: [],
+        headers: [],
+        method: 'GET',
+        auth: {
+          authType: 'inherit',
+          authActive: true,
+        },
+        preRequestScript: '',
+        testScript: '',
+        body: {
+          contentType: null,
+          body: null,
+        },
+        requestVariables: [],
+        responses: {},
+        ...parsed,
+      };
+
+      if (!Array.isArray(normalizedRest.params)) {
+        normalizedRest.params = [];
+      }
+      if (!Array.isArray(normalizedRest.headers)) {
+        normalizedRest.headers = [];
+      }
+      if (!Array.isArray(normalizedRest.requestVariables)) {
+        normalizedRest.requestVariables = [];
+      }
+
+      return JSON.stringify(normalizedRest);
+    } catch {
+      return requestJson;
+    }
+  }
+
 }
