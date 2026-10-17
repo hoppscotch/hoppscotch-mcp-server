@@ -158,11 +158,7 @@ export class RequestRepository {
 
     const key = type === CollectionType.REST ? 'createRESTUserRequest' : 'createGQLUserRequest';
 
-    const normalizedRequest = this.normalizeRequestPayload(
-      data.request,
-      data.title,
-      type
-    );
+    const normalizedRequest = this.normalizeRequestPayload(data.request, data.title, type);
 
     const result = await this.client.graphql<Record<string, UserRequest>>(mutation, {
       collectionID: collectionId,
@@ -267,7 +263,27 @@ export class RequestRepository {
         return requestJson;
       }
 
-      const resolvedName = (title && title.trim().length > 0) ? title : (typeof parsed.name === 'string' && parsed.name.trim().length > 0 ? parsed.name : 'Untitled');
+      const resolvedName =
+        title && title.trim().length > 0
+          ? title
+          : typeof parsed.name === 'string' && parsed.name.trim().length > 0
+            ? parsed.name
+            : 'Untitled';
+
+      const normalizeAuth = (rawAuth: unknown): Record<string, unknown> => {
+        if (typeof rawAuth !== 'object' || rawAuth === null || Array.isArray(rawAuth)) {
+          return {
+            authType: 'inherit',
+            authActive: true,
+          };
+        }
+        const authObj = rawAuth as Record<string, unknown>;
+        return {
+          ...authObj,
+          authType: typeof authObj.authType === 'string' ? authObj.authType : 'inherit',
+          authActive: typeof authObj.authActive === 'boolean' ? authObj.authActive : true,
+        };
+      };
 
       if (type === CollectionType.GQL) {
         const normalizedGql: Record<string, unknown> = {
@@ -275,34 +291,58 @@ export class RequestRepository {
           name: resolvedName,
           url: 'https://echo.hoppscotch.io/graphql',
           headers: [],
-          variables: '{\n  "id": "1"\n}',
-          query: 'query Request {\n  method\n  url\n  headers {\n    key\n    value\n  }\n}',
-          auth: {
-            authType: 'inherit',
-            authActive: true,
-          },
+          variables: typeof parsed.variables === 'string' ? parsed.variables : '{}',
+          query:
+            typeof parsed.query === 'string'
+              ? parsed.query
+              : 'query Request {\n  method\n  url\n  headers {\n    key\n    value\n  }\n}',
           responses: {},
           preRequestScript: '',
           testScript: '',
           ...parsed,
+          auth: normalizeAuth(parsed.auth),
         };
         if (!Array.isArray(normalizedGql.headers)) {
           normalizedGql.headers = [];
         }
+        if (typeof normalizedGql.variables !== 'string') {
+          normalizedGql.variables = '{}';
+        }
         return JSON.stringify(normalizedGql);
       }
 
+      // Check if it's an unversioned legacy V0 REST request
+      const isLegacyV0 =
+        parsed.v === undefined &&
+        ('url' in parsed ||
+          'path' in parsed ||
+          typeof parsed.body === 'string' ||
+          typeof parsed.auth === 'string');
+
+      if (isLegacyV0) {
+        // Preserve legacy V0 payload for web app's migration pipeline while guarding arrays
+        const legacyRest: Record<string, unknown> = {
+          ...parsed,
+          name: resolvedName,
+          params: Array.isArray(parsed.params) ? parsed.params : [],
+          headers: Array.isArray(parsed.headers) ? parsed.headers : [],
+        };
+        return JSON.stringify(legacyRest);
+      }
+
+      const resolvedEndpoint =
+        typeof parsed.endpoint === 'string' && parsed.endpoint.trim().length > 0
+          ? parsed.endpoint
+          : typeof parsed.url === 'string' && parsed.url.trim().length > 0
+            ? parsed.url
+            : 'https://echo.hoppscotch.io';
+
       const normalizedRest: Record<string, unknown> = {
         v: '17',
-        endpoint: 'https://echo.hoppscotch.io',
         name: resolvedName,
         params: [],
         headers: [],
         method: 'GET',
-        auth: {
-          authType: 'inherit',
-          authActive: true,
-        },
         preRequestScript: '',
         testScript: '',
         body: {
@@ -312,6 +352,8 @@ export class RequestRepository {
         requestVariables: [],
         responses: {},
         ...parsed,
+        endpoint: resolvedEndpoint,
+        auth: normalizeAuth(parsed.auth),
       };
 
       if (!Array.isArray(normalizedRest.params)) {
@@ -329,5 +371,4 @@ export class RequestRepository {
       return requestJson;
     }
   }
-
 }

@@ -305,6 +305,110 @@ describe('RequestRepository', () => {
       );
     });
 
+    it('normalizes sparse auth by populating authActive: true', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Bearer Auth Request',
+        request: JSON.stringify({
+          method: 'GET',
+          endpoint: 'https://api.example.com',
+          auth: { authType: 'bearer', token: 'secret' },
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"authActive":true'),
+        })
+      );
+    });
+
+    it('preserves explicit authActive: false in sparse auth', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Inactive Auth Request',
+        request: JSON.stringify({
+          method: 'GET',
+          endpoint: 'https://api.example.com',
+          auth: { authType: 'none', authActive: false },
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"authActive":false'),
+        })
+      );
+    });
+
+    it('preserves unversioned legacy V0 REST request without forcing v: 17', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Legacy V0 Request',
+        request: JSON.stringify({
+          url: 'https://legacy.example.com',
+          path: '/v1/users',
+          body: '{"foo":"bar"}',
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.not.stringContaining('"v":"17"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"url":"https://legacy.example.com"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
+    });
+
+    it('normalizes GQL request variables to empty object without injecting sample id', async () => {
+      const gqlRequest = { ...userRequest, type: 'GQL' as const };
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createGQLUserRequest: gqlRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.GQL, {
+        title: 'Custom GQL Request',
+        request: JSON.stringify({
+          query: 'query Lookup($id: Int = 42) { item(id: $id) { id } }',
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"variables":"{}"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.not.stringContaining('"id": "1"'),
+        })
+      );
+    });
   });
 
   describe('updateUserRequest', () => {
