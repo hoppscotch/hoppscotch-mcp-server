@@ -76,11 +76,24 @@ export const EXPORT_USER_COLLECTIONS_JSON = `
 `;
 
 /**
- * Export a specific user collection to JSON.
+ * Export a specific user collection to JSON (self-hosted).
  * SH field: exportUserCollectionToJSON(collectionID: ID!)
- * Cloud:    present on the live schema.
+ *           The field has no collectionType argument on any self-hosted
+ *           release; the backend reads the type from the collection itself.
+ *           Sending one fails with "Unknown argument collectionType".
  */
-export const EXPORT_USER_COLLECTION_JSON = `
+export const EXPORT_USER_COLLECTION_JSON_SELFHOST = `
+  query ExportUserCollectionJSON($collectionID: ID!) {
+    exportUserCollectionToJSON(collectionID: $collectionID)
+  }
+`;
+
+/**
+ * Export a specific user collection to JSON (Cloud).
+ * Cloud field: exportUserCollectionToJSON(collectionID: ID!, collectionType: ReqType!, orgID: ID)
+ *              collectionType is required there, so Cloud needs its own document.
+ */
+export const EXPORT_USER_COLLECTION_JSON_CLOUD = `
   query ExportUserCollectionJSON($collectionID: ID!, $collectionType: ReqType!) {
     exportUserCollectionToJSON(collectionID: $collectionID, collectionType: $collectionType)
   }

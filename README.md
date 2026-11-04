@@ -432,8 +432,12 @@ curl -s -X POST https://api.hoppscotch.io/graphql \
   -H 'Content-Type: application/json' \
   -d "$(node -e "const{getIntrospectionQuery}=require('graphql');console.log(JSON.stringify({query:getIntrospectionQuery()}))")" \
   -o schema.json
-pnpm run validate:graphql schema.json
+pnpm run validate:graphql schema.json            # Cloud schema (default)
+pnpm run validate:graphql schema.json selfhost   # schema captured from a self-hosted instance
 ```
+
+Documents that only exist for one backend carry a `_CLOUD` or `_SELFHOST`
+suffix and are skipped when validating against the other backend's schema.
 
 ### Running E2E Tests
 
