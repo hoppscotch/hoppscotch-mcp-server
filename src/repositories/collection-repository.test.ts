@@ -105,20 +105,24 @@ describe('CollectionRepository', () => {
       });
     });
 
-    it('should export a single collection by ID', async () => {
+    it('should export a single collection by ID without collectionType on self-hosted', async () => {
       vi.mocked(mockClient.graphql).mockResolvedValue({ exportUserCollectionToJSON: '{"a":1}' });
 
       const result = await repository.exportUserCollection(CollectionType.REST, 'col1');
 
       expect(result).toBe('{"a":1}');
-      // collectionType is ReqType! on this field; omitting it fails the query.
-      expect(mockClient.graphql).toHaveBeenCalledWith(queries.EXPORT_USER_COLLECTION_JSON, {
-        collectionID: 'col1',
-        collectionType: CollectionType.REST,
-      });
+      // Self-hosted backends define exportUserCollectionToJSON(collectionID: ID!)
+      // only; sending collectionType is rejected as an unknown argument.
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        queries.EXPORT_USER_COLLECTION_JSON_SELFHOST,
+        {
+          collectionID: 'col1',
+        }
+      );
+      expect(queries.EXPORT_USER_COLLECTION_JSON_SELFHOST).not.toContain('collectionType');
     });
 
-    it('should issue the same query on Cloud', async () => {
+    it('should send collectionType with the Cloud document on Cloud', async () => {
       const cloudClient = makeMockClient(ApiType.CLOUD);
       vi.mocked(cloudClient.graphql).mockResolvedValue({ exportUserCollectionToJSON: '{"a":1}' });
 
@@ -128,7 +132,8 @@ describe('CollectionRepository', () => {
       );
 
       expect(result).toBe('{"a":1}');
-      expect(cloudClient.graphql).toHaveBeenCalledWith(queries.EXPORT_USER_COLLECTION_JSON, {
+      // collectionType is ReqType! on Cloud; omitting it fails the query.
+      expect(cloudClient.graphql).toHaveBeenCalledWith(queries.EXPORT_USER_COLLECTION_JSON_CLOUD, {
         collectionID: 'col1',
         collectionType: CollectionType.REST,
       });

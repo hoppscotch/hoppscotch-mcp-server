@@ -2,6 +2,7 @@ import type { HoppscotchClient } from '../client.js';
 import type { Team, TeamInvitation, TeamMember, TeamMemberRole } from '../types.js';
 import * as queries from '../graphql/queries.js';
 import * as mutations from '../graphql/mutations.js';
+import { ApiType } from '../config.js';
 
 /** Page size the backend applies to `myTeams` (it takes no `take` argument). */
 const MY_TEAMS_PAGE_SIZE = 10;
@@ -18,6 +19,10 @@ const MAX_TEAM_PAGES = 100;
  */
 export class TeamRepository {
   constructor(private client: HoppscotchClient) {}
+
+  private isCloud(): boolean {
+    return this.client.getConfig().apiType === ApiType.CLOUD;
+  }
 
   /**
    * List all teams user has access to.
@@ -153,13 +158,19 @@ export class TeamRepository {
     email: string,
     role: TeamMemberRole
   ): Promise<TeamInvitation> {
+    // The role enum is TeamMemberRole on Cloud and TeamAccessRole on self-hosted.
     const result = await this.client.graphql<{
       createTeamInvitation: TeamInvitation;
-    }>(mutations.CREATE_TEAM_INVITATION, {
-      teamID: teamId,
-      inviteeEmail: email,
-      inviteeRole: role,
-    });
+    }>(
+      this.isCloud()
+        ? mutations.CREATE_TEAM_INVITATION_CLOUD
+        : mutations.CREATE_TEAM_INVITATION_SELFHOST,
+      {
+        teamID: teamId,
+        inviteeEmail: email,
+        inviteeRole: role,
+      }
+    );
 
     return result.createTeamInvitation;
   }
@@ -199,13 +210,21 @@ export class TeamRepository {
     if (newRole !== 'OWNER') {
       await this.assertWontOrphanTeam(teamId, { kind: 'demote', userUid });
     }
+    // Cloud: updateTeamMemberRole(newRole: TeamMemberRole!). Self-hosted renamed
+    // both to updateTeamAccessRole / TeamAccessRole; its document aliases the
+    // field back so the result key is the same on both.
     const result = await this.client.graphql<{
       updateTeamMemberRole: TeamMember;
-    }>(mutations.UPDATE_TEAM_MEMBER_ROLE, {
-      teamID: teamId,
-      userUid,
-      newRole,
-    });
+    }>(
+      this.isCloud()
+        ? mutations.UPDATE_TEAM_MEMBER_ROLE_CLOUD
+        : mutations.UPDATE_TEAM_MEMBER_ROLE_SELFHOST,
+      {
+        teamID: teamId,
+        userUid,
+        newRole,
+      }
+    );
 
     return result.updateTeamMemberRole;
   }

@@ -1,15 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TeamRepository } from './team-repository';
 import type { HoppscotchClient } from '../client';
+import * as mutations from '../graphql/mutations';
+import { ApiType } from '../config';
 
 describe('TeamRepository', () => {
   let repository: TeamRepository;
   let mockClient: HoppscotchClient;
 
-  beforeEach(() => {
-    mockClient = {
+  function makeMockClient(apiType: ApiType = ApiType.SELFHOST): HoppscotchClient {
+    return {
       graphql: vi.fn(),
+      getConfig: vi.fn().mockReturnValue({ apiType }),
     } as unknown as HoppscotchClient;
+  }
+
+  beforeEach(() => {
+    mockClient = makeMockClient();
     repository = new TeamRepository(mockClient);
   });
 
@@ -597,11 +604,35 @@ describe('TeamRepository', () => {
       expect(result).toEqual(mockInvitation);
       expect(result.inviteeEmail).toBe('new@example.com');
       expect(result.inviteeRole).toBe('EDITOR');
-      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+      // Self-hosted: the role argument is TeamAccessRole (renamed in 2025.5.0).
+      expect(mockClient.graphql).toHaveBeenCalledWith(mutations.CREATE_TEAM_INVITATION_SELFHOST, {
         teamID: 'team1',
         inviteeEmail: 'new@example.com',
         inviteeRole: 'EDITOR',
       });
+      expect(mutations.CREATE_TEAM_INVITATION_SELFHOST).toContain('TeamAccessRole!');
+      expect(mutations.CREATE_TEAM_INVITATION_SELFHOST).not.toContain('TeamMemberRole');
+    });
+
+    it('should use the TeamMemberRole document on Cloud', async () => {
+      const cloudClient = makeMockClient(ApiType.CLOUD);
+      vi.mocked(cloudClient.graphql).mockResolvedValue({
+        createTeamInvitation: {
+          id: 'invite1',
+          teamID: 'team1',
+          inviteeEmail: 'a@b.c',
+          inviteeRole: 'EDITOR',
+        },
+      });
+
+      await new TeamRepository(cloudClient).inviteTeamMember('team1', 'a@b.c', 'EDITOR');
+
+      expect(cloudClient.graphql).toHaveBeenCalledWith(mutations.CREATE_TEAM_INVITATION_CLOUD, {
+        teamID: 'team1',
+        inviteeEmail: 'a@b.c',
+        inviteeRole: 'EDITOR',
+      });
+      expect(mutations.CREATE_TEAM_INVITATION_CLOUD).toContain('TeamMemberRole!');
     });
 
     it('should throw on duplicate invite', async () => {
@@ -679,11 +710,39 @@ describe('TeamRepository', () => {
       expect(result).toEqual(mockMember);
       expect(result.role).toBe('EDITOR');
       expect(result.user.uid).toBe('user1');
-      expect(mockClient.graphql).toHaveBeenCalledWith(expect.any(String), {
+      // Self-hosted: updateTeamAccessRole(newRole: TeamAccessRole!), aliased back
+      // to updateTeamMemberRole so the result is read the same way as on Cloud.
+      expect(mockClient.graphql).toHaveBeenCalledWith(mutations.UPDATE_TEAM_MEMBER_ROLE_SELFHOST, {
         teamID: 'team1',
         userUid: 'user1',
         newRole: 'EDITOR',
       });
+      expect(mutations.UPDATE_TEAM_MEMBER_ROLE_SELFHOST).toContain(
+        'updateTeamMemberRole: updateTeamAccessRole('
+      );
+      expect(mutations.UPDATE_TEAM_MEMBER_ROLE_SELFHOST).toContain('TeamAccessRole!');
+    });
+
+    it('should use updateTeamMemberRole with TeamMemberRole on Cloud', async () => {
+      const cloudClient = makeMockClient(ApiType.CLOUD);
+      vi.mocked(cloudClient.graphql).mockResolvedValue({
+        updateTeamMemberRole: { membershipID: 'm1', role: 'OWNER', user: { uid: 'user1' } },
+      });
+
+      const result = await new TeamRepository(cloudClient).updateTeamMemberRole(
+        'team1',
+        'user1',
+        'OWNER'
+      );
+
+      expect(result.role).toBe('OWNER');
+      expect(cloudClient.graphql).toHaveBeenCalledWith(mutations.UPDATE_TEAM_MEMBER_ROLE_CLOUD, {
+        teamID: 'team1',
+        userUid: 'user1',
+        newRole: 'OWNER',
+      });
+      expect(mutations.UPDATE_TEAM_MEMBER_ROLE_CLOUD).toContain('updateTeamMemberRole(');
+      expect(mutations.UPDATE_TEAM_MEMBER_ROLE_CLOUD).toContain('TeamMemberRole!');
     });
 
     it('should throw on invalid role', async () => {

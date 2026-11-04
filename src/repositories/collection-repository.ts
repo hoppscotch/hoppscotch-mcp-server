@@ -249,12 +249,21 @@ export class CollectionRepository {
     // rejects "", so anything that arrives here is a real ID.
     const one = collectionId !== undefined;
 
-    const query = one ? queries.EXPORT_USER_COLLECTION_JSON : queries.EXPORT_USER_COLLECTIONS_JSON;
-
-    // Both branches require collectionType; the by-id one declares it ReqType!.
-    const variables = one
-      ? { collectionID: collectionId, collectionType: type }
-      : { collectionType: type };
+    // The by-id field differs between backends: Cloud requires collectionType,
+    // self-hosted does not define that argument at all. The export-all field
+    // takes collectionType on both.
+    let query: string;
+    let variables: Record<string, string>;
+    if (!one) {
+      query = queries.EXPORT_USER_COLLECTIONS_JSON;
+      variables = { collectionType: type };
+    } else if (this.isCloud()) {
+      query = queries.EXPORT_USER_COLLECTION_JSON_CLOUD;
+      variables = { collectionID: collectionId, collectionType: type };
+    } else {
+      query = queries.EXPORT_USER_COLLECTION_JSON_SELFHOST;
+      variables = { collectionID: collectionId };
+    }
 
     const result = await this.client.graphql<{
       exportUserCollectionsToJSON?: { exportedCollection: string; collectionType: string };
