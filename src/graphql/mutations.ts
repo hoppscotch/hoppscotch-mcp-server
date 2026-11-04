@@ -503,12 +503,28 @@ export const LEAVE_TEAM = `
 `;
 
 /**
- * Invite a member to a team.
- * Both: createTeamInvitation(teamID, inviteeEmail, inviteeRole)
- * Cloud also accepts orgID (optional).
+ * Invite a member to a team (Cloud).
+ * Cloud: createTeamInvitation(teamID, inviteeEmail, inviteeRole: TeamMemberRole!, orgID?)
  */
-export const CREATE_TEAM_INVITATION = `
+export const CREATE_TEAM_INVITATION_CLOUD = `
   mutation CreateTeamInvitation($teamID: ID!, $inviteeEmail: String!, $inviteeRole: TeamMemberRole!) {
+    createTeamInvitation(teamID: $teamID, inviteeEmail: $inviteeEmail, inviteeRole: $inviteeRole) {
+      id
+      teamID
+      inviteeEmail
+      inviteeRole
+    }
+  }
+`;
+
+/**
+ * Invite a member to a team (self-hosted).
+ * SH: createTeamInvitation(teamID, inviteeEmail, inviteeRole: TeamAccessRole!)
+ *     The role enum was renamed TeamMemberRole -> TeamAccessRole in
+ *     hoppscotch/hoppscotch#5053 (2025.5.0); the values are unchanged.
+ */
+export const CREATE_TEAM_INVITATION_SELFHOST = `
+  mutation CreateTeamInvitation($teamID: ID!, $inviteeEmail: String!, $inviteeRole: TeamAccessRole!) {
     createTeamInvitation(teamID: $teamID, inviteeEmail: $inviteeEmail, inviteeRole: $inviteeRole) {
       id
       teamID
@@ -539,12 +555,32 @@ export const REMOVE_TEAM_MEMBER = `
 `;
 
 /**
- * Update a team member's role.
- * Both: updateTeamMemberRole(teamID, userUid, newRole)
+ * Update a team member's role (Cloud).
+ * Cloud: updateTeamMemberRole(teamID, userUid, newRole: TeamMemberRole!)
  */
-export const UPDATE_TEAM_MEMBER_ROLE = `
+export const UPDATE_TEAM_MEMBER_ROLE_CLOUD = `
   mutation UpdateTeamMemberRole($teamID: ID!, $userUid: ID!, $newRole: TeamMemberRole!) {
     updateTeamMemberRole(teamID: $teamID, userUid: $userUid, newRole: $newRole) {
+      membershipID
+      role
+      user {
+        uid
+        displayName
+        email
+      }
+    }
+  }
+`;
+
+/**
+ * Update a team member's role (self-hosted).
+ * SH: updateTeamAccessRole(teamID, userUid, newRole: TeamAccessRole!)
+ *     Renamed from updateTeamMemberRole in hoppscotch/hoppscotch#5053 (2025.5.0).
+ *     Aliased back to updateTeamMemberRole so both documents return the same shape.
+ */
+export const UPDATE_TEAM_MEMBER_ROLE_SELFHOST = `
+  mutation UpdateTeamMemberRole($teamID: ID!, $userUid: ID!, $newRole: TeamAccessRole!) {
+    updateTeamMemberRole: updateTeamAccessRole(teamID: $teamID, userUid: $userUid, newRole: $newRole) {
       membershipID
       role
       user {

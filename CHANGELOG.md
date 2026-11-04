@@ -30,6 +30,10 @@ release and removed no sooner than the next major.
   with `collectionID` only; the Cloud document still sends `collectionType`.
   `validate:graphql` takes an optional `cloud|selfhost` target so both
   documents can be checked against the matching schema.
+- `invite_team_member` and `update_team_member_role` failed on every
+  self-hosted backend since 2025.5.0, which renamed `TeamMemberRole` to
+  `TeamAccessRole` and `updateTeamMemberRole` to `updateTeamAccessRole`.
+  Self-hosted now gets its own documents; Cloud is unchanged.
 
 ## [1.0.2] - 2026-10-07
 
