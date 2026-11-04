@@ -22,6 +22,15 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+### Fixed
+
+- `export_user_collection` with a `collectionId` failed on every self-hosted
+  backend with `Unknown argument "collectionType" on field
+  "Query.exportUserCollectionToJSON"`. Self-hosted releases define that field
+  with `collectionID` only; the Cloud document still sends `collectionType`.
+  `validate:graphql` takes an optional `cloud|selfhost` target so both
+  documents can be checked against the matching schema.
+
 ## [1.0.2] - 2026-10-07
 
 ### Added
