@@ -37,6 +37,20 @@ function submittedSecretValues(variablesStr: string | undefined): string[] {
 }
 
 /**
+ * Effective value of a stored variable. MCP-written variables carry `value`;
+ * app-written ones carry `initialValue` (synced) and `currentValue` (local
+ * override, often empty when synced). A non-empty `currentValue` wins over
+ * `initialValue`, matching the app. Never returns a non-string, so substitution
+ * can't join on `undefined` (which Array#join renders as ",").
+ */
+export function resolveVariableValue(v: Record<string, unknown>): string {
+  if (typeof v.value === 'string') return v.value;
+  if (typeof v.currentValue === 'string' && v.currentValue !== '') return v.currentValue;
+  if (typeof v.initialValue === 'string') return v.initialValue;
+  return '';
+}
+
+/**
  * Guard the WRITE path against the redaction placeholder being persisted. A
  * model that lists envs, copies a `secret: true` var (now showing
  * SECRET_PLACEHOLDER instead of the real value), and submits the list back on
@@ -347,7 +361,23 @@ export class EnvironmentRepository {
 
   // ─── Utility ──────────────────────────────────────────────────────────────
 
+  /**
+   * Variables normalized for substitution. Environments saved by the Hoppscotch
+   * apps store `initialValue`/`currentValue` instead of `value`, so resolve
+   * `value` the way the app does at send time.
+   */
   getEnvironmentVariables(environment: UserEnvironment | TeamEnvironment): EnvironmentVariable[] {
-    return this.parseVariables(environment.variables);
+    const parsed: unknown = this.parseVariables(environment.variables);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (v): v is Record<string, unknown> =>
+          !!v && typeof v === 'object' && typeof (v as Record<string, unknown>).key === 'string'
+      )
+      .map((v) => ({
+        key: v.key as string,
+        value: resolveVariableValue(v),
+        ...(typeof v.secret === 'boolean' ? { secret: v.secret } : {}),
+      }));
   }
 }
