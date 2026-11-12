@@ -36,13 +36,7 @@ function submittedSecretValues(variablesStr: string | undefined): string[] {
   return out;
 }
 
-/**
- * Effective value of a stored variable. MCP-written variables carry `value`;
- * app-written ones carry `initialValue` (synced) and `currentValue` (local
- * override, often empty when synced). A non-empty `currentValue` wins over
- * `initialValue`, matching the app. Never returns a non-string, so substitution
- * can't join on `undefined` (which Array#join renders as ",").
- */
+/** Effective value of a variable: `value` (MCP-written), else non-empty `currentValue`, else `initialValue` (app-saved). */
 export function resolveVariableValue(v: Record<string, unknown>): string {
   if (typeof v.value === 'string') return v.value;
   if (typeof v.currentValue === 'string' && v.currentValue !== '') return v.currentValue;
@@ -361,11 +355,7 @@ export class EnvironmentRepository {
 
   // ─── Utility ──────────────────────────────────────────────────────────────
 
-  /**
-   * Variables normalized for substitution. Environments saved by the Hoppscotch
-   * apps store `initialValue`/`currentValue` instead of `value`, so resolve
-   * `value` the way the app does at send time.
-   */
+  /** Variables normalized to `{ key, value, secret? }` for substitution. */
   getEnvironmentVariables(environment: UserEnvironment | TeamEnvironment): EnvironmentVariable[] {
     const parsed: unknown = this.parseVariables(environment.variables);
     if (!Array.isArray(parsed)) return [];
