@@ -36,6 +36,14 @@ function submittedSecretValues(variablesStr: string | undefined): string[] {
   return out;
 }
 
+/** Effective value of a variable: `value` (MCP-written), else non-empty `currentValue`, else `initialValue` (app-saved). */
+export function resolveVariableValue(v: Record<string, unknown>): string {
+  if (typeof v.value === 'string') return v.value;
+  if (typeof v.currentValue === 'string' && v.currentValue !== '') return v.currentValue;
+  if (typeof v.initialValue === 'string') return v.initialValue;
+  return '';
+}
+
 /**
  * Guard the WRITE path against the redaction placeholder being persisted. A
  * model that lists envs, copies a `secret: true` var (now showing
@@ -347,7 +355,19 @@ export class EnvironmentRepository {
 
   // ─── Utility ──────────────────────────────────────────────────────────────
 
+  /** Variables normalized to `{ key, value, secret? }` for substitution. */
   getEnvironmentVariables(environment: UserEnvironment | TeamEnvironment): EnvironmentVariable[] {
-    return this.parseVariables(environment.variables);
+    const parsed: unknown = this.parseVariables(environment.variables);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (v): v is Record<string, unknown> =>
+          !!v && typeof v === 'object' && typeof (v as Record<string, unknown>).key === 'string'
+      )
+      .map((v) => ({
+        key: v.key as string,
+        value: resolveVariableValue(v),
+        ...(typeof v.secret === 'boolean' ? { secret: v.secret } : {}),
+      }));
   }
 }

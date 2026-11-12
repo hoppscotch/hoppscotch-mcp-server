@@ -22,6 +22,12 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+### Fixed
+
+- `execute_request` and `validate_response` now resolve variables in
+  environments saved by the Hoppscotch app (`initialValue`/`currentValue`)
+  instead of substituting `,` for every placeholder.
+
 ## [1.0.2] - 2026-10-07
 
 ### Added

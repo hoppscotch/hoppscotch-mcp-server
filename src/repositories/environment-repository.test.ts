@@ -529,5 +529,59 @@ describe('EnvironmentRepository', () => {
       const mockEnv = { id: 'env1', name: 'Empty', variables: '[]' };
       expect(repository.getEnvironmentVariables(mockEnv as unknown as UserEnvironment)).toEqual([]);
     });
+
+    it('resolves app-saved initialValue/currentValue variables to value', () => {
+      const mockEnv = {
+        id: 'env1',
+        name: 'App-saved',
+        variables: JSON.stringify([
+          {
+            key: 'baseURL',
+            initialValue: 'https://api.example.com',
+            currentValue: '',
+            secret: false,
+          },
+          { key: 'override', initialValue: 'initial', currentValue: 'current', secret: false },
+          { key: 'token', initialValue: 'abc123', currentValue: '', secret: true },
+          { key: 'empty', initialValue: '', currentValue: '', secret: false },
+          { key: 'missing' },
+        ]),
+      };
+      expect(repository.getEnvironmentVariables(mockEnv as unknown as UserEnvironment)).toEqual([
+        { key: 'baseURL', value: 'https://api.example.com', secret: false },
+        { key: 'override', value: 'current', secret: false },
+        { key: 'token', value: 'abc123', secret: true },
+        { key: 'empty', value: '', secret: false },
+        { key: 'missing', value: '' },
+      ]);
+    });
+
+    it('prefers value when present (MCP-written variables)', () => {
+      const mockEnv = {
+        id: 'env1',
+        name: 'Mixed',
+        variables: JSON.stringify([
+          { key: 'k', value: 'v', initialValue: 'ignored', currentValue: 'ignored' },
+        ]),
+      };
+      expect(repository.getEnvironmentVariables(mockEnv as unknown as UserEnvironment)).toEqual([
+        { key: 'k', value: 'v' },
+      ]);
+    });
+
+    it('drops entries without a string key and non-array payloads', () => {
+      const withJunk = {
+        id: 'e',
+        name: 'J',
+        variables: JSON.stringify([null, 5, { value: 'x' }, { key: 'ok', value: '1' }]),
+      };
+      expect(repository.getEnvironmentVariables(withJunk as unknown as UserEnvironment)).toEqual([
+        { key: 'ok', value: '1' },
+      ]);
+      const notArray = { id: 'e', name: 'O', variables: '{"key":"k"}' };
+      expect(repository.getEnvironmentVariables(notArray as unknown as UserEnvironment)).toEqual(
+        []
+      );
+    });
   });
 });
