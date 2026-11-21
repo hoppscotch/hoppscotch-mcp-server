@@ -193,7 +193,7 @@ export const GetTeamInfoSchema = z.object({
 export const ExecuteRequestSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
   url: z.string().url(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
   auth: z
     .object({
@@ -213,7 +213,7 @@ export const ExecuteRequestSchema = z.object({
 export const ValidateResponseSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
   url: z.string().url(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
   auth: z
     .object({
@@ -234,7 +234,7 @@ export const ValidateResponseSchema = z.object({
         max: z.number(),
       })
       .optional(),
-    expectedHeaders: z.record(z.string()).optional(),
+    expectedHeaders: z.record(z.string(), z.string()).optional(),
     expectedBodyContains: z.array(z.string()).optional(),
     // `jsonObject: true` asserts the response body parses as a JSON object/array
     // (not a primitive). This is NOT full JSON Schema validation.
@@ -255,7 +255,7 @@ export const ValidateResponseSchema = z.object({
 export const GenerateCodeSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
   url: z.string().url(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
   auth: z
     .object({
@@ -275,7 +275,7 @@ export const GenerateCodeSchema = z.object({
 export const GenerateDocumentationSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
   url: z.string().url(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
   auth: z
     .object({
