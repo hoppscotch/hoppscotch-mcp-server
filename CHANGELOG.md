@@ -22,6 +22,10 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+### Security
+
+- Update vulnerable production dependencies and migrate to patched Zod 4.
+
 ## [1.0.2] - 2026-10-07
 
 ### Added
