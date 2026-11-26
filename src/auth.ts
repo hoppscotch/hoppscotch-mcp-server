@@ -5,6 +5,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import open from 'open';
 import type { ApiType } from './config.js';
+import { proxyAwareFetch } from './utils/proxy-fetch.js';
 
 const AUTH_DIR = join(homedir(), '.config', 'hoppscotch-mcp');
 const AUTH_FILE = join(AUTH_DIR, 'auth.json');
@@ -911,7 +912,7 @@ async function runLoginFlow(
 async function exchangeFirebaseCustomToken(
   customToken: string
 ): Promise<{ idToken: string; refreshToken: string | null }> {
-  const res = await fetch(
+  const res = await proxyAwareFetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${firebaseWebApiKey()}`,
     {
       method: 'POST',
@@ -946,7 +947,7 @@ async function exchangeFirebaseCustomToken(
 async function refreshFirebaseToken(
   firebaseRefreshToken: string
 ): Promise<{ idToken: string; refreshToken: string }> {
-  const res = await fetch(
+  const res = await proxyAwareFetch(
     `https://securetoken.googleapis.com/v1/token?key=${firebaseWebApiKey()}`,
     {
       method: 'POST',

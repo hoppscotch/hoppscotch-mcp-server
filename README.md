@@ -144,6 +144,15 @@ situation.
 | `HOPPSCOTCH_FORCE_BROWSER_LOGIN` | `false` | Set `true` to attempt browser login even when a headless environment is detected. |
 | `HOPPSCOTCH_AUTH_TIMEOUT_MS` | `60000` | How long a tool call waits for browser sign-in before returning retry guidance (with the login URL once it is available). The local callback stays open ~5 min regardless, so a slower sign-in still completes. |
 
+### Networks that require a proxy
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `HTTPS_PROXY` / `HTTP_PROXY` | — | Proxy used for the Firebase sign-in and token-refresh calls (`identitytoolkit.googleapis.com`, `securetoken.googleapis.com`) on Hoppscotch **Cloud**. Honoured on every supported Node version (22+); Node's own `NODE_USE_ENV_PROXY` only exists on Node 24+. Lowercase spellings work too. |
+| `NO_PROXY` | — | Comma-separated hosts that must stay direct. |
+
+Set them in your MCP client's `env` block. If a login callback arrives but sign-in then fails with "Could not reach identitytoolkit.googleapis.com", the network is not allowing a direct connection and a proxy is needed. Only the Cloud sign-in calls use these variables; other requests are unchanged.
+
 ### Request execution
 
 | Variable | Default | Purpose |

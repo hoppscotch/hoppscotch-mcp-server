@@ -22,6 +22,10 @@ release and removed no sooner than the next major.
 
 ## [Unreleased]
 
+### Added
+
+- Honour `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` for the Firebase sign-in and token-refresh calls on Hoppscotch Cloud, on every supported Node version, and report a clear "Could not reach ..." error when those calls time out.
+
 ### Security
 
 - Update vulnerable production dependencies and migrate to patched Zod 4.
