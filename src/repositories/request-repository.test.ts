@@ -94,12 +94,15 @@ describe('RequestRepository', () => {
         request: '{"method":"GET","endpoint":"https://api.example.com/users"}',
       });
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
-        collectionID: 'col1',
-        teamID: 'team1',
-        title: 'Get Users',
-        request: '{"method":"GET","endpoint":"https://api.example.com/users"}',
-      });
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          collectionID: 'col1',
+          teamID: 'team1',
+          title: 'Get Users',
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
       expect(result).toEqual(teamRequest);
     });
   });
@@ -116,11 +119,15 @@ describe('RequestRepository', () => {
       });
 
       expect(mockClient.graphql).toHaveBeenCalledTimes(2);
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
-        requestID: 'tr1',
-        title: 'Get Users',
-        request: '{"method":"GET"}',
-      });
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          requestID: 'tr1',
+          title: 'Get Users',
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
       expect(result).toEqual(teamRequest);
     });
 
@@ -131,11 +138,15 @@ describe('RequestRepository', () => {
 
       await repository.updateTeamRequest('tr1', { request: '{"method":"GET"}' });
 
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
-        requestID: 'tr1',
-        title: 'Get Users',
-        request: '{"method":"GET"}',
-      });
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          requestID: 'tr1',
+          title: 'Get Users',
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
     });
 
     it('should preserve current request when only title is provided', async () => {
@@ -145,11 +156,15 @@ describe('RequestRepository', () => {
 
       await repository.updateTeamRequest('tr1', { title: 'Updated' });
 
-      expect(mockClient.graphql).toHaveBeenNthCalledWith(2, expect.anything(), {
-        requestID: 'tr1',
-        title: 'Updated',
-        request: teamRequest.request,
-      });
+      expect(mockClient.graphql).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.objectContaining({
+          requestID: 'tr1',
+          title: 'Updated',
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
     });
   });
 
@@ -236,11 +251,14 @@ describe('RequestRepository', () => {
         request: '{"method":"POST"}',
       });
 
-      expect(mockClient.graphql).toHaveBeenCalledWith(expect.anything(), {
-        collectionID: 'ucol1',
-        title: 'Post Item',
-        request: '{"method":"POST"}',
-      });
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          collectionID: 'ucol1',
+          title: 'Post Item',
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
       expect(result).toEqual(userRequest);
     });
 
@@ -267,6 +285,129 @@ describe('RequestRepository', () => {
           request: '{}',
         })
       ).rejects.toThrow('Failed to create user request');
+    });
+
+    it('normalizes missing params and headers to prevent web app sidebar crashes', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Sparse Request',
+        request: JSON.stringify({ method: 'GET', endpoint: 'https://api.example.com' }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringMatching(/"params":\[\].*"headers":\[\]/),
+        })
+      );
+    });
+
+    it('normalizes sparse auth by populating authActive: true', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Bearer Auth Request',
+        request: JSON.stringify({
+          method: 'GET',
+          endpoint: 'https://api.example.com',
+          auth: { authType: 'bearer', token: 'secret' },
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"authActive":true'),
+        })
+      );
+    });
+
+    it('preserves explicit authActive: false in sparse auth', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Inactive Auth Request',
+        request: JSON.stringify({
+          method: 'GET',
+          endpoint: 'https://api.example.com',
+          auth: { authType: 'none', authActive: false },
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"authActive":false'),
+        })
+      );
+    });
+
+    it('preserves unversioned legacy V0 REST request without forcing v: 17', async () => {
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createRESTUserRequest: userRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.REST, {
+        title: 'Legacy V0 Request',
+        request: JSON.stringify({
+          url: 'https://legacy.example.com',
+          path: '/v1/users',
+          body: '{"foo":"bar"}',
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.not.stringContaining('"v":"17"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"url":"https://legacy.example.com"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"params":[]'),
+        })
+      );
+    });
+
+    it('normalizes GQL request variables to empty object without injecting sample id', async () => {
+      const gqlRequest = { ...userRequest, type: 'GQL' as const };
+      vi.mocked(mockClient.graphql).mockResolvedValue({
+        createGQLUserRequest: gqlRequest,
+      });
+
+      await repository.createUserRequest('ucol1', CollectionType.GQL, {
+        title: 'Custom GQL Request',
+        request: JSON.stringify({
+          query: 'query Lookup($id: Int = 42) { item(id: $id) { id } }',
+        }),
+      });
+
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.stringContaining('"variables":"{}"'),
+        })
+      );
+      expect(mockClient.graphql).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          request: expect.not.stringContaining('"id": "1"'),
+        })
+      );
     });
   });
 
