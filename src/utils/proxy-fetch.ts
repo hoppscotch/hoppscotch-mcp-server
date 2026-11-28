@@ -32,31 +32,65 @@ function proxyAgent(): EnvHttpProxyAgent {
 
 function isNetworkFailure(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
-  return err.name === 'TimeoutError' || err.name === 'AbortError' || err.message === 'fetch failed';
+  return (
+    err.name === 'TimeoutError' ||
+    err.name === 'AbortError' ||
+    err.message === 'fetch failed' ||
+    // undici reports a response body that is cut off or stalls as "terminated"
+    err.message === 'terminated'
+  );
+}
+
+/** Rethrow a timeout or connection failure with a hint about proxy settings. */
+function withNetworkHint(url: string, err: unknown): never {
+  if (!isNetworkFailure(err)) throw err;
+  const host = new URL(url).host;
+  const detail = err instanceof Error ? err.message : String(err);
+  throw new Error(
+    `Could not reach ${host} (${detail}). If this network needs a proxy, set HTTPS_PROXY ` +
+      `(and NO_PROXY for hosts that must stay direct) in the MCP server's environment.`,
+    { cause: err }
+  );
+}
+
+async function request(url: string, init: RequestInit): Promise<Response> {
+  if (hasProxyEnv()) {
+    return (await undiciFetch(url, {
+      ...init,
+      dispatcher: proxyAgent(),
+    } as Parameters<typeof undiciFetch>[1])) as unknown as Response;
+  }
+  return await fetch(url, init);
 }
 
 /**
  * Drop-in replacement for `fetch(url, init)` for calls to third-party endpoints.
  * A timeout or connection failure is rethrown with a hint about proxy settings,
  * since the bare "operation was aborted due to timeout" does not say what to fix.
+ * The hint only covers the request until the headers arrive; use
+ * `proxyAwareFetchJson` when the body is read afterwards.
  */
 export async function proxyAwareFetch(url: string, init: RequestInit = {}): Promise<Response> {
   try {
-    if (hasProxyEnv()) {
-      return (await undiciFetch(url, {
-        ...init,
-        dispatcher: proxyAgent(),
-      } as Parameters<typeof undiciFetch>[1])) as unknown as Response;
-    }
-    return await fetch(url, init);
+    return await request(url, init);
   } catch (err) {
-    if (!isNetworkFailure(err)) throw err;
-    const host = new URL(url).host;
-    const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      `Could not reach ${host} (${detail}). If this network needs a proxy, set HTTPS_PROXY ` +
-        `(and NO_PROXY for hosts that must stay direct) in the MCP server's environment.`,
-      { cause: err }
-    );
+    return withNetworkHint(url, err);
+  }
+}
+
+/**
+ * Like `proxyAwareFetch`, but also reads the JSON body inside the same error handling,
+ * so an endpoint or proxy that sends headers and then stalls (the abort signal fires
+ * while the body is being read) gets the same host and proxy hint.
+ */
+export async function proxyAwareFetchJson<T>(
+  url: string,
+  init: RequestInit = {}
+): Promise<{ res: Response; data: T }> {
+  try {
+    const res = await request(url, init);
+    return { res, data: (await res.json()) as T };
+  } catch (err) {
+    return withNetworkHint(url, err);
   }
 }
