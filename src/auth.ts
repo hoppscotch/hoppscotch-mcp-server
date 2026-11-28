@@ -5,6 +5,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import open from 'open';
 import type { ApiType } from './config.js';
+import { proxyAwareFetchJson } from './utils/proxy-fetch.js';
 
 const AUTH_DIR = join(homedir(), '.config', 'hoppscotch-mcp');
 const AUTH_FILE = join(AUTH_DIR, 'auth.json');
@@ -911,7 +912,11 @@ async function runLoginFlow(
 async function exchangeFirebaseCustomToken(
   customToken: string
 ): Promise<{ idToken: string; refreshToken: string | null }> {
-  const res = await fetch(
+  const { res, data } = await proxyAwareFetchJson<{
+    idToken?: string;
+    refreshToken?: string;
+    error?: { message: string };
+  }>(
     `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${firebaseWebApiKey()}`,
     {
       method: 'POST',
@@ -925,12 +930,6 @@ async function exchangeFirebaseCustomToken(
       signal: AbortSignal.timeout(10_000),
     }
   );
-
-  const data = (await res.json()) as {
-    idToken?: string;
-    refreshToken?: string;
-    error?: { message: string };
-  };
 
   if (!res.ok || !data.idToken) {
     throw new Error(data.error?.message ?? 'Firebase token exchange failed');
@@ -946,24 +945,19 @@ async function exchangeFirebaseCustomToken(
 async function refreshFirebaseToken(
   firebaseRefreshToken: string
 ): Promise<{ idToken: string; refreshToken: string }> {
-  const res = await fetch(
-    `https://securetoken.googleapis.com/v1/token?key=${firebaseWebApiKey()}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Referer: 'https://hoppscotch.io',
-      },
-      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: firebaseRefreshToken }),
-      signal: AbortSignal.timeout(10_000),
-    }
-  );
-
-  const data = (await res.json()) as {
+  const { res, data } = await proxyAwareFetchJson<{
     id_token?: string;
     refresh_token?: string;
     error?: { message: string };
-  };
+  }>(`https://securetoken.googleapis.com/v1/token?key=${firebaseWebApiKey()}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Referer: 'https://hoppscotch.io',
+    },
+    body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: firebaseRefreshToken }),
+    signal: AbortSignal.timeout(10_000),
+  });
 
   if (!res.ok || !data.id_token) {
     throw new Error(data.error?.message ?? 'Firebase token refresh failed');
